@@ -25,14 +25,14 @@ que necesitas y lee solo eso y sus dependencias declaradas.
 | [30-characters](30-characters/INDEX.md) | `CHR` | Modelo de personaje, habilidades y conocimiento. |
 | [40-settlement](40-settlement/INDEX.md) | `SET` | Crecimiento del asentamiento y producción. |
 | [50-society](50-society/INDEX.md) | `SOC` | Dinámica social, facciones y comunidades externas. |
-| [60-threats](60-threats/INDEX.md) | `THR` | Amenazas (sin documentos aprobados todavía). |
+| [60-threats](60-threats/INDEX.md) | `THR` | Amenazas: modelo de zombis y defensa. |
 | [70-narrative](70-narrative/INDEX.md) | `NAR` | Narrativa procedural emergente. |
-| [80-interface](80-interface/INDEX.md) | `UI` | Interfaz (sin documentos aprobados todavía). |
-| [90-architecture](90-architecture/INDEX.md) | `ARC` | Dirección técnica. |
+| [80-interface](80-interface/INDEX.md) | `UI` | Interfaz: interacción, prioridades, designaciones y control puntual. |
+| [90-architecture](90-architecture/INDEX.md) | `ARC` | Dirección técnica, generación procedural y persistencia. |
 | [scenarios](scenarios/INDEX.md) | `SCN` | Condiciones iniciales de partida. |
 | [decisions](decisions/INDEX.md) | `DEC` | Decisiones ya cerradas. |
 | [discovery](discovery/INDEX.md) | `DISC` | Síntesis de ideas todavía no cerradas. |
-| [roadmap](roadmap/INDEX.md) | — | Hoja de ruta futura (vacío por ahora). |
+| [roadmap](roadmap/INDEX.md) | `RDM` | Alcance del primer corte jugable y secuencia de entregas. |
 
 ## Ruta de lectura recomendada según el cambio
 
@@ -45,6 +45,10 @@ que necesitas y lee solo eso y sus dependencias declaradas.
 - **Cambio de sociedad/facciones**: lee `50-society/`.
 - **Cambio de narrativa**: lee `70-narrative/`, revisa `scenarios/` si afecta
   al arranque de partida.
+- **Cambio de interfaz/control/designaciones**: lee `80-interface/`, revisa
+  `30-characters/` (autonomía y habilidades).
+- **Cambio de amenazas**: lee `60-threats/`.
+- **Cambio de alcance del primer corte jugable**: lee `roadmap/RDM-001`.
 - **Cambio técnico/arquitectura**: lee `90-architecture/` y las decisiones en
   `decisions/`.
 - **Cualquier cambio**: revisa `docs/OPEN-QUESTIONS.md` para no resolver en

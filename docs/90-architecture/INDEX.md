@@ -22,7 +22,9 @@ simulación, datos y presentación, y persistencia.
 | ID | Estado | Propósito |
 |---|---|---|
 | [ARC-001](ARC-001_technical-direction.md) | `approved` | Motor, lenguaje, separación técnica y persistencia. |
+| [ARC-002](ARC-002_procedural-generation-and-persistence.md) | `approved` | Generación bajo demanda reproducible, tiempo y persistencia. |
 
 ## Dependencias con otros dominios
 
-- `docs/decisions/` (DEC-0001, DEC-0002, DEC-0003 respaldan estas reglas).
+- `docs/decisions/` (DEC-0001 a DEC-0005 respaldan estas reglas).
+- `20-world` (información que depende de la generación bajo demanda).

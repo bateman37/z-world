@@ -9,6 +9,7 @@ depends_on: []
 related:
   - WLD-001
   - CHR-001
+  - CHR-003
   - NAR-001
 ---
 
@@ -45,7 +46,10 @@ comercian, luchan o desaparecen aunque el jugador no las controle (ver
 ## 5. Interacciones con otros sistemas
 
 - Las relaciones y el conocimiento individual (dominio 30) alimentan la
-  dinámica social.
+  dinámica social. Las decisiones autónomas individuales que pueden generar
+  tensión social se rigen por
+  [CHR-003](../30-characters/CHR-003_autonomy-intentions-and-behavior.md),
+  sin que este documento reformule esa autonomía.
 - Los conflictos y encuentros con otras comunidades son fuente de
   situaciones narrativas (ver
   [NAR-001](../70-narrative/NAR-001_emergent-narrative.md)).

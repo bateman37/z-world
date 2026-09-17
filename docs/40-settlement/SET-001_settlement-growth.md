@@ -9,6 +9,7 @@ depends_on: []
 related:
   - WLD-001
   - SET-002
+  - SET-003
 ---
 
 ## 1. Propósito
@@ -25,7 +26,11 @@ Definir cómo crece el asentamiento y qué implica esa expansión.
 
 El asentamiento puede transformar casas, talleres, huertos, caminos,
 depósitos, bosques, campos y otras infraestructuras cercanas, dentro del
-mapa local (ver [WLD-001](../20-world/WLD-001_world-scales.md)).
+mapa local (ver [WLD-001](../20-world/WLD-001_world-scales.md)). El refugio
+inicial (ver
+[SCN-001](../scenarios/SCN-001_mountain-village-arrival.md)) no es una meta
+final: es el primer lugar desde el que el asentamiento crece, no un guion de
+crecimiento fijo.
 
 ## 4. Reglas aprobadas
 
@@ -36,6 +41,8 @@ mapa local (ver [WLD-001](../20-world/WLD-001_world-scales.md)).
 
 - Las soluciones de producción disponibles dependen de las infraestructuras
   reclamadas (ver [SET-002](SET-002_production-and-solutions.md)).
+- Los recursos, su logística y su condición se rigen por
+  [SET-003](SET-003_resources-logistics-and-condition.md).
 - La expansión puede generar tensiones sociales o narrativas (ver
   [SOC-001](../50-society/SOC-001_living-community.md) y
   [NAR-001](../70-narrative/NAR-001_emergent-narrative.md)).

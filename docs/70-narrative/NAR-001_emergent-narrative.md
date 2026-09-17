@@ -9,6 +9,7 @@ depends_on: []
 related:
   - SOC-001
   - CHR-001
+  - CHR-003
   - SET-001
 ---
 
@@ -52,6 +53,10 @@ propias.
 
 - Las tensiones y oportunidades surgen del estado de la comunidad (dominio
   30), del asentamiento (dominio 40) y de la sociedad (dominio 50).
+- Las decisiones autónomas y sus consecuencias registradas en
+  [CHR-003](../30-characters/CHR-003_autonomy-intentions-and-behavior.md)
+  son una fuente de tensiones y situaciones, sin que este documento rehaga
+  ese modelo de autonomía.
 - La memoria persistente alimenta futuras situaciones narrativas.
 
 ## 6. Casos límite o riesgos

@@ -19,8 +19,12 @@ convertirse en un calendario obligatorio.
 
 ## Documentos
 
-Ninguno todavía. No hay hoja de ruta comprometida en esta entrega.
+| ID | Estado | Propósito |
+|---|---|---|
+| [RDM-001](RDM-001_first-playable-slice.md) | `approved` | Alcance cerrado del primer corte jugable y secuencia de entregas de implementación, sin fechas. |
 
 ## Dependencias con otros dominios
 
-Ninguna todavía.
+- `80-interface`, `30-characters`, `20-world`, `40-settlement`, `60-threats`,
+  `90-architecture` y `scenarios` (`RDM-001` consolida el alcance de sus
+  documentos sin repetir sus reglas).

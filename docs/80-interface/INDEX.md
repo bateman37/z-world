@@ -16,8 +16,13 @@ paneles, cámara, información mostrada y flujos de interacción.
 
 ## Documentos
 
-Ninguno todavía. Este dominio no tiene decisiones aprobadas en esta entrega.
+| ID | Estado | Propósito |
+|---|---|---|
+| [UI-001](UI-001_interaction-and-command-model.md) | `approved` | Selección, prioridades, designaciones, zonas, control puntual con ratón e información operativa. |
 
 ## Dependencias con otros dominios
 
 - `90-architecture` (separación entre simulación y presentación).
+- `30-characters` (elegibilidad y autonomía de las personas).
+- `20-world`, `40-settlement` (información y recursos sobre los que se
+  designan trabajos).
