@@ -22,6 +22,7 @@ todos los demás dominios.
 |---|---|---|
 | [VIS-001](VIS-001_game-vision.md) | `approved` | Visión general del juego y referencias de intención. |
 | [VIS-002](VIS-002_design-pillars.md) | `approved` | Pilares de diseño aprobados. |
+| [VIS-003](VIS-003_maximum-design-envelope.md) | `approved` | Horizonte máximo de experiencia y relación con entregas pequeñas. |
 
 ## Dependencias con otros dominios
 

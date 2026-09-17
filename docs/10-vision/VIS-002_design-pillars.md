@@ -12,6 +12,7 @@ related:
   - SET-001
   - SOC-001
   - NAR-001
+  - VIS-003
 ---
 
 ## 1. Propósito
@@ -71,6 +72,10 @@ No aplica; este documento es una lista de principios.
 - **Progreso sin escalada militar obligatoria**: sigilo, retirada, barreras y
   evitar un lugar son alternativas tan válidas como el combate. Detalle en
   [THR-001](../60-threats/THR-001_zombie-threat-model.md).
+- **Crecimiento sin cambiar de juego**: la comunidad puede crecer desde un
+  grupo local hasta una sociedad conectada con una región viva sin
+  convertirse en otro juego. Horizonte completo en
+  [VIS-003](../10-vision/VIS-003_maximum-design-envelope.md).
 
 ## 5. Interacciones con otros sistemas
 

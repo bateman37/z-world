@@ -11,6 +11,7 @@ related:
   - CHR-001
   - CHR-003
   - SET-001
+  - NAR-002
 ---
 
 ## 1. Propósito
@@ -57,7 +58,11 @@ propias.
   [CHR-003](../30-characters/CHR-003_autonomy-intentions-and-behavior.md)
   son una fuente de tensiones y situaciones, sin que este documento rehaga
   ese modelo de autonomía.
-- La memoria persistente alimenta futuras situaciones narrativas.
+- La memoria persistente alimenta futuras situaciones narrativas. El
+  horizonte máximo de esa memoria significativa y de la historia causal
+  reconstruible se desarrolla en
+  [NAR-002](NAR-002_memory-and-causal-world-history.md), conservando esta
+  causalidad sin reformularla.
 
 ## 6. Casos límite o riesgos
 

@@ -10,6 +10,8 @@ related:
   - WLD-001
   - SET-002
   - SET-003
+  - SET-004
+  - SET-005
 ---
 
 ## 1. Propósito
@@ -43,6 +45,10 @@ crecimiento fijo.
   reclamadas (ver [SET-002](SET-002_production-and-solutions.md)).
 - Los recursos, su logística y su condición se rigen por
   [SET-003](SET-003_resources-logistics-and-condition.md).
+- El horizonte máximo de transición tecnológica se desarrolla en
+  [SET-004](SET-004_technological-transition-and-knowledge-economy.md) y el
+  de la red productiva e infraestructura en
+  [SET-005](SET-005_production-web-and-infrastructure.md).
 - La expansión puede generar tensiones sociales o narrativas (ver
   [SOC-001](../50-society/SOC-001_living-community.md) y
   [NAR-001](../70-narrative/NAR-001_emergent-narrative.md)).

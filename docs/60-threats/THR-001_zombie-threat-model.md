@@ -10,6 +10,7 @@ depends_on: []
 related:
   - UI-001
   - SET-003
+  - THR-002
 ---
 
 ## 1. Propósito
@@ -49,6 +50,9 @@ generar ruido.
   defensa básica. No incluye un director de hordas completo, tipos de zombi
   especiales, epidemias avanzadas, asedios masivos ni equilibrio final.
 - El modelo futuro de zombis será configurable antes de iniciar una partida.
+  Los ejes candidatos de esa configuración, todavía sin aprobar, se
+  registran en [THR-002](THR-002_configurable-threat-horizon.md); solo el
+  perfil lento actual está aprobado.
 
 ## 5. Interacciones con otros sistemas
 

@@ -12,6 +12,7 @@ related:
   - SET-001
   - SOC-001
   - WLD-002
+  - WLD-003
 ---
 
 ## 1. Propósito
@@ -48,6 +49,11 @@ Existen dos escalas complementarias:
 - El mapa estratégico es donde otras comunidades y el mundo exterior viven de
   forma más abstracta (ver
   [SOC-001](../50-society/SOC-001_living-community.md)).
+- El horizonte máximo del mapa estratégico (hexágonos, niebla de guerra,
+  expediciones, materialización de zonas y simulación regional) se
+  desarrolla en
+  [WLD-003](WLD-003_strategic-world-and-regional-simulation.md), sin cerrar
+  todavía la escala numérica y el tamaño total, que siguen abiertos.
 
 ## 5. Interacciones con otros sistemas
 

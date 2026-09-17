@@ -11,6 +11,7 @@ depends_on:
 related:
   - DEC-0005
   - WLD-002
+  - ARC-003
 ---
 
 ## 1. Propósito
@@ -96,6 +97,10 @@ coherente al cambiar de velocidad o pausar.
 - Los recursos y su condición dependen del estado simulado, no de la
   representación cargada (ver
   [SET-003](../40-settlement/SET-003_resources-logistics-and-condition.md)).
+- Los principios de simulación multiescala que amplían esta separación entre
+  detalle local y abstracción regional se desarrollan en
+  [ARC-003](ARC-003_multiscale-simulation-principles.md), sin cerrar
+  todavía el formato de guardado.
 
 ## 6. Casos límite o riesgos
 

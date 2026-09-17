@@ -9,6 +9,8 @@ depends_on: []
 related:
   - CHR-002
   - CHR-003
+  - CHR-004
+  - CHR-005
   - VIS-002
 ---
 
@@ -82,6 +84,13 @@ esta regla: sirven para priorizar tareas, no otorgan competencia en ellas.
 
 ## 5. Interacciones con otros sistemas
 
+- El horizonte máximo de historia vital, descubrimiento progresivo y arcos
+  personales se desarrolla en
+  [CHR-004](CHR-004_life-history-and-personal-arcs.md), sin ampliar el
+  conjunto exacto de habilidades iniciales de la sección 3.1.
+- Una taxonomía candidata y extensa de habilidades futuras, todavía
+  `draft`, vive en [CHR-005](CHR-005_extended-skill-taxonomy.md); no se
+  importa al primer corte jugable.
 - El aprendizaje y la enseñanza se desarrollan en
   [CHR-002](CHR-002_knowledge-and-learning.md).
 - La autonomía, las motivaciones y la evolución del comportamiento se

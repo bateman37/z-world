@@ -11,15 +11,23 @@ del juego** (ni código, ni escenas de Godot, ni prototipos).
 
 ## Última entrega completada
 
-`DESIGN-001` está completado documentalmente: cierra la especificación
-funcional de cómo se juega minuto a minuto en el mapa local (interacción,
-autonomía, exploración, recursos, amenazas, tiempo y persistencia) y define
-la primera versión visual **como alcance de roadmap, no como algo creado**.
-Ver [RDM-001](roadmap/RDM-001_first-playable-slice.md) para el alcance
-exacto y la secuencia de entregas de implementación futuras.
+`DESIGN-002` está completado documentalmente: registra el horizonte máximo
+conocido de Z-World (mundo estratégico, historia vital de las personas,
+transición tecnológica, red productiva, política interna, comunidades
+externas, memoria e historia causal, gestión a escala y simulación
+multiescala) como dirección de largo plazo, **sin ampliar el primer corte
+jugable ni encargar código**. Ver
+[VIS-003](10-vision/VIS-003_maximum-design-envelope.md) para el horizonte
+completo y
+[DEC-0006](decisions/DEC-0006_maximum-envelope-vs-delivery-scope.md) para
+la separación entre horizonte máximo, alcance de entrega y estado
+implementado. `RDM-001` no cambia: sigue siendo la única fuente del alcance
+real de la primera implementación.
 
-Entrega previa: `DOCS-002` — español como idioma documental por defecto (ver
-[DOC-001, sección 3.7](00-governance/DOC-001_documentation-system.md)).
+Entrega previa: `DESIGN-001` — especificación funcional cerrada de cómo se
+juega minuto a minuto en el mapa local y alcance exacto del primer corte
+jugable. Ver
+[RDM-001](roadmap/RDM-001_first-playable-slice.md).
 
 ## Tecnología aprobada
 
@@ -37,17 +45,23 @@ este repositorio.
 
 ## Documentación
 
-- **Aprobada (`approved`)**: visión y pilares (`10-vision`), escalas y
-  exploración del mundo (`WLD-001`, `WLD-002`), modelo de personaje,
-  aprendizaje y autonomía (`CHR-001`, `CHR-002`, `CHR-003`), crecimiento,
-  producción y recursos del asentamiento (`SET-001`, `SET-002`, `SET-003`),
-  comunidad viva (`SOC-001`), narrativa emergente (`NAR-001`), interacción y
-  control (`UI-001`), amenaza zombi (`THR-001`), dirección técnica y
-  generación procedural (`ARC-001`, `ARC-002`), escenario inicial
-  (`SCN-001`), alcance del primer corte jugable (`RDM-001`), decisiones
-  `DEC-0001` a `DEC-0005`, sistema documental (`DOC-001`).
+- **Aprobada (`approved`)**: visión, pilares y horizonte máximo
+  (`10-vision`, incluyendo `VIS-003`), escalas, exploración y mundo
+  estratégico (`WLD-001`, `WLD-002`, `WLD-003`), modelo de personaje,
+  aprendizaje, autonomía e historia vital (`CHR-001`, `CHR-002`, `CHR-003`,
+  `CHR-004`), crecimiento, producción, recursos, transición tecnológica y
+  red productiva del asentamiento (`SET-001` a `SET-005`), comunidad viva,
+  política interna y comunidades externas (`SOC-001`, `SOC-002`, `SOC-003`),
+  narrativa emergente y memoria causal (`NAR-001`, `NAR-002`), interacción,
+  control y gestión a escala (`UI-001`, `UI-002`), amenaza zombi (`THR-001`),
+  dirección técnica, generación procedural y simulación multiescala
+  (`ARC-001`, `ARC-002`, `ARC-003`), escenario inicial (`SCN-001`), alcance
+  del primer corte jugable (`RDM-001`), decisiones `DEC-0001` a `DEC-0006`,
+  sistema documental (`DOC-001`).
 - **Borrador (`draft`)**: síntesis de descubrimiento (`DISC-0001`,
-  `DISC-0002`).
+  `DISC-0002`), taxonomía extendida de habilidades (`CHR-005`), horizonte
+  configurable de amenazas (`THR-002`) y horizonte de capacidades a largo
+  plazo (`RDM-002`).
 
 ## Bloqueos o contradicciones conocidos
 

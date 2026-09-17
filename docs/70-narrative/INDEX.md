@@ -21,6 +21,7 @@ causales, y cómo se distingue información fiable de rumores.
 | ID | Estado | Propósito |
 |---|---|---|
 | [NAR-001](NAR-001_emergent-narrative.md) | `approved` | Flujo causal de la narrativa emergente. |
+| [NAR-002](NAR-002_memory-and-causal-world-history.md) | `approved` | Memoria significativa e historia causal del mundo. |
 
 ## Dependencias con otros dominios
 

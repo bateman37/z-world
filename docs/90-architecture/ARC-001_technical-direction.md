@@ -12,6 +12,7 @@ related:
   - DEC-0002
   - DEC-0003
   - ARC-002
+  - ARC-003
 ---
 
 ## 1. Propósito
@@ -56,7 +57,10 @@ Ver decisiones asociadas: [DEC-0001](../decisions/DEC-0001_godot-4.md),
 [DEC-0003](../decisions/DEC-0003_data-driven-design.md). La generación
 procedural bajo demanda, el modelo de tiempo y la persistencia se detallan en
 [ARC-002](ARC-002_procedural-generation-and-persistence.md), sin sustituir
-las reglas de esta sección.
+las reglas de esta sección. Los principios de simulación multiescala entre
+detalle local y abstracción regional se desarrollan en
+[ARC-003](ARC-003_multiscale-simulation-principles.md), sin cerrar todavía
+la estructura de carpetas ni el formato de datos, que siguen abiertos.
 
 ### Separación futura de carpetas (principio, sin crear aún)
 

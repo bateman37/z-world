@@ -24,6 +24,8 @@ conocimiento individual y comunitario, aprendizaje y enseñanza.
 | [CHR-001](CHR-001_character-model.md) | `approved` | Modelo de personaje: profesiones y capas conceptuales. |
 | [CHR-002](CHR-002_knowledge-and-learning.md) | `approved` | Aprendizaje, enseñanza y pérdida de conocimiento. |
 | [CHR-003](CHR-003_autonomy-intentions-and-behavior.md) | `approved` | Autonomía, intenciones y evolución del comportamiento. |
+| [CHR-004](CHR-004_life-history-and-personal-arcs.md) | `approved` | Profundidad futura de la persona, descubrimiento y evolución vital. |
+| [CHR-005](CHR-005_extended-skill-taxonomy.md) | `draft` | Taxonomía candidata extensa de habilidades y técnicas. |
 
 ## Dependencias con otros dominios
 

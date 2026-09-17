@@ -10,6 +10,7 @@ related:
   - SET-001
   - NAR-001
   - RDM-001
+  - WLD-003
 ---
 
 ## 1. Propósito
@@ -48,7 +49,11 @@ bosque, viviendas, campo, un arroyo, un lago, talleres u otros elementos. El
 primer escenario mantiene el tema de pueblo de montaña; otros biomas,
 tamaños de grupo y tipos de inicio son extensiones futuras. El alcance
 exacto de la primera versión jugable de este escenario está fijado en
-[RDM-001](../roadmap/RDM-001_first-playable-slice.md).
+[RDM-001](../roadmap/RDM-001_first-playable-slice.md). Futuros escenarios
+podrán variar población, lugar, relaciones, pertenencias y condiciones
+(ver
+[WLD-003](../20-world/WLD-003_strategic-world-and-regional-simulation.md),
+sección 3.4), sin diseñarse en esta entrega.
 
 ## 4. Reglas aprobadas
 

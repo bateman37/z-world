@@ -14,6 +14,7 @@ related:
   - WLD-002
   - SET-003
   - ARC-001
+  - UI-002
 ---
 
 ## 1. Propósito
@@ -187,6 +188,9 @@ efectos ya ocurridos.
   [WLD-002](../20-world/WLD-002_local-exploration-and-information.md).
 - Las reservas de recursos usadas por un trabajo se rigen por
   [SET-003](../40-settlement/SET-003_resources-logistics-and-condition.md).
+- El horizonte máximo de gestión a escala comunitaria se desarrolla en
+  [UI-002](UI-002_management-at-community-scale.md), sin alterar las reglas
+  ya cerradas en este documento por `DESIGN-001`.
 
 ## 6. Casos límite o riesgos
 

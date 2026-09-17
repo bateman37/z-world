@@ -22,6 +22,7 @@ convertirse en un calendario obligatorio.
 | ID | Estado | Propósito |
 |---|---|---|
 | [RDM-001](RDM-001_first-playable-slice.md) | `approved` | Alcance cerrado del primer corte jugable y secuencia de entregas de implementación, sin fechas. |
+| [RDM-002](RDM-002_long-term-capability-horizon.md) | `draft` | Mapa de capacidades futuras, sin fechas ni compromiso de versión. |
 
 ## Dependencias con otros dominios
 

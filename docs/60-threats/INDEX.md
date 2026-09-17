@@ -20,6 +20,7 @@ escasez crítica y otras amenazas no puramente sociales.
 | ID | Estado | Propósito |
 |---|---|---|
 | [THR-001](THR-001_zombie-threat-model.md) | `approved` | Zombi estándar inicial, ruido, riesgo y combate elemental. |
+| [THR-002](THR-002_configurable-threat-horizon.md) | `draft` | Ejes futuros de configuración de zombis y otras presiones. |
 
 El diseño completo de amenazas (configuraciones avanzadas, tipos especiales,
 epidemias) queda pendiente más allá de `THR-001`.

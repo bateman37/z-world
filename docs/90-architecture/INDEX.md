@@ -23,6 +23,7 @@ simulación, datos y presentación, y persistencia.
 |---|---|---|
 | [ARC-001](ARC-001_technical-direction.md) | `approved` | Motor, lenguaje, separación técnica y persistencia. |
 | [ARC-002](ARC-002_procedural-generation-and-persistence.md) | `approved` | Generación bajo demanda reproducible, tiempo y persistencia. |
+| [ARC-003](ARC-003_multiscale-simulation-principles.md) | `approved` | Principios para simular detalle local y abstracción regional. |
 
 ## Dependencias con otros dominios
 

@@ -10,6 +10,8 @@ depends_on:
   - CHR-001
 related:
   - SOC-001
+  - CHR-004
+  - CHR-005
 ---
 
 ## 1. Propósito
@@ -60,6 +62,12 @@ bibliotecas y talleres (ver capas conceptuales en
 
 ## 5. Interacciones con otros sistemas
 
+- El horizonte máximo de descubrimiento progresivo y arcos vitales que
+  amplían esta capa se desarrolla en
+  [CHR-004](CHR-004_life-history-and-personal-arcs.md).
+- La taxonomía candidata y extensa de habilidades, todavía `draft`, vive en
+  [CHR-005](CHR-005_extended-skill-taxonomy.md); no se importa al primer
+  corte jugable.
 - La producción y las soluciones disponibles dependen del conocimiento real
   presente en la comunidad (ver
   [SET-002](../40-settlement/SET-002_production-and-solutions.md)).

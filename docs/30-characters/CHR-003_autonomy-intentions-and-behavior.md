@@ -12,6 +12,7 @@ related:
   - UI-001
   - SOC-001
   - NAR-001
+  - CHR-004
 ---
 
 ## 1. Propósito
@@ -76,6 +77,10 @@ retrocesos, no un interruptor permanente «cobarde/valiente».
 
 ## 5. Interacciones con otros sistemas
 
+- El horizonte máximo de historia vital y arcos personales que amplía las
+  motivaciones y relaciones descritas aquí se desarrolla en
+  [CHR-004](CHR-004_life-history-and-personal-arcs.md), sin reformular esta
+  autonomía.
 - El estado operativo y las capas de personaje se definen en
   [CHR-001](CHR-001_character-model.md) y
   [CHR-002](CHR-002_knowledge-and-learning.md).
