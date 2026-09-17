@@ -7,6 +7,7 @@ canonical_for:
   - estados documentales
   - identificadores estables
   - cabecera de documentos canónicos
+  - idioma de la documentación
 depends_on: []
 related: []
 ---
@@ -110,7 +111,33 @@ secciones vacías solo por plantilla:
 7. Preguntas abiertas.
 8. Ejemplos no normativos.
 
-### 3.7 Decisiones frente a descubrimiento
+### 3.7 Idioma de la documentación
+
+La prosa de documentación, `README.md`, changelogs, prompts, informes de
+entrega e instrucciones para agentes se redacta en español por defecto. Se
+mantienen en su forma original (normalmente en inglés) los identificadores,
+rutas, código, nombres de variables, claves de datos, APIs y términos
+técnicos cuando traducirlos reduzca precisión o rompa un contrato, por
+ejemplo:
+
+- Rutas, nombres de archivo y enlaces Markdown.
+- Identificadores estables (`DOC-001`, `WLD-001`, `SCN-001`, etc.).
+- Nombres de variables, clases, métodos, APIs, comandos, bloques de código y
+  fragmentos JSON/YAML que sean contratos técnicos.
+- Claves de YAML como `id`, `title`, `status`, `canonical_for`, `depends_on`
+  y `related`.
+- Valores controlados de estado: `draft`, `approved`, `implemented` y
+  `deprecated`.
+- Ejemplos de IDs de datos, como `skill.production.agriculture`.
+- Términos técnicos en inglés cuando sean el nombre preciso de una
+  tecnología, producto o contrato (por ejemplo Godot, GDScript, SQLite,
+  JSON, GitHub, `game_data/`, `src/` o `tests/`).
+
+Cuando un término técnico pueda expresarse cómodamente en español, se
+prioriza una frase natural en español y se conserva el nombre técnico entre
+paréntesis solo si aporta claridad.
+
+### 3.8 Decisiones frente a descubrimiento
 
 - `docs/discovery/`: síntesis de conversaciones, alternativas e ideas todavía
   no cerradas.
@@ -126,6 +153,8 @@ secciones vacías solo por plantilla:
   juego.
 - Los prompts se guardan como Markdown en `prompts/` (ver
   `prompts/README.md`).
+- Toda prosa dirigida a personas se redacta en español por defecto, con las
+  excepciones técnicas descritas en la sección 3.7.
 
 ## 5. Preguntas abiertas
 

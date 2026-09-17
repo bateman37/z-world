@@ -21,6 +21,11 @@ trabaje en este repositorio.
 
 ## Reglas de edición
 
+- Toda prosa dirigida a personas (documentación, `README.md`, changelogs,
+  prompts, informes de entrega e instrucciones para agentes) se redacta en
+  español por defecto; identificadores, rutas, código y contratos técnicos
+  conservan su forma original (ver
+  `docs/00-governance/DOC-001_documentation-system.md`, sección 3.7).
 - No dupliques reglas canónicas en prompts, código u otros documentos. Enlaza
   por ruta e identificador.
 - Distingue siempre `draft`, `approved`, `implemented` y `deprecated`

@@ -13,3 +13,5 @@ Antes de trabajar:
    documentos adicionales.
 5. Al completar una entrega, actualiza la documentación afectada y
    `docs/STATUS.md` si cambió el estado real del proyecto.
+6. Escribe toda la prosa en español, salvo identificadores, rutas y
+   contratos técnicos (ver `AGENTS.md`).

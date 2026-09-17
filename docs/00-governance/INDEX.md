@@ -20,7 +20,7 @@ documentos.
 
 | ID | Estado | Propósito |
 |---|---|---|
-| [DOC-001](DOC-001_documentation-system.md) | `approved` | Sistema documental: jerarquía, estados, identificadores, cabeceras. |
+| [DOC-001](DOC-001_documentation-system.md) | `approved` | Sistema documental: jerarquía, estados, identificadores, cabeceras e idioma. |
 | — | — | [GLOSSARY.md](GLOSSARY.md): glosario de términos, no normativo. |
 
 ## Dependencias con otros dominios

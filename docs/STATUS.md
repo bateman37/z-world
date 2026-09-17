@@ -11,7 +11,11 @@ del juego** (ni código, ni escenas de Godot, ni prototipos).
 
 ## Última entrega completada
 
-`DOCS-001` — base documental e instrucciones permanentes para agentes.
+`DOCS-002` — confirmación y refuerzo de la política de idioma: toda la prosa
+documental ya estaba en español desde `DOCS-001`; se formalizó como regla
+permanente en
+[DOC-001, sección 3.7](00-governance/DOC-001_documentation-system.md), con
+referencia breve en `AGENTS.md` y `CLAUDE.md`.
 
 ## Tecnología aprobada
 
