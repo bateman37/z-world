@@ -22,7 +22,9 @@ documento canónico de dominio correspondiente.
 | [DEC-0001](DEC-0001_godot-4.md) | `approved` | Godot 4 como motor inicial; sin migración automática a Unity. |
 | [DEC-0002](DEC-0002_two-world-scales.md) | `approved` | Convivencia de mapa local y mapa estratégico. |
 | [DEC-0003](DEC-0003_data-driven-design.md) | `approved` | Desacoplamiento entre sistemas, datos y presentación. |
+| [DEC-0004](DEC-0004_mouse-strategic-control.md) | `approved` | Control individual con ratón dentro de un juego de gestión. |
+| [DEC-0005](DEC-0005_reproducible-lazy-generation.md) | `approved` | Generación bajo demanda estable y reproducible. |
 
 ## Dependencias con otros dominios
 
-- `90-architecture`, `20-world`.
+- `90-architecture`, `20-world`, `80-interface`.

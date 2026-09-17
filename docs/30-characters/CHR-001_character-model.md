@@ -8,6 +8,7 @@ canonical_for:
 depends_on: []
 related:
   - CHR-002
+  - CHR-003
   - VIS-002
 ---
 
@@ -25,19 +26,50 @@ profesión y qué capas conceptuales existen entre aptitud y medios materiales.
 
 ## 3. Modelo funcional
 
-Se distinguen al menos estas capas conceptuales:
+Cada persona tiene estas capas, con responsabilidades separadas:
 
-- Aptitudes personales.
-- Habilidades individuales.
-- Conocimiento individual.
-- Conocimiento comunitario conservado en personas, libros, planos, archivos,
-  escuelas, bibliotecas y talleres (ver
-  [CHR-002](CHR-002_knowledge-and-learning.md)).
-- Medios materiales: herramientas, instalaciones, componentes, energía y
-  materias primas.
+| Capa | Qué determina |
+|---|---|
+| Historia previa | Profesión, experiencias, relaciones y conocimientos con los que llega. No es una clase cerrada. |
+| Características generales | Capacidades físicas y cognitivas que influyen en actividades, sin sustituir las habilidades. |
+| Habilidades específicas | Capacidad práctica en una disciplina concreta. |
+| Técnicas y conocimientos | Lo que sabe reconocer, interpretar o ejecutar (ver [CHR-002](CHR-002_knowledge-and-learning.md)). |
+| Aptitudes de aprendizaje | Ritmo, mesetas y dificultades personales para habilidades concretas (ver [CHR-002](CHR-002_knowledge-and-learning.md)). |
+| Estado actual | Cansancio, hambre, sed, salud, lesión, miedo, estrés y condiciones relevantes. |
+| Motivaciones y valores | Lo que desea, protege, rechaza o considera aceptable (ver [CHR-003](CHR-003_autonomy-intentions-and-behavior.md)). |
+| Relaciones y memoria | Vínculos y experiencias que afectan a decisiones futuras (ver [CHR-003](CHR-003_autonomy-intentions-and-behavior.md)). |
+
+A nivel comunitario existe además conocimiento comunitario conservado en
+personas, libros, planos, archivos, escuelas, bibliotecas y talleres (ver
+[CHR-002](CHR-002_knowledge-and-learning.md)), y medios materiales:
+herramientas, instalaciones, componentes, energía y materias primas.
 
 Una acción compleja puede exigir una combinación de varias habilidades,
 conocimiento disponible, personas, herramientas, tiempo y materiales.
+
+### 3.1 Habilidades específicas iniciales
+
+La primera versión visual utiliza este conjunto exacto y limitado de
+habilidades específicas para demostrar el modelo (ver
+[RDM-001](../roadmap/RDM-001_first-playable-slice.md)):
+
+1. Observación e inspección.
+2. Búsqueda y recuperación.
+3. Pesca.
+4. Identificación y recolección de hongos.
+5. Rastreo y caza.
+6. Cocina.
+7. Conservación de alimentos.
+8. Remiendo y costura.
+9. Construcción y carpintería.
+10. Fontanería y conducción de agua.
+11. Primeros auxilios.
+
+No existe en la primera versión una habilidad genérica de «supervivencia»
+que otorgue resultados en pesca, setas, caza, costura o medicina. Las
+familias de prioridad de
+[UI-001](../80-interface/UI-001_interaction-and-command-model.md) no alteran
+esta regla: sirven para priorizar tareas, no otorgan competencia en ellas.
 
 ## 4. Reglas aprobadas
 
@@ -52,6 +84,8 @@ conocimiento disponible, personas, herramientas, tiempo y materiales.
 
 - El aprendizaje y la enseñanza se desarrollan en
   [CHR-002](CHR-002_knowledge-and-learning.md).
+- La autonomía, las motivaciones y la evolución del comportamiento se
+  desarrollan en [CHR-003](CHR-003_autonomy-intentions-and-behavior.md).
 - La disponibilidad de habilidades condiciona las soluciones de producción en
   [SET-002](../40-settlement/SET-002_production-and-solutions.md).
 - Relaciones, prestigio y facciones se desarrollan en

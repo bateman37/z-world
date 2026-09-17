@@ -37,6 +37,26 @@ bibliotecas y talleres (ver capas conceptuales en
   actuar como una barra tecnológica abstracta que desbloquea automáticamente
   edificios (ver
   [SET-002](../40-settlement/SET-002_production-and-solutions.md)).
+- Aprender requiere práctica útil, enseñanza, observación o consulta de
+  conocimiento comunitario. Una persona que enseña necesita conocimiento
+  pertinente y tiempo para transmitirlo. Herramientas, instalaciones,
+  descanso y materiales pueden limitar la práctica.
+- La transferencia entre habilidades es parcial y explícita: por ejemplo,
+  construcción y carpintería pueden ayudar a aprender conducción de agua, y
+  remiendo ayuda a aprender otras técnicas de costura. Pesca no ayuda a
+  identificar hongos, y cocinar no otorga rastreo. Esta entrega no crea una
+  matriz completa de transferencias: cada técnica futura declarará sus
+  prerrequisitos y transferencias de forma explícita.
+- Los principiantes pueden ser útiles. Una acción puede producir un
+  resultado lento, de menor calidad, con desperdicio o menos duradero sin
+  que sea automáticamente imposible. Las tareas peligrosas o que requieren
+  una técnica concreta pueden exigir un mínimo y explicar por qué no se
+  pueden intentar.
+- La calidad puede afectar tiempo, desperdicio, durabilidad, comodidad,
+  aislamiento, seguridad o rendimiento según la actividad. El remiendo es el
+  ejemplo de referencia: primero tapa un roto de manera lenta y frágil;
+  después produce un parche resistente; más tarde puede adaptar prendas. No
+  se asume que todas las personas alcanzarán la excelencia en todo.
 
 ## 5. Interacciones con otros sistemas
 

@@ -11,6 +11,7 @@ related:
   - DEC-0001
   - DEC-0002
   - DEC-0003
+  - ARC-002
 ---
 
 ## 1. Propósito
@@ -52,7 +53,10 @@ implementación que todavía no son necesarias.
 
 Ver decisiones asociadas: [DEC-0001](../decisions/DEC-0001_godot-4.md),
 [DEC-0002](../decisions/DEC-0002_two-world-scales.md),
-[DEC-0003](../decisions/DEC-0003_data-driven-design.md).
+[DEC-0003](../decisions/DEC-0003_data-driven-design.md). La generación
+procedural bajo demanda, el modelo de tiempo y la persistencia se detallan en
+[ARC-002](ARC-002_procedural-generation-and-persistence.md), sin sustituir
+las reglas de esta sección.
 
 ### Separación futura de carpetas (principio, sin crear aún)
 

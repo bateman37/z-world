@@ -59,6 +59,18 @@ No aplica; este documento es una lista de principios.
 - **Transición del mundo muerto a la reconstrucción**: los restos
   industriales permiten sobrevivir al principio, pero combustible, piezas e
   infraestructuras pueden degradarse y forzar alternativas locales.
+- **Gestión con intervención puntual**: el jugador puede tomar control
+  puntual con ratón sobre una persona sin convertir el juego en acción de
+  primera persona. Detalle en
+  [UI-001](../80-interface/UI-001_interaction-and-command-model.md).
+- **Exploración de personas y lugares**: el estado real del mundo y de las
+  personas es distinto de la información conocida; descubrirlo cambia
+  soluciones reales disponibles. Detalle en
+  [WLD-002](../20-world/WLD-002_local-exploration-and-information.md) y
+  [CHR-003](../30-characters/CHR-003_autonomy-intentions-and-behavior.md).
+- **Progreso sin escalada militar obligatoria**: sigilo, retirada, barreras y
+  evitar un lugar son alternativas tan válidas como el combate. Detalle en
+  [THR-001](../60-threats/THR-001_zombie-threat-model.md).
 
 ## 5. Interacciones con otros sistemas
 

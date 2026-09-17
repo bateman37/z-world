@@ -33,7 +33,15 @@ autonomía.
 ## 4. Reglas aprobadas
 
 - Gestión indirecta: el jugador gobierna y organiza; no opera cada personaje
-  directamente.
+  directamente. Puede tomar control puntual con ratón sobre una persona
+  concreta sin que el juego deje de ser de gestión (ver
+  `docs/80-interface/UI-001_interaction-and-command-model.md`).
+- Descubrir el territorio y conocer a las personas cambia de forma real las
+  soluciones disponibles: la exploración de lugares y personas es parte del
+  progreso (ver `docs/20-world/WLD-002_local-exploration-and-information.md`).
+- El progreso no depende de una escalada militar obligatoria: sigilo,
+  retirada, barreras y evitar un lugar son alternativas tan válidas como el
+  combate (ver `docs/60-threats/THR-001_zombie-threat-model.md`).
 - El objetivo diferencial es la narrativa procedural emergente, desarrollada
   en `docs/70-narrative/NAR-001_emergent-narrative.md`.
 

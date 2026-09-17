@@ -11,6 +11,7 @@ related:
   - VIS-002
   - SET-001
   - SOC-001
+  - WLD-002
 ---
 
 ## 1. Propósito
@@ -36,9 +37,14 @@ Existen dos escalas complementarias:
 ## 4. Reglas aprobadas
 
 - La cuadrícula hexagonal es una dirección de diseño aprobada para
-  documentar y explorar, no una implementación cerrada.
+  documentar y explorar, no una implementación cerrada. **El mapa
+  estratégico no es jugable en la primera versión visual** (ver
+  [RDM-001](../roadmap/RDM-001_first-playable-slice.md)); su exploración,
+  información y transición de escala siguen abiertas.
 - El mapa local es donde ocurre la gestión detallada del asentamiento (ver
-  [SET-001](../40-settlement/SET-001_settlement-growth.md)).
+  [SET-001](../40-settlement/SET-001_settlement-growth.md)) y donde se aplica
+  el modelo de exploración e información de
+  [WLD-002](WLD-002_local-exploration-and-information.md).
 - El mapa estratégico es donde otras comunidades y el mundo exterior viven de
   forma más abstracta (ver
   [SOC-001](../50-society/SOC-001_living-community.md)).

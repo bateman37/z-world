@@ -9,6 +9,7 @@ related:
   - VIS-001
   - SET-001
   - NAR-001
+  - RDM-001
 ---
 
 ## 1. Propósito
@@ -35,7 +36,19 @@ deciden dejar de moverse.
 El primer problema sugerido es convertir un edificio existente en un refugio
 básico: inspeccionarlo, reunir allí los recursos, descansar, conseguir agua,
 buscar comida, cerrar accesos y explorar el mapa local (ver
-[SET-001](../40-settlement/SET-001_settlement-growth.md)).
+[SET-001](../40-settlement/SET-001_settlement-growth.md)). El edificio puede
+ser una casa grande, una pequeña nave, una granja o un local equivalente
+según la semilla de partida; no es una construcción vacía creada por el
+jugador.
+
+El mapa local es un espacio 3D de gestión con edificios existentes, terreno,
+caminos, recursos naturales, puntos de agua y zonas peligrosas. Su
+distribución varía entre partidas de forma coherente: puede haber más
+bosque, viviendas, campo, un arroyo, un lago, talleres u otros elementos. El
+primer escenario mantiene el tema de pueblo de montaña; otros biomas,
+tamaños de grupo y tipos de inicio son extensiones futuras. El alcance
+exacto de la primera versión jugable de este escenario está fijado en
+[RDM-001](../roadmap/RDM-001_first-playable-slice.md).
 
 ## 4. Reglas aprobadas
 
@@ -51,6 +64,10 @@ siga teniendo seis personas:
 - Pueden permanecer como una comunidad pequeña o crecer con rapidez.
 - El orden y la forma de resolver agua, comida, defensa, descanso y
   producción deben variar según la partida.
+
+Seis no es un límite de población, una estructura familiar fija ni una
+promesa de que todos sobreviven: es el punto de partida narrativo de la
+primera versión, no un elenco de personajes ya diseñado.
 
 El planteamiento del "primer año" solo identifica presiones plausibles como
 refugio, agua, alimento, defensa, producción, invierno, relaciones y

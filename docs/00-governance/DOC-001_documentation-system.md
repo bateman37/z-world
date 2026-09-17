@@ -71,6 +71,7 @@ obligar a los agentes a leer todo el repositorio en cada entrega.
 | Escenarios | `SCN` |
 | Decisiones | `DEC` |
 | Descubrimiento | `DISC` |
+| Hoja de ruta | `RDM` |
 
 Los identificadores no se reutilizan aunque un documento quede obsoleto.
 

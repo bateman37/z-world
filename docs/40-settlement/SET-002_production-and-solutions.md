@@ -10,6 +10,7 @@ depends_on:
 related:
   - CHR-001
   - CHR-002
+  - SET-003
 ---
 
 ## 1. Propósito
@@ -45,6 +46,10 @@ robusta.
 - Depende de las infraestructuras reclamadas en
   [SET-001](SET-001_settlement-growth.md).
 - Depende del conocimiento y habilidades reales de la comunidad (dominio 30).
+- Las rutas alternativas concretas para la primera versión (agua por acarreo
+  o conducción por gravedad; alimento por búsqueda, pesca, hongos o caza) se
+  detallan en
+  [SET-003](SET-003_resources-logistics-and-condition.md).
 
 ## 6. Casos límite o riesgos
 

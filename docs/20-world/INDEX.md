@@ -9,6 +9,7 @@ estratégico) y sus reglas de relación.
 
 - Escalas del mundo y su transición.
 - Geografía y representación general del mundo (futuro).
+- Exploración local e información sobre lugares y objetos.
 
 ## Qué no pertenece aquí
 
@@ -21,8 +22,9 @@ estratégico) y sus reglas de relación.
 | ID | Estado | Propósito |
 |---|---|---|
 | [WLD-001](WLD-001_world-scales.md) | `approved` | Mapa local y mapa estratégico: definición y relación. |
+| [WLD-002](WLD-002_local-exploration-and-information.md) | `approved` | Exploración local: estados de información y familias de acciones de descubrimiento. |
 
 ## Dependencias con otros dominios
 
 - `10-vision` (pilares que motivan las dos escalas).
-- Relacionado con `40-settlement` y `50-society`.
+- Relacionado con `40-settlement`, `50-society` y `80-interface`.

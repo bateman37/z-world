@@ -17,10 +17,15 @@ escasez crítica y otras amenazas no puramente sociales.
 
 ## Documentos
 
-Ninguno todavía. Este dominio no tiene decisiones aprobadas en esta entrega;
-el diseño de amenazas queda pendiente.
+| ID | Estado | Propósito |
+|---|---|---|
+| [THR-001](THR-001_zombie-threat-model.md) | `approved` | Zombi estándar inicial, ruido, riesgo y combate elemental. |
+
+El diseño completo de amenazas (configuraciones avanzadas, tipos especiales,
+epidemias) queda pendiente más allá de `THR-001`.
 
 ## Dependencias con otros dominios
 
 - `20-world` (dónde ocurren las amenazas).
 - `40-settlement` (defensa del asentamiento).
+- `80-interface` (control puntual y designaciones de guardia).
