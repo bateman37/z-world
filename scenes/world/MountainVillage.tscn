@@ -1,0 +1,367 @@
+[gd_scene load_steps=23 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/building/Building.tscn" id="Building"]
+[ext_resource type="PackedScene" path="res://scenes/person/Survivor.tscn" id="Survivor"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
+sky_top_color = Color(0.38, 0.55, 0.78, 1)
+sky_horizon_color = Color(0.75, 0.8, 0.82, 1)
+ground_bottom_color = Color(0.3, 0.28, 0.26, 1)
+ground_horizon_color = Color(0.75, 0.8, 0.82, 1)
+
+[sub_resource type="Sky" id="Sky_1"]
+sky_material = SubResource("ProceduralSkyMaterial_1")
+
+[sub_resource type="Environment" id="Environment_1"]
+background_mode = 2
+sky = SubResource("Sky_1")
+ambient_light_source = 3
+ambient_light_color = Color(0.6, 0.65, 0.7, 1)
+ambient_light_energy = 0.6
+fog_enabled = true
+fog_light_color = Color(0.72, 0.76, 0.8, 1)
+fog_density = 0.012
+
+[sub_resource type="BoxMesh" id="BoxMesh_terrain"]
+size = Vector3(70, 1, 64)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_terrain"]
+albedo_color = Color(0.32, 0.5, 0.28, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_terrain"]
+size = Vector3(70, 1, 64)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_mountain"]
+top_radius = 0.0
+bottom_radius = 1.0
+height = 1.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_mountain"]
+albedo_color = Color(0.45, 0.45, 0.5, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_main_path"]
+size = Vector3(3.5, 0.06, 34)
+
+[sub_resource type="BoxMesh" id="BoxMesh_fork_path"]
+size = Vector3(15, 0.06, 2.6)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_path"]
+albedo_color = Color(0.55, 0.5, 0.42, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_stream"]
+size = Vector3(2.5, 0.05, 40)
+
+[sub_resource type="BoxMesh" id="BoxMesh_pond"]
+size = Vector3(5, 0.05, 5)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_water"]
+albedo_color = Color(0.25, 0.55, 0.65, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_field"]
+size = Vector3(16, 0.03, 16)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_field"]
+albedo_color = Color(0.55, 0.7, 0.35, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_trunk"]
+top_radius = 0.22
+bottom_radius = 0.28
+height = 2.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_trunk"]
+albedo_color = Color(0.4, 0.28, 0.18, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_canopy"]
+top_radius = 0.0
+bottom_radius = 1.3
+height = 2.6
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_canopy"]
+albedo_color = Color(0.22, 0.42, 0.22, 1)
+
+[node name="MountainVillage" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_1")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.819, -0.469, 0.331, 0, 0.577, 0.817, -0.574, -0.669, 0.472, 0, 20, 0)
+light_energy = 1.15
+shadow_enabled = true
+
+[node name="Terrain" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, -6)
+
+[node name="Mesh" type="MeshInstance3D" parent="Terrain"]
+mesh = SubResource("BoxMesh_terrain")
+surface_material_override/0 = SubResource("StandardMaterial3D_terrain")
+
+[node name="Shape" type="CollisionShape3D" parent="Terrain"]
+shape = SubResource("BoxShape3D_terrain")
+
+[node name="Mountains" type="Node3D" parent="."]
+
+[node name="MountainNorth1" type="MeshInstance3D" parent="Mountains"]
+transform = Transform3D(14, 0, 0, 0, 20, 0, 0, 0, 14, -14, 0, 26)
+mesh = SubResource("CylinderMesh_mountain")
+surface_material_override/0 = SubResource("StandardMaterial3D_mountain")
+
+[node name="MountainNorth2" type="MeshInstance3D" parent="Mountains"]
+transform = Transform3D(16, 0, 0, 0, 24, 0, 0, 0, 16, 10, 0, 27)
+mesh = SubResource("CylinderMesh_mountain")
+surface_material_override/0 = SubResource("StandardMaterial3D_mountain")
+
+[node name="MountainEast" type="MeshInstance3D" parent="Mountains"]
+transform = Transform3D(15, 0, 0, 0, 22, 0, 0, 0, 15, 32, 0, 4)
+mesh = SubResource("CylinderMesh_mountain")
+surface_material_override/0 = SubResource("StandardMaterial3D_mountain")
+
+[node name="MountainWest1" type="MeshInstance3D" parent="Mountains"]
+transform = Transform3D(13, 0, 0, 0, 18, 0, 0, 0, 13, -32, 0, -6)
+mesh = SubResource("CylinderMesh_mountain")
+surface_material_override/0 = SubResource("StandardMaterial3D_mountain")
+
+[node name="MountainWest2" type="MeshInstance3D" parent="Mountains"]
+transform = Transform3D(15, 0, 0, 0, 21, 0, 0, 0, 15, -30, 0, 18)
+mesh = SubResource("CylinderMesh_mountain")
+surface_material_override/0 = SubResource("StandardMaterial3D_mountain")
+
+[node name="MountainSouth" type="MeshInstance3D" parent="Mountains"]
+transform = Transform3D(18, 0, 0, 0, 16, 0, 0, 0, 18, 0, 0, -34)
+mesh = SubResource("CylinderMesh_mountain")
+surface_material_override/0 = SubResource("StandardMaterial3D_mountain")
+
+[node name="Paths" type="Node3D" parent="."]
+
+[node name="MainPath" type="MeshInstance3D" parent="Paths"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, -6)
+mesh = SubResource("BoxMesh_main_path")
+surface_material_override/0 = SubResource("StandardMaterial3D_path")
+
+[node name="ForkPath" type="MeshInstance3D" parent="Paths"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0.03, 10)
+mesh = SubResource("BoxMesh_fork_path")
+surface_material_override/0 = SubResource("StandardMaterial3D_path")
+
+[node name="Water" type="Node3D" parent="."]
+
+[node name="Stream" type="MeshInstance3D" parent="Water"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 0.02, 0)
+mesh = SubResource("BoxMesh_stream")
+surface_material_override/0 = SubResource("StandardMaterial3D_water")
+
+[node name="Pond" type="MeshInstance3D" parent="Water"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0.02, -8)
+mesh = SubResource("BoxMesh_pond")
+surface_material_override/0 = SubResource("StandardMaterial3D_water")
+
+[node name="Field" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19, 0.04, -8)
+mesh = SubResource("BoxMesh_field")
+surface_material_override/0 = SubResource("StandardMaterial3D_field")
+
+[node name="Forest" type="Node3D" parent="."]
+
+[node name="Tree1" type="Node3D" parent="Forest"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, -10)
+
+[node name="Trunk" type="MeshInstance3D" parent="Forest/Tree1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("CylinderMesh_trunk")
+surface_material_override/0 = SubResource("StandardMaterial3D_trunk")
+
+[node name="Canopy" type="MeshInstance3D" parent="Forest/Tree1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.9, 0)
+mesh = SubResource("CylinderMesh_canopy")
+surface_material_override/0 = SubResource("StandardMaterial3D_canopy")
+
+[node name="Tree2" type="Node3D" parent="Forest"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23, 0, -4)
+
+[node name="Trunk" type="MeshInstance3D" parent="Forest/Tree2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("CylinderMesh_trunk")
+surface_material_override/0 = SubResource("StandardMaterial3D_trunk")
+
+[node name="Canopy" type="MeshInstance3D" parent="Forest/Tree2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.9, 0)
+mesh = SubResource("CylinderMesh_canopy")
+surface_material_override/0 = SubResource("StandardMaterial3D_canopy")
+
+[node name="Tree3" type="Node3D" parent="Forest"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19, 0, 2)
+
+[node name="Trunk" type="MeshInstance3D" parent="Forest/Tree3"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("CylinderMesh_trunk")
+surface_material_override/0 = SubResource("StandardMaterial3D_trunk")
+
+[node name="Canopy" type="MeshInstance3D" parent="Forest/Tree3"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.9, 0)
+mesh = SubResource("CylinderMesh_canopy")
+surface_material_override/0 = SubResource("StandardMaterial3D_canopy")
+
+[node name="Tree4" type="Node3D" parent="Forest"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0, 8)
+
+[node name="Trunk" type="MeshInstance3D" parent="Forest/Tree4"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("CylinderMesh_trunk")
+surface_material_override/0 = SubResource("StandardMaterial3D_trunk")
+
+[node name="Canopy" type="MeshInstance3D" parent="Forest/Tree4"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.9, 0)
+mesh = SubResource("CylinderMesh_canopy")
+surface_material_override/0 = SubResource("StandardMaterial3D_canopy")
+
+[node name="Tree5" type="Node3D" parent="Forest"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18, 0, 14)
+
+[node name="Trunk" type="MeshInstance3D" parent="Forest/Tree5"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("CylinderMesh_trunk")
+surface_material_override/0 = SubResource("StandardMaterial3D_trunk")
+
+[node name="Canopy" type="MeshInstance3D" parent="Forest/Tree5"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.9, 0)
+mesh = SubResource("CylinderMesh_canopy")
+surface_material_override/0 = SubResource("StandardMaterial3D_canopy")
+
+[node name="Tree6" type="Node3D" parent="Forest"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 0, -16)
+
+[node name="Trunk" type="MeshInstance3D" parent="Forest/Tree6"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("CylinderMesh_trunk")
+surface_material_override/0 = SubResource("StandardMaterial3D_trunk")
+
+[node name="Canopy" type="MeshInstance3D" parent="Forest/Tree6"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.9, 0)
+mesh = SubResource("CylinderMesh_canopy")
+surface_material_override/0 = SubResource("StandardMaterial3D_canopy")
+
+[node name="Tree7" type="Node3D" parent="Forest"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21, 0, 20)
+
+[node name="Trunk" type="MeshInstance3D" parent="Forest/Tree7"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("CylinderMesh_trunk")
+surface_material_override/0 = SubResource("StandardMaterial3D_trunk")
+
+[node name="Canopy" type="MeshInstance3D" parent="Forest/Tree7"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.9, 0)
+mesh = SubResource("CylinderMesh_canopy")
+surface_material_override/0 = SubResource("StandardMaterial3D_canopy")
+
+[node name="Tree8" type="Node3D" parent="Forest"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, -20)
+
+[node name="Trunk" type="MeshInstance3D" parent="Forest/Tree8"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("CylinderMesh_trunk")
+surface_material_override/0 = SubResource("StandardMaterial3D_trunk")
+
+[node name="Canopy" type="MeshInstance3D" parent="Forest/Tree8"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.9, 0)
+mesh = SubResource("CylinderMesh_canopy")
+surface_material_override/0 = SubResource("StandardMaterial3D_canopy")
+
+[node name="Buildings" type="Node3D" parent="."]
+
+[node name="ShelterCandidate" parent="Buildings" instance=ExtResource("Building")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 8)
+id = "building.shelter_candidate"
+display_name = "Refugio candidato"
+description = "Edificio candidato a convertirse en el refugio principal del grupo. Inspeccionarlo y acondicionarlo llegará en otra entrega."
+body_size = Vector3(7, 3.4, 6)
+body_color = Color(0.82, 0.55, 0.28, 1)
+roof_color = Color(0.55, 0.28, 0.15, 1)
+
+[node name="HouseA" parent="Buildings" instance=ExtResource("Building")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 0, 4)
+id = "building.house_a"
+display_name = "Casa 1"
+description = "Vivienda existente del pueblo. Su inspección e interior llegarán en otra entrega."
+body_size = Vector3(4, 2.6, 4)
+body_color = Color(0.72, 0.66, 0.6, 1)
+roof_color = Color(0.4, 0.24, 0.18, 1)
+
+[node name="HouseB" parent="Buildings" instance=ExtResource("Building")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 0, 3)
+id = "building.house_b"
+display_name = "Casa 2"
+description = "Vivienda existente del pueblo. Su inspección e interior llegarán en otra entrega."
+body_size = Vector3(4, 2.6, 4)
+body_color = Color(0.68, 0.63, 0.58, 1)
+roof_color = Color(0.38, 0.22, 0.17, 1)
+
+[node name="Workshop" parent="Buildings" instance=ExtResource("Building")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, 14)
+id = "building.workshop"
+display_name = "Taller"
+description = "Posible taller o almacén del pueblo. Su función quedará definida en otra entrega."
+body_size = Vector3(5, 2.8, 4)
+body_color = Color(0.6, 0.58, 0.55, 1)
+roof_color = Color(0.35, 0.32, 0.3, 1)
+
+[node name="Barn" parent="Buildings" instance=ExtResource("Building")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0, 15)
+id = "building.barn"
+display_name = "Granero"
+description = "Construcción agrícola existente. Su uso como almacén llegará en otra entrega."
+body_size = Vector3(6, 3, 5)
+body_color = Color(0.55, 0.3, 0.25, 1)
+roof_color = Color(0.3, 0.16, 0.13, 1)
+
+[node name="StorageShed" parent="Buildings" instance=ExtResource("Building")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13, 0, 9)
+id = "building.storage_shed"
+display_name = "Cobertizo"
+description = "Pequeña construcción auxiliar. Su función quedará definida en otra entrega."
+body_size = Vector3(3, 2.2, 3)
+body_color = Color(0.65, 0.6, 0.5, 1)
+roof_color = Color(0.36, 0.28, 0.2, 1)
+
+[node name="Survivors" type="Node3D" parent="."]
+
+[node name="Survivor1" parent="Survivors" instance=ExtResource("Survivor")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.0, 0, 2.5)
+id = "person.initial.01"
+display_name = "Superviviente 1"
+description = "Superviviente inicial del grupo. Sin trabajos ni necesidades todavía: llegarán en otra entrega."
+accessory_color = Color(0.8, 0.2, 0.2, 1)
+
+[node name="Survivor2" parent="Survivors" instance=ExtResource("Survivor")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.8, 0, 1.8)
+id = "person.initial.02"
+display_name = "Superviviente 2"
+description = "Superviviente inicial del grupo. Sin trabajos ni necesidades todavía: llegarán en otra entrega."
+accessory_color = Color(0.2, 0.4, 0.8, 1)
+
+[node name="Survivor3" parent="Survivors" instance=ExtResource("Survivor")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, 0, 1.5)
+id = "person.initial.03"
+display_name = "Superviviente 3"
+description = "Superviviente inicial del grupo. Sin trabajos ni necesidades todavía: llegarán en otra entrega."
+accessory_color = Color(0.3, 0.7, 0.3, 1)
+
+[node name="Survivor4" parent="Survivors" instance=ExtResource("Survivor")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 0, 1.5)
+id = "person.initial.04"
+display_name = "Superviviente 4"
+description = "Superviviente inicial del grupo. Sin trabajos ni necesidades todavía: llegarán en otra entrega."
+accessory_color = Color(0.85, 0.75, 0.2, 1)
+
+[node name="Survivor5" parent="Survivors" instance=ExtResource("Survivor")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.8, 0, 1.8)
+id = "person.initial.05"
+display_name = "Superviviente 5"
+description = "Superviviente inicial del grupo. Sin trabajos ni necesidades todavía: llegarán en otra entrega."
+accessory_color = Color(0.6, 0.3, 0.75, 1)
+
+[node name="Survivor6" parent="Survivors" instance=ExtResource("Survivor")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.0, 0, 2.5)
+id = "person.initial.06"
+display_name = "Superviviente 6"
+description = "Superviviente inicial del grupo. Sin trabajos ni necesidades todavía: llegarán en otra entrega."
+accessory_color = Color(0.2, 0.7, 0.7, 1)

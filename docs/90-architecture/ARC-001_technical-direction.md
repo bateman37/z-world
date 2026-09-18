@@ -29,12 +29,18 @@ implementación que todavía no son necesarias.
 
 ## 3. Modelo funcional
 
-- **Motor**: Godot 4.
+- **Motor**: Godot 4. Baseline reproducible de la primera implementación
+  (`IMPLEMENTATION-001`): **Godot 4.7.2-stable, edición estándar**, no
+  .NET, con renderizador Forward+ para escritorio. Este baseline concreto
+  no es una promesa permanente de versión: entregas futuras podrán
+  actualizarla si hace falta (ver
+  [DEC-0001](../decisions/DEC-0001_godot-4.md)).
 - **Dirección visual inicial**: 3D sencillo y legible, con cámara
-  estratégica inclinada; los detalles exactos de cámara y arte siguen
-  abiertos.
+  estratégica inclinada; los detalles exactos de arte siguen abiertos más
+  allá de las primitivas usadas en `IMPLEMENTATION-001`.
 - **Lenguaje inicial preferido**: GDScript, sujeto a revisión si una
-  necesidad técnica concreta justifica C#.
+  necesidad técnica concreta justifica C#. `IMPLEMENTATION-001` usa
+  GDScript exclusivamente.
 
 ## 4. Reglas aprobadas
 
@@ -62,15 +68,19 @@ detalle local y abstracción regional se desarrollan en
 [ARC-003](ARC-003_multiscale-simulation-principles.md), sin cerrar todavía
 la estructura de carpetas ni el formato de datos, que siguen abiertos.
 
-### Separación futura de carpetas (principio, sin crear aún)
+### Separación de carpetas
 
-| Tipo | Responsabilidad futura |
-|---|---|
-| `docs/` | Reglas, decisiones, contexto y diseño canónico |
-| `game_data/` | Habilidades, conocimientos, edificios, recursos, situaciones y escenarios concretos |
-| `schemas/` | Contratos y validaciones de datos |
-| `src/` | Implementación del juego |
-| `tests/` | Pruebas acotadas de reglas, integración y regresión |
+| Tipo | Responsabilidad | Estado |
+|---|---|---|
+| `docs/` | Reglas, decisiones, contexto y diseño canónico | Existe |
+| `scenes/` | Composición visual y escenas de Godot | Creada en `IMPLEMENTATION-001` |
+| `src/` | Implementación del juego en GDScript | Creada en `IMPLEMENTATION-001` |
+| `game_data/` | Habilidades, conocimientos, edificios, recursos, situaciones y escenarios concretos | Sin crear todavía |
+| `schemas/` | Contratos y validaciones de datos | Sin crear todavía |
+| `tests/` | Pruebas acotadas de reglas, integración y regresión | Creada en `IMPLEMENTATION-001` (smoke test) |
+
+`IMPLEMENTATION-001` no convierte personas ni edificios en datos JSON: el
+formato de contenido definitivo (`game_data/`, `schemas/`) sigue abierto.
 
 ## 6. Casos límite o riesgos
 
@@ -78,8 +88,10 @@ Ninguno específico a este documento.
 
 ## 7. Preguntas abiertas
 
-- Estructura de carpetas definitiva del proyecto Godot.
-- Formato definitivo de datos de contenido.
+- Estructura interna definitiva de `scenes/` y `src/` para las entregas
+  posteriores a `IMPLEMENTATION-001` (esta entrega solo fija la separación
+  mínima descrita en su prompt).
+- Formato definitivo de datos de contenido (`game_data/`, `schemas/`).
 - Formato de guardado.
 
 Ver también `docs/OPEN-QUESTIONS.md`.
