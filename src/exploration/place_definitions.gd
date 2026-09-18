@@ -45,6 +45,8 @@ const FIXED_CONTENT := {
 		{"type_id": ResourceDefinitions.TYPE_REPAIR_MATERIALS, "amount": 2},
 		{"type_id": ResourceDefinitions.TYPE_CLOTH, "amount": 3},
 		{"type_id": ResourceDefinitions.TYPE_BASIC_TOOLS, "amount": 1},
+		# IMPLEMENTATION-004, sección 12.2: 4 prendas dañadas para el remiendo.
+		{"type_id": ResourceDefinitions.TYPE_DAMAGED_CLOTHING, "amount": 4},
 	],
 	"building.house_a": [
 		{"type_id": ResourceDefinitions.TYPE_FOOD_PRESERVED, "amount": 2},
