@@ -7,6 +7,11 @@ extends Node
 
 signal time_changed(day: int, hour: int, minute: int)
 signal speed_state_changed(paused: bool, multiplier: float)
+## Avance de simulación para movimiento y trabajo:
+## `gameplay_delta = real_delta × multiplier`, y no se emite en pausa.
+## Es independiente de la conversión de calendario (72 s simulados por
+## segundo real a ×1), que solo afecta al día y la hora.
+signal simulation_advanced(gameplay_delta: float)
 
 var day: int = GameConstants.CLOCK_START_DAY
 var paused: bool = false
@@ -32,6 +37,9 @@ func _process(delta: float) -> void:
 		_seconds_in_day -= GameConstants.SIM_SECONDS_PER_DAY
 		day += 1
 	_emit_time(false)
+	var gameplay_delta: float = get_gameplay_delta(delta)
+	if gameplay_delta > 0.0:
+		simulation_advanced.emit(gameplay_delta)
 
 func set_paused(value: bool) -> void:
 	paused = value
@@ -41,6 +49,13 @@ func set_multiplier(value: float) -> void:
 	multiplier = value
 	paused = false
 	speed_state_changed.emit(paused, multiplier)
+
+## Segundos de juego observables que corresponden a `real_delta`. Vale 0 en
+## pausa; a ×2, ×4 y ×10 multiplica de forma coherente movimiento y trabajo.
+func get_gameplay_delta(real_delta: float) -> float:
+	if paused:
+		return 0.0
+	return real_delta * multiplier
 
 func get_current_time() -> Dictionary:
 	return {
