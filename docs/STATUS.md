@@ -15,6 +15,22 @@ septiembre de 2026**. La aceptación manual de `IMPLEMENTATION-003` sigue
 entrega documental (`DESIGN-003`) no la declara superada ni cambia el juego
 ejecutable.
 
+## Última corrección técnica
+
+`HOTFIX-001` — corrige el error de compilación en
+`ResourceRegistry.reserve()` (`src/resources/resource_registry.gd`) que
+impedía abrir y ejecutar `IMPLEMENTATION-003` en Godot 4.7.2: `get_stack()`
+usaba `Dictionary.get(id, null)` para devolver un `ResourceStack`
+tipado, lo que el analizador estático rechazaba; ahora comprueba
+`Dictionary.has()` antes de indexar. También añade `.gitattributes` para
+fijar finales de línea LF en los archivos de texto del proyecto (`.gd`,
+`.tscn`, `.tres`, `.godot`, `.import`, `.cfg`, `.md`) y evitar que Godot en
+Windows genere diffs de línea completa por CRLF. No cambia comportamiento
+de juego ni contenido: es una corrección técnica acotada, no una entrega de
+`RDM-001`. `godot --headless` sigue sin estar disponible en este entorno
+(ver «Validaciones automatizadas» más abajo); `git diff --check` no
+informó errores.
+
 ## Última entrega documental completada
 
 `DESIGN-003` — trabajo, recuperación y conocimiento aplicado: horizonte
