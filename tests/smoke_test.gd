@@ -148,6 +148,12 @@ func _init() -> void:
 	_check_finite_sources(board, failures)
 	_check_conduction(board, failures)
 
+	# Comprobaciones de IMPLEMENTATION-004 (sección 18 de su prompt).
+	_check_zones(board, failures)
+	_check_defense(board, failures)
+	_check_noise(board, failures)
+	_check_learning(board, failures)
+
 	_finish(failures)
 
 ## 10. Niveles de información y materialización única del contenido fijo.
@@ -386,6 +392,192 @@ func _check_conduction(board, failures: Array[String]) -> void:
 	conduction.advance(GameConstants.CONDUCTION_SECONDS_PER_WATER * 10.0, storage, resources)
 	if storage.water_total() > GameConstants.WATER_DEPOSIT_CAPACITY:
 		failures.append("La conducción superó la capacidad del depósito (%d)." % storage.water_total())
+
+## 16. Preset inicial correcto, pintar cambia una celda, una ruta muestreada
+## que cruza «forbidden» se rechaza y una persona dentro encuentra salida.
+func _check_zones(board, failures: Array[String]) -> void:
+	var zones = board.zones
+	var inside: Vector2i = zones.world_to_cell(Vector3(0.0, 0.0, 8.0))
+	var outside: Vector2i = zones.world_to_cell(Vector3(0.0, 0.0, -20.0))
+	if zones.state_at_cell(inside) != ZoneDefinitions.STATE_HABITUAL:
+		failures.append("El rectángulo habitual inicial no cubre (0,0,8).")
+	if zones.state_at_cell(outside) != ZoneDefinitions.STATE_CAUTION:
+		failures.append("Fuera del rectángulo habitual debería empezar en «precaución».")
+
+	var target: Vector2i = zones.world_to_cell(Vector3(0.0, 0.0, 5.0))
+	if not zones.paint_cell(target, ZoneDefinitions.STATE_FORBIDDEN):
+		failures.append("Pintar una celda distinta de su estado actual debería informar de un cambio.")
+	if zones.state_at_cell(target) != ZoneDefinitions.STATE_FORBIDDEN:
+		failures.append("Pintar no dejó la celda en «prohibida».")
+
+	var from_point := Vector3(0.0, 0.0, 2.0)
+	var to_point := Vector3(0.0, 0.0, 8.0)
+	if not zones.path_crosses_forbidden(PackedVector3Array([from_point, to_point])):
+		failures.append("Una ruta que atraviesa una celda prohibida debería detectarse.")
+	var reason: String = board.navigation.route_block_reason(from_point, to_point)
+	if reason != ZoneDefinitions.BLOCK_FORBIDDEN:
+		failures.append("Una ruta bloqueada por zona debería decir «%s» (dice «%s»)." % [ZoneDefinitions.BLOCK_FORBIDDEN, reason])
+
+	var inside_point: Vector3 = zones.cell_center(target)
+	var exit_point: Vector3 = zones.nearest_habitual_world(inside_point)
+	if zones.state_at(exit_point) != ZoneDefinitions.STATE_HABITUAL:
+		failures.append("Una persona dentro de una celda prohibida debería encontrar una salida habitual.")
+
+	zones.paint_cell(target, ZoneDefinitions.STATE_HABITUAL)
+
+## 17. Reservar y completar una construcción de defensa consume su coste una
+## sola vez; daño y reparación respetan 0…máximo; repetir no duplica ni
+## vuelve a consumir.
+func _check_defense(board, failures: Array[String]) -> void:
+	var resources = board.resources
+	var storage = board.storage
+	if not storage.ready_for_use:
+		storage.establish(Vector3.ZERO, Vector3(1.0, 0.0, 0.0))
+	var defense_id := "defense.shelter.west_window"
+	var point: DefensePoint = board.defense.get_point(defense_id)
+	if point == null:
+		failures.append("No se registró el punto de defensa %s." % defense_id)
+		return
+
+	resources.create_stack(
+		ResourceDefinitions.TYPE_WOOD_PLANKS, 2, ResourceDefinitions.LOCATION_STORAGE,
+		Vector3.ZERO, ResourceDefinitions.LOGISTICS_STORED
+	)
+	var planks_before: int = _stored_amount(resources, ResourceDefinitions.TYPE_WOOD_PLANKS)
+	var job := WorkOrder.new()
+	job.action_type = WorkActions.BARRICADE_WINDOW
+	job.target_id = defense_id
+	var error: String = board.execution.reserve_for(job, "person.initial.01")
+	if error != "":
+		failures.append("No se pudieron reservar los materiales de la defensa: %s" % error)
+		return
+	board.execution.apply(job, null)
+	if point.defense_state != DefensePoint.STATE_INTACT:
+		failures.append("Completar la construcción no dejó la defensa intacta (%s)." % point.defense_state)
+	if not is_equal_approx(point.durability, point.max_durability_value()):
+		failures.append("La durabilidad tras construir no es la máxima (%.1f)." % point.durability)
+	if _stored_amount(resources, ResourceDefinitions.TYPE_WOOD_PLANKS) != planks_before - 2:
+		failures.append("La construcción no consumió exactamente su coste de tablones.")
+
+	# Repetir no puede volver a consumir materiales ni duplicar el cierre.
+	var active_before: int = _total_active(resources)
+	board.execution.apply(job, null)
+	if _total_active(resources) != active_before:
+		failures.append("Repetir la construcción de defensa volvió a consumir materiales.")
+
+	# Un daño enorme respeta el mínimo 0 y deja la defensa destruida.
+	var damage_result: Dictionary = board.defense.apply_damage(defense_id, 1000.0)
+	if point.durability != 0.0:
+		failures.append("Un daño enorme no dejó la durabilidad en 0 (%.1f)." % point.durability)
+	if point.defense_state != DefensePoint.STATE_DESTROYED:
+		failures.append("Durabilidad 0 debería quedar «destruido» (%s)." % point.defense_state)
+	if not bool(damage_result.get("destroyed", false)):
+		failures.append("apply_damage no informó de la destrucción.")
+
+	# Reconstruir desde destruido y reparar sin superar el máximo.
+	resources.create_stack(
+		ResourceDefinitions.TYPE_WOOD_PLANKS, 2, ResourceDefinitions.LOCATION_STORAGE,
+		Vector3.ZERO, ResourceDefinitions.LOGISTICS_STORED
+	)
+	var rebuild := WorkOrder.new()
+	rebuild.action_type = WorkActions.BARRICADE_WINDOW
+	rebuild.target_id = defense_id
+	board.execution.reserve_for(rebuild, "person.initial.02")
+	board.execution.apply(rebuild, null)
+	if point.defense_state != DefensePoint.STATE_INTACT:
+		failures.append("Reconstruir desde destruido no dejó la defensa intacta.")
+
+	board.defense.apply_damage(defense_id, 50.0)
+	if point.defense_state != DefensePoint.STATE_DAMAGED:
+		failures.append("Un daño parcial debería dejar la defensa «dañada» (%s)." % point.defense_state)
+	resources.create_stack(
+		ResourceDefinitions.TYPE_REPAIR_MATERIALS, 1, ResourceDefinitions.LOCATION_STORAGE,
+		Vector3.ZERO, ResourceDefinitions.LOGISTICS_STORED
+	)
+	var repair := WorkOrder.new()
+	repair.action_type = WorkActions.REPAIR_DEFENSE
+	repair.target_id = defense_id
+	board.execution.reserve_for(repair, "person.initial.01")
+	board.execution.apply(repair, null)
+	if point.durability > point.max_durability_value() + 0.01:
+		failures.append("La reparación superó la durabilidad máxima (%.1f)." % point.durability)
+
+## 18. Una emisión selecciona un zombi dentro del radio y no uno fuera;
+## repetir avance sin una nueva emisión no vuelve a disparar el estímulo.
+func _check_noise(board, failures: Array[String]) -> void:
+	var threat = board.threat
+	var near := ZombieState.new()
+	near.id = "zombie.smoke_test.near"
+	near.position = Vector3(30.0, 0.0, 30.0)
+	threat.register_zombie(near, null)
+	var far := ZombieState.new()
+	far.id = "zombie.smoke_test.far"
+	far.position = Vector3(-30.0, 0.0, -30.0)
+	threat.register_zombie(far, null)
+
+	board.noise.emit("smoke_test_cause", Vector3(31.0, 0.0, 30.0), 5.0, 0.0)
+	if near.state != ZombieState.STATE_INVESTIGATING:
+		failures.append("Un zombi dentro del radio de ruido no empezó a investigar.")
+	if far.state != ZombieState.STATE_IDLE:
+		failures.append("Un zombi fuera del radio de ruido reaccionó al ruido.")
+
+	# El agrupado de sucesos no debe repetirse dentro de la ventana, y debe
+	# volver a dispararse una vez pasada (afecta solo a la presentación,
+	# nunca a quién oye el ruido, que ya se comprobó arriba).
+	var isolated_noise := NoiseService.new()
+	var first_log: bool = isolated_noise.should_log("smoke_test_cause", Vector3.ZERO, 0.0)
+	var second_log: bool = isolated_noise.should_log("smoke_test_cause", Vector3.ZERO, 1.0)
+	if not first_log:
+		failures.append("La primera emisión de una causa debería registrarse como suceso.")
+	if second_log:
+		failures.append("Repetir la misma causa dentro de la ventana de agrupado volvió a registrarse.")
+	var third_log: bool = isolated_noise.should_log(
+		"smoke_test_cause", Vector3.ZERO, GameConstants.NOISE_LOG_GROUP_SECONDS + 1.0
+	)
+	if not third_log:
+		failures.append("Pasada la ventana de agrupado, una nueva emisión debería registrarse de nuevo.")
+
+## 19. Dos resultados útiles hacen subir de nivel 1 a 2; una acción sin
+## resultado no concede práctica; el remiendo transforma una prenda dañada
+## en una unidad de tela con la condición correcta sin cambiar el total.
+func _check_learning(board, failures: Array[String]) -> void:
+	var fishing_state = board.get_person_state("person.initial.03")
+	fishing_state.set_skill("fishing", 1)
+	var learning: LearningProgress = fishing_state.learning
+	var progress_after_one: int = learning.record_result("fishing", 1)
+	if progress_after_one != -1:
+		failures.append("Un solo resultado no debería subir de nivel todavía.")
+	var progress_after_two: int = learning.record_result("fishing", 1)
+	if progress_after_two != 2:
+		failures.append("Dos resultados útiles deberían subir de nivel 1 a 2 (obtuvo %d)." % progress_after_two)
+	# Cancelar, bloquearse o no producir el resultado nunca llama a
+	# `record_result`: `WorkExecution._grant_practice` solo se invoca desde
+	# `apply()`, que es exactamente una vez al completar de verdad la acción.
+
+	var resources = board.resources
+	resources.create_stack(
+		ResourceDefinitions.TYPE_DAMAGED_CLOTHING, 1, ResourceDefinitions.LOCATION_STORAGE,
+		Vector3.ZERO, ResourceDefinitions.LOGISTICS_STORED
+	)
+	var total_before: int = _total_active(resources)
+	var mend_job := WorkOrder.new()
+	mend_job.action_type = WorkActions.MEND_CLOTHING
+	mend_job.target_id = "building.shelter_candidate"
+	var error: String = board.execution.reserve_for(mend_job, "person.initial.06")
+	if error != "":
+		failures.append("No se pudo reservar la prenda dañada para remendar: %s" % error)
+		return
+	var mending_state = board.get_person_state("person.initial.06")
+	mending_state.set_skill("mending_sewing", 1)
+	board.execution.apply(mend_job, null, mending_state)
+	if _total_active(resources) != total_before:
+		failures.append("El remiendo cambió el total de unidades activas.")
+	var found_condition := -1.0
+	for stack in resources.stacks_at(ResourceDefinitions.LOCATION_STORAGE):
+		if stack.type_id == ResourceDefinitions.TYPE_CLOTH and is_equal_approx(stack.condition, 40.0):
+			found_condition = stack.condition
+	if found_condition < 0.0:
+		failures.append("El remiendo no produjo una unidad de tela con condición 40.")
 
 # --- Utilidades -----------------------------------------------------------
 

@@ -43,11 +43,14 @@ const TYPE_BASIC_TOOLS := "basic_tools"
 const TYPE_REPAIR_MATERIALS := "repair_materials"
 const TYPE_BASIC_MEDICINE := "basic_medicine"
 const TYPE_WATER_CONTAINER := "water_container"
+## Undécimo tipo de recurso, añadido por IMPLEMENTATION-004 (sección 12.2)
+## para dar contenido real al remiendo.
+const TYPE_DAMAGED_CLOTHING := "damaged_clothing"
 
-## Los diez tipos rastreados por esta entrega, en orden de presentación.
-## Cubren la lista de SET-003 sección 3.2 salvo la munición inicial, que
-## esta semilla no contiene, y añaden dos tipos que el bucle de subsistencia
-## necesita explícitamente: alimento echado a perder y recipientes de agua.
+## Los diez tipos de IMPLEMENTATION-003, en orden de presentación. Cubren la
+## lista de SET-003 sección 3.2 salvo la munición inicial, que esta semilla
+## no contiene, y añaden dos tipos que el bucle de subsistencia necesita
+## explícitamente: alimento echado a perder y recipientes de agua.
 const TYPE_IDS := [
 	TYPE_WATER,
 	TYPE_FOOD_FRESH,
@@ -59,6 +62,7 @@ const TYPE_IDS := [
 	TYPE_REPAIR_MATERIALS,
 	TYPE_BASIC_MEDICINE,
 	TYPE_WATER_CONTAINER,
+	TYPE_DAMAGED_CLOTHING,
 ]
 
 ## `perishable`: pierde condición con el tiempo.
@@ -130,6 +134,13 @@ const TYPES := {
 	},
 	TYPE_WATER_CONTAINER: {
 		"name": "Recipientes de agua",
+		"perishable": false,
+		"drinkable": false,
+		"edible": false,
+		"deposit": false,
+	},
+	TYPE_DAMAGED_CLOTHING: {
+		"name": "Prendas dañadas",
 		"perishable": false,
 		"drinkable": false,
 		"edible": false,

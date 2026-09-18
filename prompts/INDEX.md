@@ -11,5 +11,6 @@
 | [IMPLEMENTATION-003_exploration-and-subsistence.md](IMPLEMENTATION-003_exploration-and-subsistence.md) | Tercera entrega de código: exploración y subsistencia (información de lugares, recursos, almacén, transporte, necesidades, agua por dos rutas, alimento alternativo, deterioro y conservación). |
 | [DESIGN-003_work-recovery-and-knowledge.md](DESIGN-003_work-recovery-and-knowledge.md) | Horizonte máximo documental de trabajo, prioridades, recuperación dependiente de la persona y conocimiento individual/comunitario, sin ampliar el primer corte jugable. |
 | [HOTFIX-001_bootstrap-fix-and-git-metadata.md](HOTFIX-001_bootstrap-fix-and-git-metadata.md) | Corrección del error de compilación en `ResourceRegistry.reserve` y normalización de finales de línea (`.gitattributes`) para Godot en Windows. |
+| [IMPLEMENTATION-004_defense-and-autonomy.md](IMPLEMENTATION-004_defense-and-autonomy.md) | Cuarta entrega de código: defensa y vida propia (zonas territoriales, puntos de defensa, amenaza zombi local, ruido, guardia, combate y retirada elementales, aprendizaje observable y dos decisiones autónomas acotadas). |
 
 Ver el protocolo de prompts futuros en [README.md](README.md).

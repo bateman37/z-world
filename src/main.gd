@@ -26,13 +26,17 @@ const ARRIVAL_BELONGINGS := {
 var _selected_info: Dictionary = {}
 var _context_person_id: String = ""
 var _context_hit: Dictionary = {}
+var _zone_overlay: ZoneOverlay = null
+var _current_zone_state: String = ZoneDefinitions.STATE_HABITUAL
 
 func _ready() -> void:
 	_selection_manager.camera = _camera_rig.get_camera()
 
 	_setup_work_board()
+	_setup_threat_and_defense()
 
 	_clock.time_changed.connect(_hud.update_clock)
+	_clock.time_changed.connect(_work_board.set_current_time)
 	_clock.speed_state_changed.connect(_hud.update_speed_state)
 	_clock.simulation_advanced.connect(_on_simulation_advanced)
 
@@ -43,15 +47,22 @@ func _ready() -> void:
 	_hud.site_action_requested.connect(_on_site_action_requested)
 	_hud.haul_all_requested.connect(_on_haul_all_requested)
 	_hud.cancel_direct_order_requested.connect(_work_board.cancel_direct_order)
+	_hud.retreat_requested.connect(_work_board.request_retreat)
 	_hud.context_option_chosen.connect(_on_context_option_chosen)
+	_hud.zone_tool_toggled.connect(_on_zone_tool_toggled)
+	_hud.zone_state_selected.connect(_on_zone_state_selected)
+	_hud.zone_overlay_toggle_requested.connect(_on_zone_overlay_toggle_requested)
 
 	_selection_manager.selection_changed.connect(_on_selection_changed)
 	_selection_manager.selection_cleared.connect(_on_selection_cleared)
 	_selection_manager.context_menu_requested.connect(_on_context_menu_requested)
+	_selection_manager.zone_paint_requested.connect(_on_zone_paint_requested)
 
 	_work_board.jobs_changed.connect(_refresh_jobs_panel)
 	_work_board.persons_changed.connect(_refresh_priorities_panel)
 	_work_board.world_changed.connect(_refresh_world_panels)
+	_work_board.event_log.event_logged.connect(_on_event_logged)
+	_work_board.threat.threat_level_changed.connect(_on_threat_level_changed)
 
 	_hud.build_priorities_matrix(_person_rows())
 	_refresh_priorities_panel()
@@ -122,10 +133,63 @@ func _register_sources() -> void:
 	forest.remaining = GameConstants.FOREST_MUSHROOM_TOTAL
 	_work_board.register_source(forest)
 
+## Zonas territoriales, puntos de defensa, puestos de guardia y zombis
+## (IMPLEMENTATION-004). Se cablea después de `_setup_work_board` porque
+## reutiliza `_work_board.navigation` y el registro de personas ya hecho.
+func _setup_threat_and_defense() -> void:
+	_zone_overlay = ZoneOverlay.new()
+	_zone_overlay.name = "ZoneOverlay"
+	_world.add_child(_zone_overlay)
+	_zone_overlay.set_grid(_work_board.zones)
+
+	var defense_points: Node = _world.get_node_or_null("DefensePoints")
+	if defense_points:
+		for point in defense_points.get_children():
+			if point is DefensePoint:
+				_work_board.register_defense_point(point)
+
+	var guard_posts: Node = _world.get_node_or_null("GuardPosts")
+	if guard_posts:
+		for post in guard_posts.get_children():
+			if post is GuardPost:
+				_work_board.register_guard_post(post)
+
+	var zombies: Node = _world.get_node_or_null("Zombies")
+	if zombies:
+		for zombie in zombies.get_children():
+			if zombie is ZombieAgent:
+				var state := ZombieState.new()
+				state.id = zombie.id
+				state.display_name = zombie.display_name
+				state.position = zombie.global_position
+				_work_board.register_zombie(state, zombie)
+				zombie.setup(state, _work_board.threat)
+
+func _on_event_logged(_line: String) -> void:
+	_hud.update_events(_work_board.event_log.recent())
+
+func _on_threat_level_changed(_level: String) -> void:
+	_hud.update_threat_level(_work_board.threat.threat_level_label())
+
+func _on_zone_tool_toggled(active: bool) -> void:
+	_selection_manager.zone_paint_active = active
+
+func _on_zone_state_selected(state_id: String) -> void:
+	_current_zone_state = state_id
+
+func _on_zone_overlay_toggle_requested() -> void:
+	_work_board.toggle_zone_overlay()
+	_zone_overlay.set_shown(_work_board.zone_overlay_shown)
+
+func _on_zone_paint_requested(from_world: Vector3, to_world: Vector3) -> void:
+	_work_board.paint_zone(from_world, to_world, _current_zone_state)
+	_zone_overlay.refresh()
+
 func _on_simulation_advanced(gameplay_delta: float) -> void:
 	_work_board.advance(gameplay_delta)
 	_refresh_jobs_panel()
 	_refresh_selection_panel()
+	_hud.update_threat_level(_work_board.threat.threat_level_label())
 
 # --- Selección ------------------------------------------------------------
 
@@ -157,7 +221,7 @@ func _build_selection_info() -> Dictionary:
 	if entity_type == "person":
 		var state: PersonWorkState = _work_board.get_person_state(entity_id)
 		if state != null:
-			info["state_text"] = state.state_label()
+			info["state_text"] = "En guardia" if state.guard_post_id != "" else state.state_label()
 			info["action_text"] = _work_board.describe_person_action(state)
 			info["reason_text"] = state.idle_reason
 			info["progress"] = _work_board.get_person_progress_ratio(state)
@@ -176,6 +240,17 @@ func _build_selection_info() -> Dictionary:
 					"label": WorkDefinitions.skill_level_label(level),
 				})
 			info["skills"] = skills
+			info["health_text"] = state.condition.describe() if state.condition != null else ""
+			info["decision_text"] = state.recent_decision
+			var learning: Array = []
+			if state.learning != null:
+				for skill_id in LearningProgress.LEARNABLE_SKILLS:
+					learning.append(state.learning.describe_line(skill_id, state.get_skill(skill_id)))
+			info["learning"] = learning
+			info["show_retreat"] = state.is_alive()
+	elif entity_type == "zombie":
+		var described_zombie: Dictionary = _work_board.threat.describe_zombie(entity_id)
+		info["state_text"] = String(described_zombie.get("state_text", ""))
 	elif entity_type == "site":
 		var described: Dictionary = _work_board.describe_site(entity_id)
 		info["state_text"] = String(described.get("state_text", ""))
@@ -261,6 +336,8 @@ func _on_context_option_chosen(option_id: String) -> void:
 	match verb:
 		"move_here":
 			_work_board.request_direct_move(_context_person_id, _context_hit.get("position", Vector3.ZERO))
+		"attack":
+			_work_board.request_attack(_context_person_id, argument)
 		"direct":
 			_work_board.request_direct_work(_context_person_id, site_id, argument)
 		"designate":

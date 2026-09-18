@@ -150,7 +150,21 @@ El roadmap fija estas cinco entregas, en este orden, sin fechas:
 4. **Defensa y vida propia**: cierre de accesos, zombis elementales, ruido,
    guardia, retirada, aprendizaje e iniciativa autónoma acotada. Dennis podrá
    ver zombis amenazando el asentamiento, defenderlo de forma básica y
-   observar al menos una decisión autónoma con su razón visible.
+   observar al menos una decisión autónoma con su razón visible. **Estado:**
+   implementada técnicamente como `IMPLEMENTATION-004` (zonas territoriales
+   con herramienta de pintura; cuatro puntos de defensa fijos con
+   durabilidad, reparación y bloqueo por sector; cinco zombis lentos con
+   detección, persecución y memoria; ruido causal con diez causas; salud y
+   baja de persona; dos puestos de guardia con enganche automático; combate
+   cuerpo a cuerpo puntual; retirada ordenada y automática; indicador de
+   amenaza y panel de sucesos; aprendizaje observable en pesca y remiendo;
+   una iniciativa de reparación y una transgresión de zona acotadas);
+   **aceptación manual pendiente** de que Dennis la ejecute (ver
+   [README.md](../../README.md) y [docs/STATUS.md](../STATUS.md)). No migra
+   a las 34 prioridades de `DESIGN-003` ni implementa generación procedural
+   o guardado: siguen en la entrega 5, que no se ha iniciado. `THR-001`,
+   `CHR-002`, `CHR-003` y `UI-001` siguen siendo `approved`: solo se ha
+   implementado su subconjunto.
 5. **Persistencia y prueba integrada**: generación reproducible, guardado,
    carga y los casos manuales de aceptación. Dennis podrá guardar, cerrar y
    recargar la partida conservando el estado del asentamiento.

@@ -6,30 +6,15 @@ real del proyecto. No sustituye a las fuentes canónicas: para reglas, consulta
 
 ## Fase actual
 
-Tercera implementación de código ejecutable: **exploración y subsistencia**
-(`IMPLEMENTATION-003`), tercera de las cinco entregas fijadas en
-[RDM-001](roadmap/RDM-001_first-playable-slice.md). La primera entrega
-(`IMPLEMENTATION-001`) fue **aceptada manualmente por Dennis el 18 de
-septiembre de 2026**. La aceptación manual de `IMPLEMENTATION-003` sigue
-**pendiente** de que Dennis la ejecute (ver [README.md](../README.md)); esta
-entrega documental (`DESIGN-003`) no la declara superada ni cambia el juego
-ejecutable.
-
-## Última corrección técnica
-
-`HOTFIX-001` — corrige el error de compilación en
-`ResourceRegistry.reserve()` (`src/resources/resource_registry.gd`) que
-impedía abrir y ejecutar `IMPLEMENTATION-003` en Godot 4.7.2: `get_stack()`
-usaba `Dictionary.get(id, null)` para devolver un `ResourceStack`
-tipado, lo que el analizador estático rechazaba; ahora comprueba
-`Dictionary.has()` antes de indexar. También añade `.gitattributes` para
-fijar finales de línea LF en los archivos de texto del proyecto (`.gd`,
-`.tscn`, `.tres`, `.godot`, `.import`, `.cfg`, `.md`) y evitar que Godot en
-Windows genere diffs de línea completa por CRLF. No cambia comportamiento
-de juego ni contenido: es una corrección técnica acotada, no una entrega de
-`RDM-001`. `godot --headless` sigue sin estar disponible en este entorno
-(ver «Validaciones automatizadas» más abajo); `git diff --check` no
-informó errores.
+Cuarta implementación de código ejecutable: **defensa y vida propia**
+(`IMPLEMENTATION-004`), cuarta de las cinco entregas fijadas en
+[RDM-001](roadmap/RDM-001_first-playable-slice.md). `IMPLEMENTATION-001` fue
+**aceptada manualmente por Dennis el 18 de septiembre de 2026**. La
+aceptación manual de `IMPLEMENTATION-003` e `IMPLEMENTATION-004` (listas en
+[README.md](../README.md)) sigue **pendiente** de que Dennis las ejecute.
+`DESIGN-003`, fusionada entre las implementaciones 003 y 004, es solo
+documentación de horizonte máximo: no cambió el juego ejecutable ni amplió
+`RDM-001`.
 
 ## Última entrega documental completada
 
@@ -53,20 +38,43 @@ no se amplió `RDM-001` y `CHR-005`/`RDM-002` siguen `draft`. Ver
 
 ## Última entrega de código
 
-`IMPLEMENTATION-003` — exploración y subsistencia: información de lugares
-con los cinco niveles de `WLD-002` y acciones de observar, inspeccionar y
-registrar; sustitución de los ocho objetivos demostradores por ocho lugares
-reales (tres edificios explorables y cinco lugares del terreno); catálogo de
-diez tipos de recurso con pilas localizadas y seis estados logísticos;
-pertenencias de llegada; almacén de capacidad 50 y depósito de agua de
-capacidad 12 con transporte en lotes de hasta 5; necesidades de hidratación,
-alimentación y descanso con acciones automáticas y cadena de supervivencia;
-alimento por registro, pesca y hongos; agua por acarreo y por conducción de
-gravedad; deterioro del alimento fresco y secado; ejecución de trabajo por
-fases dentro del mismo tablón; franja de almacenados, panel «Recursos»,
-acciones por lugar y ficha de persona con necesidades y carga. No implementa
-defensa, zombis, autonomía, aprendizaje, zonas, generación procedural ni
-guardado. Técnicamente implementado; **aceptación manual pendiente**.
+`IMPLEMENTATION-004` — defensa y vida propia: zonas territoriales
+(habitual/precaución/prohibida) con rejilla de 2 m, herramienta de pintura
+con arrastre y bloqueo de trabajos y rutas por «Zona prohibida»; cuatro
+puntos de defensa fijos del refugio (puerta sur, dos ventanas, hueco norte
+del perímetro) con estados abierto/intacto/dañado/destruido, coste,
+reparación y bloqueo de sector; cinco zombis lentos de población fija con
+estados `idle`/`investigating_noise`/`pursuing`/`attacking_defense`/
+`attacking_person`/`dead`, visión, memoria de ruido y de objetivo perdido;
+servicio de ruido causal con diez causas y radios distintos, emitido una
+sola vez al empezar la fase «act»; salud de persona (`0–100`, sana/herida/
+crítica/fallecida) y reglas de baja; dos puestos de guardia con detección,
+enganche y desenganche automáticos; combate cuerpo a cuerpo por clic
+derecho con intervalos de golpe basados en tiempo simulado; retirada
+ordenada y automática al punto de reunión; indicador de amenaza (tranquila/
+alerta/contacto) y panel de sucesos acotado a 50 entradas; aprendizaje
+observable limitado a pesca (mínimo bajado a `fishing >= 1`) y remiendo
+(nuevo recurso «prendas dañadas» y acción «Remendar una prenda»); una
+iniciativa autónoma causal (reparar una defensa dañada al 50 % o menos) y
+una transgresión de zona acotada a `person.initial.02` en su puesto de
+guardia. No migra a las 34 prioridades de `DESIGN-003`, no implementa
+generación procedural ni guardado, y conserva las diez familias y once
+habilidades existentes con su escala `0–4`. Técnicamente implementada;
+**aceptación manual pendiente**.
+
+Entrega previa: `IMPLEMENTATION-003` — exploración y subsistencia:
+información de lugares con los cinco niveles de `WLD-002` y acciones de
+observar, inspeccionar y registrar; sustitución de los ocho objetivos
+demostradores por ocho lugares reales (tres edificios explorables y cinco
+lugares del terreno); catálogo de diez tipos de recurso con pilas
+localizadas y seis estados logísticos; pertenencias de llegada; almacén de
+capacidad 50 y depósito de agua de capacidad 12 con transporte en lotes de
+hasta 5; necesidades de hidratación, alimentación y descanso con acciones
+automáticas y cadena de supervivencia; alimento por registro, pesca y
+hongos; agua por acarreo y por conducción de gravedad; deterioro del
+alimento fresco y secado; ejecución de trabajo por fases dentro del mismo
+tablón; franja de almacenados, panel «Recursos», acciones por lugar y ficha
+de persona con necesidades y carga. **Aceptación manual pendiente.**
 
 Entrega previa: `IMPLEMENTATION-002` — trabajo y personas: estado de trabajo
 por persona (diez prioridades y once habilidades), ocho objetivos de trabajo
@@ -108,97 +116,69 @@ Detalle en [ARC-001](90-architecture/ARC-001_technical-direction.md).
 
 ## Funcionalidad realmente implementada
 
-- Proyecto Godot 4.7.2 importable desde la raíz (`project.godot`), escena
-  principal configurada en `run/main_scene`.
-- Mapa local fijo (maqueta determinista, sin generación procedural) con
-  pueblo de montaña: terreno, siluetas de montaña, camino principal con un
-  desvío, agua, bosque, campo abierto y seis edificios (uno marcado como
-  refugio candidato).
-- Seis supervivientes con ID estable (`person.initial.01`–`06`), nombre
-  provisional y una diferencia visual de color, que ahora se desplazan por
-  el mapa mediante navegación.
-- Selección con clic izquierdo de las seis personas, el refugio, los demás
-  edificios y los objetivos de trabajo, con indicador visual y panel en
-  español (ID, tipo, nombre, descripción).
-- Cámara estratégica cenital inclinada, controlada solo con ratón
-  (desplazamiento con botón central, zoom con rueda, botón «Centrar
-  cámara»), con límites de mapa y zoom.
-- Reloj de simulación independiente de `Engine.time_scale`, con pausa y
-  velocidades ×1, ×2, ×4 y ×10, iniciando en Día 1, 08:00.
-- HUD mínimo en español con nombre del escenario, reloj, controles de
-  velocidad, botón de centrar cámara, panel de selección, ayuda compacta y
-  aviso de prototipo.
-- Estado de trabajo por persona, separado de su representación visual: diez
-  familias de prioridad (todas en `2` al inicio, escala `0–4`) y once
-  habilidades iniciales con escala provisional `0–4`, más estado operativo
-  (`idle`, `moving`, `working`, `direct_order`), trabajo actual, orden
-  directa y motivo operativo.
-- Ocho lugares reales seleccionables y designables, que sustituyen a los
-  ocho objetivos demostradores de `IMPLEMENTATION-002`: tres edificios
-  explorables (`building.shelter_candidate`, `building.house_a`,
-  `building.workshop`) con contenido fijo, y cinco lugares del terreno
-  (`site.stream_water`, `site.pond_fishing`, `site.forest_mushrooms`,
-  `site.highland_spring`, `site.water_deposit`).
-- Información de lugares con los cinco niveles de `WLD-002` (`unknown`,
-  `sighted`, `observed`, `inspected`, `exploited`), que nunca retrocede, y
-  tres acciones que la hacen avanzar: observar (5 s a ×1), inspeccionar
-  (10 s) y registrar (12 s). El contenido fijo se materializa exactamente
-  una vez.
-- Catálogo de diez tipos de recurso con identificador estable y pilas
-  localizadas con tipo, cantidad, ubicación, condición, accesibilidad,
-  portador y reserva, con los seis estados logísticos de `SET-003`.
-- Pertenencias de llegada por persona, como pilas reales que hay que
-  depositar.
-- Almacén de capacidad 50 y depósito de agua localizado de capacidad 12,
-  establecidos al registrar el refugio candidato, con transporte en lotes de
-  hasta 5 unidades y acción «Transportar todo lo accesible».
-- Necesidades de hidratación, alimentación y descanso en escala `0–100`,
-  con pérdidas de 40, 30 y 25 puntos por día simulado, umbrales en 50 y 20,
-  acciones automáticas de beber, comer y descansar, y cadena de
-  supervivencia que rompe el bloqueo circular.
-- Alimento por tres rutas: registro de edificios, pesca en el estanque (12
-  unidades) y recolección de hongos (8 unidades), con política de obtención
-  continua y distinción entre «no reconocido» y «agotado».
-- Agua por dos rutas: acarreo con recipientes reutilizables (2 unidades por
-  viaje) con política «Mantener 12 de agua», y conducción por gravedad que
-  consume 4 tablones y 2 materiales de reparación una sola vez y produce 1
-  unidad de agua cada 10 s a ×1 sin superar la capacidad del depósito.
-- Deterioro del alimento fresco (60, 45 o 25 puntos de condición por día
-  simulado en terreno, transporte o almacén), transformación en alimento
-  echado a perder al llegar a 0 y secado de 3 frescos en 2 conservados.
-- Ejecución de trabajo por fases (`travel`, `act`, `return`, `deliver`) con
-  recursos reservados y destino de entrega, dentro del mismo tablón.
-- Tablón de trabajos con estados `pending`, `reserved`, `moving`, `working`,
-  `completed`, `cancelled` y `blocked`, una única reserva por objetivo,
-  progreso conservado al cancelar y selector determinista por prioridad,
-  urgencia, distancia de ruta, espera, nivel de habilidad e ID.
-- Cuatro razones de bloqueo y tres razones de «sin trabajo» concretas, que
-  se recuperan automáticamente al cambiar la causa.
-- Navegación 3D local con malla generada en código al cargar la escena
-  (`NavigationRegion3D` + `NavigationAgent3D`): las rutas no atraviesan
-  edificios, agua, arbolado ni salen del terreno útil, y Dennis no hornea
-  nada a mano.
-- Movimiento y progreso gobernados por el avance de simulación del reloj
-  (`gameplay_delta = delta real × multiplicador`, `0` en pausa), sin usar
-  `Engine.time_scale` y sin alterar la conversión de calendario.
-- Órdenes puntuales con clic derecho: «Mover aquí», «Hacer ahora …» y
-  «Designar para la comunidad», con opciones deshabilitadas y su razón
-  cuando no son posibles.
-- Paneles de HUD «Prioridades» (matriz 10 × 6 con clic izquierdo/derecho,
-  número, color y tooltip), «Trabajos» (activos y últimos completados, con
-  fase y resultado) y «Recursos» (cantidad por tipo y estado logístico),
-  franja de almacenados, panel de selección de lugar con un botón por
-  acción y su motivo de bloqueo, y ficha de persona con estado, actividad,
-  fase, motivo, progreso, necesidades, carga y las once habilidades.
-- Smoke test headless en `tests/smoke_test.gd` (ver validaciones ejecutadas
-  o no ejecutadas más abajo).
+Heredado de `IMPLEMENTATION-001`, `002` y `003` (proyecto Godot, mapa local
+fijo, seis supervivientes, cámara, reloj y velocidades, prioridades,
+designaciones, tablón de trabajos con navegación, lugares reales,
+recursos, almacén, necesidades, agua, alimento y conservación); ver los
+detalles ya registrados en las entregas previas de esta sección más abajo.
+Añadido por `IMPLEMENTATION-004`:
 
-No implementa defensa, cierre de accesos, zombis, combate, ruido, guardia,
-retirada, autonomía, iniciativas, aprendizaje, relaciones, salud,
-enfermedad, muerte, zonas de territorio, interiores 3D, agricultura,
-animales, combustible, electricidad, potabilización, cocina, recetas,
-generación procedural, guardado ni carga: quedan para las dos entregas
-posteriores de `RDM-001`.
+- Zonas territoriales: rejilla de 2 m con estados `habitual`/`caution`/
+  `forbidden`, rectángulo habitual inicial alrededor del asentamiento,
+  herramienta «Zonas» con pintura por arrastre, superposición visual con
+  `MultiMesh` y bloqueo de trabajos y rutas físicas por «Zona prohibida»
+  (muestreo cada 1 m), incluida la salida garantizada desde una celda
+  recién prohibida.
+- Cuatro puntos de defensa fijos del refugio (puerta sur, dos ventanas,
+  hueco norte del perímetro) con estados abierto/intacto/dañado/destruido,
+  coste y duración propios, reparación con 1 material de reparación,
+  bloqueo del sector correspondiente a los zombis que se acercan al
+  asentamiento y panel con estado, durabilidad, sector, trabajo activo y
+  bloqueo.
+- Cinco zombis lentos de población fija (`zombie.local.01`–`05`) con
+  velocidad, salud, alcance y daño provisionales, estados lógicos
+  (`idle`, `investigating_noise`, `pursuing`, `attacking_defense`,
+  `attacking_person`, `dead`), visión de 8 m, memoria de ruido de 15 s y de
+  objetivo perdido de 10 s, y desempate estable por ID.
+- Servicio de ruido causal con diez causas y radios de la sección 8 del
+  prompt, emitido una sola vez al empezar la fase «act» de cada trabajo (o
+  por cada impacto), con aro visual de 1,5 s y agrupado de 5 s solo en la
+  presentación de sucesos.
+- Salud de persona (`0–100`, etiquetas Sana/Herida/Crítica/Fallecida) y
+  reglas de baja: interrumpe movimiento/combate/trabajo, libera reservas,
+  deja la carga en el sitio y excluye a la persona de nuevas asignaciones
+  sin borrarla de la partida.
+- Dos puestos de guardia (`guard.post.south`, `guard.post.east`) con el
+  trabajo continuo «Vigilar acceso» (`guard_defense`), detección a 14 m,
+  enganche automático a 8 m y desenganche por encima de 10 m.
+- Combate cuerpo a cuerpo por clic derecho («Atacar cuerpo a cuerpo») con
+  intervalos de golpe por tiempo simulado, sin puntería manual ni modo de
+  acción separado; las personas sin guardia se retiran de un zombi cercano
+  en vez de buscar combate.
+- Retirada ordenada («Retirarse al refugio», botón persistente en la ficha)
+  y automática por salud crítica o varios zombis cercanos, hacia
+  `RALLY_POINT`, con prioridad de supervivencia y conservación de progreso.
+- Indicador de amenaza (tranquila/alerta/contacto) con margen de 10 s tras
+  perder el contacto, y panel «Sucesos» con las doce entradas más recientes
+  (máximo 50 en memoria), con día y hora del reloj.
+- Aprendizaje observable limitado a `fishing` (mínimo bajado a `>= 1` para
+  principiantes, duración según nivel) y `mending_sewing` (nuevo recurso
+  `damaged_clothing`, cuatro unidades materializadas al inspeccionar el
+  refugio, acción «Remendar una prenda» que produce `cloth` con la
+  condición de la tabla del prompt), con contador de práctica y subida de
+  nivel exactamente al alcanzar el umbral.
+- Una iniciativa autónoma causal (reparar una defensa dañada al 50 % o
+  menos, evaluada solo al cruzar ese umbral) y una transgresión de zona
+  acotada a `person.initial.02` desde un puesto de guardia, ambas con causa
+  y mensaje en español registrados en la ficha y en «Sucesos».
+- Smoke test headless ampliado con cuatro pruebas nuevas (zonas, defensa,
+  ruido, aprendizaje); ver «Validaciones automatizadas» más abajo.
+
+No implementa las 34 prioridades ni la escala `Nunca/1–5` de `DESIGN-003`,
+generación procedural, semillas, guardado ni carga (quedan para
+`IMPLEMENTATION-005`), mapa estratégico, construcción libre, armas de
+fuego, infección, medicina, relaciones persistentes, ni ningún otro
+elemento listado como fuera de alcance en el prompt de la entrega.
 
 ## Documentación
 
@@ -222,60 +202,65 @@ posteriores de `RDM-001`.
   configurable de amenazas (`THR-002`) y horizonte de capacidades a largo
   plazo (`RDM-002`).
 - **Implementado (`implemented`)**: no se usa todavía en ningún documento de
-  dominio. `IMPLEMENTATION-001`, `IMPLEMENTATION-002` e
-  `IMPLEMENTATION-003` son entregas de código, no un cambio de estado
-  documental de `WLD-002`, `SET-003`, `CHR-001`, `UI-001`, `CHR-003`,
-  `SCN-001`, `ARC-002` ni del resto de `RDM-001`, que siguen siendo
-  `approved` a la espera de sus entregas correspondientes: esta entrega
-  implementa solo el subconjunto de exploración y subsistencia descrito en
-  su prompt.
+  dominio. `IMPLEMENTATION-001` a `IMPLEMENTATION-004` son entregas de
+  código, no un cambio de estado documental de `WLD-002`, `SET-003`,
+  `CHR-001`, `UI-001`, `CHR-003`, `SCN-001`, `ARC-002`, `THR-001` ni del
+  resto de `RDM-001`, que siguen siendo `approved` a la espera de sus
+  entregas correspondientes: esta entrega implementa solo el subconjunto de
+  defensa y vida propia descrito en su prompt.
 
-## Validaciones automatizadas de `IMPLEMENTATION-003`
+## Validaciones automatizadas de `IMPLEMENTATION-004`
 
-`godot --headless` tampoco está disponible en el entorno donde se implementó
-esta entrega: los dos comandos del prompt (`godot --headless --path .
---editor --quit` y `godot --headless --path . --script
+`godot --headless` tampoco está disponible en el entorno donde se
+implementó esta entrega: los dos comandos del prompt (`godot --headless
+--path . --editor --quit` y `godot --headless --path . --script
 res://tests/smoke_test.gd`) quedan como **NOT RUN** por ausencia del motor.
 No se instaló Godot para forzar su ejecución. `git diff --check` sí se
 ejecutó y no informó errores.
 
-El smoke test conserva las comprobaciones de `IMPLEMENTATION-001` y las de
-`IMPLEMENTATION-002` que siguen siendo válidas (retirando las ligadas a los
-ocho demostradores desaparecidos) y añade seis:
+El smoke test conserva las comprobaciones de `IMPLEMENTATION-001`, `002` y
+`003` que siguen siendo válidas y añade cuatro:
 
-1. Niveles de información y materialización única del contenido fijo.
-2. Reservar, recoger y depositar conserva la cantidad exacta.
-3. Una necesidad crítica consume exactamente una unidad y el valor nunca
-   sale de `0–100`.
-4. Deterioro del alimento fresco frente a la estabilidad del conservado, con
-   transformación en condición 0.
-5. Límites de disponibilidad de pesca y hongos, distinguiendo «no
-   reconocido» de «agotado».
-6. La conducción reserva y consume materiales una sola vez y no supera la
-   capacidad de 12 del depósito.
+1. Preset inicial de zonas, pintura de una celda, ruta muestreada que cruza
+   «prohibida» rechazada y salida garantizada desde dentro de una zona
+   prohibida.
+2. Reservar y completar una construcción de defensa consume su coste
+   exactamente una vez; daño y reparación respetan `0…máximo`; repetir no
+   duplica ni vuelve a consumir.
+3. Una emisión de ruido selecciona un zombi dentro del radio y no uno
+   fuera; el agrupado de sucesos no repite la misma causa dentro de su
+   ventana y vuelve a registrar pasada esa ventana.
+4. Dos resultados útiles suben de nivel 1 a 2; el remiendo transforma una
+   prenda dañada en una unidad de tela con la condición correcta sin
+   cambiar el total de unidades.
 
-Las validaciones de `IMPLEMENTATION-001` e `IMPLEMENTATION-002` quedaron en
-su momento como **NOT RUN** por la misma razón.
+Las validaciones de `IMPLEMENTATION-001`, `002` y `003` quedaron en su
+momento como **NOT RUN** por la misma razón.
 
 ## Bloqueos o contradicciones conocidos
 
 Ninguno detectado en esta entrega, más allá de la imposibilidad de ejecutar
-Godot en el entorno de implementación (ver sección anterior).
+Godot en el entorno de implementación (ver sección anterior). Las
+posiciones exactas de los cuatro puntos de defensa, los dos puestos de
+guardia y los cinco zombis se tomaron literalmente del prompt; no se pudo
+confirmar visualmente en el editor que caigan sobre la malla de navegación
+real por la misma ausencia de Godot, aunque el cálculo de distancias a las
+montañas del mapa no sugiere solapamiento.
 
 ## Aceptación manual pendiente
 
 `IMPLEMENTATION-001` fue aceptada manualmente por Dennis el 18 de septiembre
-de 2026. La aceptación manual de `IMPLEMENTATION-003` (lista de dieciocho
-pasos en [README.md](../README.md)) está pendiente de que Dennis la
-ejecute. No se declara superada por el agente que implementó la entrega.
-La lista de aceptación de `IMPLEMENTATION-002` queda absorbida por esta: sus
-objetivos demostradores ya no existen.
+de 2026. La aceptación manual de `IMPLEMENTATION-003` y de
+`IMPLEMENTATION-004` (listas en [README.md](../README.md)) está pendiente
+de que Dennis las ejecute. No se declaran superadas por el agente que
+implementó las entregas. La lista de aceptación de `IMPLEMENTATION-002`
+queda absorbida por la de `IMPLEMENTATION-003`: sus objetivos demostradores
+ya no existen.
 
 ## Próximo candidato de trabajo (no es un compromiso)
 
-La siguiente entrega de implementación candidata es **«Defensa y vida
-propia»**, descrita en
-[RDM-001](roadmap/RDM-001_first-playable-slice.md): cierre de accesos,
-zombis elementales, ruido, guardia, retirada, aprendizaje e iniciativa
-autónoma acotada. No se ha iniciado y requerirá su propio prompt de
-programación.
+La siguiente entrega de implementación candidata es **«Persistencia y
+prueba integrada»** (`IMPLEMENTATION-005`), descrita en
+[RDM-001](roadmap/RDM-001_first-playable-slice.md): generación reproducible,
+guardado, carga y los casos manuales de aceptación del primer corte
+completo. No se ha iniciado y requerirá su propio prompt de programación.

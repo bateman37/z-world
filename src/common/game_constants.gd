@@ -95,3 +95,68 @@ const CONDUCTION_SECONDS_PER_WATER := 10.0
 
 ## Plazas de descanso que aporta acondicionar el refugio candidato.
 const SHELTER_REST_PLACES := 3
+
+# --- Defensa y vida propia (IMPLEMENTATION-004) ---------------------------
+
+## Rejilla cuadrada de zonas territoriales, en metros (sección 5.1).
+const ZONE_CELL_SIZE := 2.0
+
+## Radio de defensa del asentamiento alrededor de `SHELTER_FOCUS_POSITION`
+## que decide qué sector detiene a un zombi (sección 6.2).
+const SETTLEMENT_DEFENSE_RADIUS := 8.0
+
+## Punto exterior de reunión de la retirada (sección 10.3). Coincide con el
+## valor del prompt: cae dentro del rectángulo habitual inicial y es
+## navegable en la malla real, así que no ha hecho falta ajustarlo.
+const RALLY_POINT := Vector3(0.0, 0.0, 3.0)
+
+## Zombis lentos de la población fija (sección 7.1/7.2).
+const ZOMBIE_SPEED := 0.75
+const ZOMBIE_HEALTH := 30.0
+const ZOMBIE_VISION_RANGE := 8.0
+const ZOMBIE_ATTACK_RANGE := 1.4
+const ZOMBIE_ATTACK_INTERVAL := 2.0
+const ZOMBIE_DAMAGE_TO_PERSON := 15.0
+const ZOMBIE_DAMAGE_TO_DEFENSE := 10.0
+const ZOMBIE_NOISE_MEMORY_SECONDS := 15.0
+const ZOMBIE_LOST_TARGET_MEMORY_SECONDS := 10.0
+
+## Combate cuerpo a cuerpo de una persona (sección 10.2).
+const MELEE_RANGE := 1.5
+const MELEE_ATTACK_INTERVAL := 1.2
+const MELEE_DAMAGE_TO_ZOMBIE := 10.0
+const MELEE_NOISE_RADIUS := 6.0
+const ZOMBIE_IMPACT_NOISE_RADIUS := 8.0
+
+## Guardia (sección 10.1).
+const GUARD_DETECTION_RANGE := 14.0
+const GUARD_ENGAGE_RANGE := 8.0
+const GUARD_LEASH_RANGE := 10.0
+
+## Retirada automática (sección 10.3).
+const RETREAT_HEALTH_THRESHOLD := 25.0
+const RETREAT_ZOMBIE_COUNT := 2
+const RETREAT_ZOMBIE_RANGE := 3.5
+const COMBAT_INTERRUPT_RANGE := 4.0
+
+## Ruido: duración visible del aro (sección 8).
+const NOISE_RING_DURATION_SECONDS := 1.5
+## Ventana de agrupado de presentación para sucesos de ruido repetidos.
+const NOISE_LOG_GROUP_SECONDS := 5.0
+
+## Amenaza: margen de «alerta» tras perder todo contacto (sección 11).
+const THREAT_ALERT_LINGER_SECONDS := 10.0
+
+## Transgresión autónoma acotada (sección 14.2).
+const TRANSGRESSION_ZOMBIE_RANGE := 6.0
+const TRANSGRESSION_OTHER_ZOMBIE_RANGE := 6.0
+const TRANSGRESSION_HEALTH_THRESHOLD := 60.0
+const TRANSGRESSION_MAX_FORBIDDEN_DEPTH := 4.0
+
+## Iniciativa autónoma de reparación (sección 13).
+const INITIATIVE_DAMAGE_RATIO := 0.5
+const INITIATIVE_ZOMBIE_RANGE := 4.0
+
+## Registro de sucesos (sección 11).
+const EVENT_LOG_MAX := 50
+const EVENT_LOG_PANEL_SIZE := 12

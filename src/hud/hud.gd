@@ -14,6 +14,11 @@ signal site_action_requested(site_id: String, action_id: String)
 signal haul_all_requested()
 signal cancel_direct_order_requested(person_id: String)
 signal context_option_chosen(option_id: String)
+signal retreat_requested(person_id: String)
+## Modo de pintura de zonas (sección 5.3): abrir/cerrar y elegir el estado.
+signal zone_tool_toggled(active: bool)
+signal zone_state_selected(state_id: String)
+signal zone_overlay_toggle_requested()
 
 const PRIORITY_COLORS := [
 	Color(0.62, 0.62, 0.66),
@@ -24,6 +29,7 @@ const PRIORITY_COLORS := [
 ]
 
 @onready var _clock_label: Label = %ClockLabel
+@onready var _threat_label: Label = %ThreatLabel
 @onready var _pause_button: Button = %PauseButton
 @onready var _speed_x1: Button = %SpeedX1Button
 @onready var _speed_x2: Button = %SpeedX2Button
@@ -33,7 +39,19 @@ const PRIORITY_COLORS := [
 @onready var _priorities_button: Button = %PrioritiesButton
 @onready var _jobs_button: Button = %JobsButton
 @onready var _resources_button: Button = %ResourcesButton
+@onready var _zones_button: Button = %ZonesButton
+@onready var _events_button: Button = %EventsButton
 @onready var _stored_strip: Label = %StoredStripLabel
+
+@onready var _zone_bar: PanelContainer = %ZoneBar
+@onready var _zone_habitual_button: Button = %ZoneHabitualButton
+@onready var _zone_caution_button: Button = %ZoneCautionButton
+@onready var _zone_forbidden_button: Button = %ZoneForbiddenButton
+@onready var _zone_overlay_button: Button = %ZoneOverlayToggleButton
+@onready var _zone_done_button: Button = %ZoneDoneButton
+
+@onready var _events_panel: Panel = %EventsPanel
+@onready var _events_list: Label = %EventsListLabel
 
 @onready var _selection_id: Label = %SelectionIdValue
 @onready var _selection_type: Label = %SelectionTypeValue
@@ -58,6 +76,13 @@ const PRIORITY_COLORS := [
 @onready var _actions_box: VBoxContainer = %SelectionActionsBox
 @onready var _haul_all_button: Button = %HaulAllButton
 @onready var _cancel_direct_order_button: Button = %CancelDirectOrderButton
+@onready var _retreat_button: Button = %RetreatButton
+@onready var _health_row: HBoxContainer = %SelectionHealthRow
+@onready var _health_value: Label = %SelectionHealthValue
+@onready var _decision_row: HBoxContainer = %SelectionDecisionRow
+@onready var _decision_value: Label = %SelectionDecisionValue
+@onready var _learning_title: Label = %SelectionLearningTitle
+@onready var _learning_list: Label = %SelectionLearningList
 
 @onready var _priorities_panel: Panel = %PrioritiesPanel
 @onready var _priorities_grid: GridContainer = %PrioritiesGrid
@@ -84,11 +109,48 @@ func _ready() -> void:
 	_resources_button.pressed.connect(_toggle_resources_panel)
 	_haul_all_button.pressed.connect(func() -> void: haul_all_requested.emit())
 	_cancel_direct_order_button.pressed.connect(func() -> void: cancel_direct_order_requested.emit(_selected_person_id))
+	_retreat_button.pressed.connect(func() -> void: retreat_requested.emit(_selected_person_id))
 	_context_menu.option_chosen.connect(func(option_id: String) -> void: context_option_chosen.emit(option_id))
+	_zones_button.pressed.connect(_toggle_zone_tool)
+	_events_button.pressed.connect(_toggle_events_panel)
+	_zone_habitual_button.pressed.connect(_on_zone_state_button.bind(ZoneDefinitions.STATE_HABITUAL))
+	_zone_caution_button.pressed.connect(_on_zone_state_button.bind(ZoneDefinitions.STATE_CAUTION))
+	_zone_forbidden_button.pressed.connect(_on_zone_state_button.bind(ZoneDefinitions.STATE_FORBIDDEN))
+	_zone_overlay_button.pressed.connect(func() -> void: zone_overlay_toggle_requested.emit())
+	_zone_done_button.pressed.connect(_close_zone_tool)
 	_priorities_panel.visible = false
 	_jobs_panel.visible = false
 	_resources_panel.visible = false
+	_events_panel.visible = false
+	_zone_bar.visible = false
 	clear_selection()
+
+func _on_zone_state_button(state_id: String) -> void:
+	_zone_habitual_button.button_pressed = state_id == ZoneDefinitions.STATE_HABITUAL
+	_zone_caution_button.button_pressed = state_id == ZoneDefinitions.STATE_CAUTION
+	_zone_forbidden_button.button_pressed = state_id == ZoneDefinitions.STATE_FORBIDDEN
+	zone_state_selected.emit(state_id)
+
+func _toggle_zone_tool() -> void:
+	var opening: bool = _zones_button.button_pressed
+	_zone_bar.visible = opening
+	zone_tool_toggled.emit(opening)
+	if opening:
+		_on_zone_state_button(ZoneDefinitions.STATE_HABITUAL)
+
+func _close_zone_tool() -> void:
+	_zones_button.button_pressed = false
+	_zone_bar.visible = false
+	zone_tool_toggled.emit(false)
+
+func _toggle_events_panel() -> void:
+	_show_only_panel(_events_panel)
+
+func update_threat_level(label: String) -> void:
+	_threat_label.text = label
+
+func update_events(lines: PackedStringArray) -> void:
+	_events_list.text = "\n".join(lines) if not lines.is_empty() else "Todavía no hay sucesos registrados."
 
 # --- Reloj y velocidades --------------------------------------------------
 
@@ -174,6 +236,22 @@ func update_selection(info: Dictionary) -> void:
 
 	_cancel_direct_order_button.visible = bool(info.get("has_direct_order", false))
 
+	var health_text := String(info.get("health_text", ""))
+	_health_row.visible = health_text != ""
+	_health_value.text = health_text
+
+	var decision_text := String(info.get("decision_text", ""))
+	_decision_row.visible = decision_text != ""
+	_decision_value.text = decision_text
+
+	var learning: Array = info.get("learning", [])
+	_learning_title.visible = not learning.is_empty()
+	_learning_list.visible = not learning.is_empty()
+	if not learning.is_empty():
+		_learning_list.text = "\n".join(PackedStringArray(learning))
+
+	_retreat_button.visible = bool(info.get("show_retreat", false))
+
 ## `actions` es [{action_id, label, enabled, reason, designated}].
 func _build_action_buttons(site_id: String, actions: Array) -> void:
 	for child in _actions_box.get_children():
@@ -224,6 +302,11 @@ func clear_selection() -> void:
 	_actions_box.visible = false
 	_haul_all_button.visible = false
 	_cancel_direct_order_button.visible = false
+	_health_row.visible = false
+	_decision_row.visible = false
+	_learning_title.visible = false
+	_learning_list.visible = false
+	_retreat_button.visible = false
 	for child in _actions_box.get_children():
 		child.queue_free()
 
@@ -235,6 +318,8 @@ func _entity_type_label(entity_type: String) -> String:
 			return "Edificio"
 		"site":
 			return "Lugar"
+		"zombie":
+			return "Zombi"
 		_:
 			return "—"
 
@@ -255,10 +340,12 @@ func _show_only_panel(panel: Panel) -> void:
 	_priorities_panel.visible = false
 	_jobs_panel.visible = false
 	_resources_panel.visible = false
+	_events_panel.visible = false
 	panel.visible = opening
 	_priorities_button.button_pressed = _priorities_panel.visible
 	_jobs_button.button_pressed = _jobs_panel.visible
 	_resources_button.button_pressed = _resources_panel.visible
+	_events_button.button_pressed = _events_panel.visible
 
 ## `persons` es [{id, display_name}]. Construye la matriz una sola vez.
 func build_priorities_matrix(persons: Array) -> void:

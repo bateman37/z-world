@@ -25,17 +25,33 @@ const REASON_NO_FOOD := "No queda alimento comestible almacenado"
 const REASON_NO_REST_PLACE := "No hay zona de descanso acondicionada"
 const REASON_LEVEL := "Información insuficiente del lugar: hace falta «%s»"
 const REASON_NOTHING_MORE := "Este lugar ya está registrado por completo"
+const REASON_NO_CLOTHING := "Faltan materiales almacenados: %s ×1" % ResourceDefinitions.type_name(ResourceDefinitions.TYPE_DAMAGED_CLOTHING)
 
 ## Materiales que consume acondicionar la zona de descanso.
 const REST_AREA_COST := {
 	ResourceDefinitions.TYPE_CLOTH: 2,
 }
 
+## Remiendo (sección 12.2): duración y condición de `cloth` producida según
+## el nivel de `mending_sewing` al empezar el intento.
+const MENDING_TABLE := {
+	1: {"duration": 14.0, "condition": 40.0, "result": "Parche frágil"},
+	2: {"duration": 11.0, "condition": 65.0, "result": "Remiendo funcional"},
+	3: {"duration": 8.0, "condition": 85.0, "result": "Remiendo resistente"},
+	4: {"duration": 6.0, "condition": 100.0, "result": "Prenda bien restaurada"},
+}
+
+## Pesca (sección 12.1): duración según el nivel de `fishing` al empezar.
+const FISHING_DURATIONS := {1: 14.0, 2: 10.0, 3: 8.0, 4: 6.0}
+
 var places: PlaceRegistry = null
 var resources: ResourceRegistry = null
 var storage: StorageStore = null
 var spoilage: SpoilageService = null
 var conduction: WaterConduction = null
+## Puntos de defensa (IMPLEMENTATION-004, sección 6); se asigna tras
+## construir el servicio, igual que `register_source`.
+var defense: DefenseService = null
 ## {source_id: FiniteSource}
 var sources: Dictionary = {}
 ## {site_id: source_id}
@@ -117,6 +133,14 @@ func requirement_block(action_id: String, site_id: String) -> String:
 			if storage == null or not storage.has_rest_place():
 				return REASON_NO_REST_PLACE
 			return ""
+		WorkActions.REINFORCE_DOOR, WorkActions.BARRICADE_WINDOW, WorkActions.BUILD_BASIC_WALL, WorkActions.REPAIR_DEFENSE:
+			if defense == null:
+				return "Defensa no disponible"
+			return defense.requirement_block(action_id, site_id)
+		WorkActions.MEND_CLOTHING:
+			if storage == null or not storage.ready_for_use:
+				return REASON_NEEDS_STORAGE
+			return _materials_block({ResourceDefinitions.TYPE_DAMAGED_CLOTHING: 1})
 	return ""
 
 func _level_block(action_id: String, site_id: String) -> String:
@@ -262,7 +286,28 @@ func reserve_for(job: WorkOrder, person_id: String) -> String:
 			return _reserve_materials(job, person_id, WaterConduction.BUILD_COST)
 		WorkActions.PREPARE_REST_AREA:
 			return _reserve_materials(job, person_id, REST_AREA_COST)
+		WorkActions.REINFORCE_DOOR, WorkActions.BARRICADE_WINDOW, WorkActions.BUILD_BASIC_WALL:
+			return _reserve_materials(job, person_id, DefensePoint.data(job.target_id).get("cost", {}))
+		WorkActions.REPAIR_DEFENSE:
+			return _reserve_materials(job, person_id, DefensePoint.REPAIR_COST)
+		WorkActions.MEND_CLOTHING:
+			return _reserve_materials(job, person_id, {ResourceDefinitions.TYPE_DAMAGED_CLOTHING: 1})
 	return ""
+
+## Duración real de la fase «act» según el nivel de la persona al empezar el
+## intento (secciones 12.1 y 12.2); -1 si la acción no varía por nivel. Se
+## llama una sola vez, al iniciar esa fase, y no cambia a mitad de la acción.
+func dynamic_act_duration(action_id: String, state: PersonWorkState) -> float:
+	if state == null:
+		return -1.0
+	match action_id:
+		WorkActions.FISH_POND:
+			var level: int = clampi(state.get_skill("fishing"), 1, 4)
+			return float(FISHING_DURATIONS.get(level, WorkActions.duration(action_id)))
+		WorkActions.MEND_CLOTHING:
+			var mending_level: int = clampi(state.get_skill("mending_sewing"), 1, 4)
+			return float(MENDING_TABLE.get(mending_level, {}).get("duration", WorkActions.duration(action_id)))
+	return -1.0
 
 func _reserve_haul(job: WorkOrder, person_id: String) -> String:
 	var candidates: Array[ResourceStack] = haulable_stacks(job.target_id)
@@ -376,8 +421,10 @@ func on_act_finished(job: WorkOrder, person_id: String) -> void:
 # --- Efecto final ---------------------------------------------------------
 
 ## Aplica el efecto del trabajo exactamente una vez y devuelve el texto de
-## resultado que se mostrará en el panel «Trabajos».
-func apply(job: WorkOrder, needs: PersonNeeds) -> String:
+## resultado que se mostrará en el panel «Trabajos». `state` es opcional y
+## solo hace falta para las acciones que conceden práctica (sección 12); las
+## pruebas antiguas que pasan `null` siguen funcionando para el resto.
+func apply(job: WorkOrder, needs: PersonNeeds, state: PersonWorkState = null) -> String:
 	match job.action_type:
 		WorkActions.OBSERVE_PLACE:
 			places.observe(job.target_id)
@@ -405,8 +452,10 @@ func apply(job: WorkOrder, needs: PersonNeeds) -> String:
 			var consumed: int = _consume_reserved(job)
 			conduction.mark_built()
 			return "Conducción construida · %d unidades de material consumidas" % consumed
-		WorkActions.FISH_POND, WorkActions.GATHER_MUSHROOMS:
-			return _take_from_source(job)
+		WorkActions.FISH_POND:
+			return _take_from_source(job, state, LearningProgress.SKILL_FISHING)
+		WorkActions.GATHER_MUSHROOMS:
+			return _take_from_source(job, null, "")
 		WorkActions.DRY_FOOD:
 			if spoilage.dry_stored_food():
 				return "Secado: %d frescos → %d conservados" % [
@@ -425,6 +474,17 @@ func apply(job: WorkOrder, needs: PersonNeeds) -> String:
 			if needs != null:
 				needs.satisfy(PersonNeeds.NEED_REST)
 			return "Descanso completado"
+		WorkActions.REINFORCE_DOOR, WorkActions.BARRICADE_WINDOW, WorkActions.BUILD_BASIC_WALL:
+			_consume_reserved(job)
+			if defense != null:
+				defense.complete_construction(job.target_id)
+			return "Construcción completada · durabilidad máxima"
+		WorkActions.REPAIR_DEFENSE:
+			_consume_reserved(job)
+			var recovered: float = defense.complete_repair(job.target_id) if defense != null else 0.0
+			return "Defensa reparada · +%d de durabilidad" % int(round(recovered))
+		WorkActions.MEND_CLOTHING:
+			return _mend_clothing(job, state)
 	return "Completado"
 
 func _recognise_source(site_id: String) -> void:
@@ -471,7 +531,10 @@ func _consume_reserved(job: WorkOrder) -> int:
 	job.reserved_stack_ids.clear()
 	return consumed
 
-func _take_from_source(job: WorkOrder) -> String:
+## `learning_skill_id` concede práctica (sección 12) solo cuando la acción
+## produjo realmente su resultado; "" cuando la fuente no enseña una
+## habilidad aprendible (hongos, en esta entrega).
+func _take_from_source(job: WorkOrder, state: PersonWorkState, learning_skill_id: String) -> String:
 	var source: FiniteSource = source_for_site(job.target_id)
 	if source == null:
 		return FiniteSource.REASON_NOT_RECOGNISED
@@ -485,9 +548,42 @@ func _take_from_source(job: WorkOrder) -> String:
 		job.target_position,
 		ResourceDefinitions.LOGISTICS_AVAILABLE
 	)
-	return "Obtenidas %d unidades de %s · %s" % [
-		taken, ResourceDefinitions.type_name(source.type_id), source.availability_text(),
+	var learn_note: String = _grant_practice(state, learning_skill_id)
+	return "Obtenidas %d unidades de %s · %s%s" % [
+		taken, ResourceDefinitions.type_name(source.type_id), source.availability_text(), learn_note,
 	]
+
+## Concede un punto de práctica de la habilidad indicada y devuelve un
+## fragmento de texto para el resultado del trabajo si subió de nivel.
+func _grant_practice(state: PersonWorkState, skill_id: String) -> String:
+	if state == null or state.learning == null or skill_id == "":
+		return ""
+	var current_level: int = state.get_skill(skill_id)
+	var new_level: int = state.learning.record_result(skill_id, current_level)
+	if new_level > 0:
+		state.set_skill(skill_id, new_level)
+		return " · sube a nivel %d de %s" % [new_level, WorkDefinitions.skill_name(skill_id)]
+	return ""
+
+## Remiendo (sección 12.2): consume 1 prenda dañada reservada y produce
+## exactamente 1 unidad de `cloth` almacenada con la condición de la tabla.
+func _mend_clothing(job: WorkOrder, state: PersonWorkState) -> String:
+	_consume_reserved(job)
+	var level: int = clampi(state.get_skill(LearningProgress.SKILL_MENDING) if state != null else 1, 1, 4)
+	var entry: Dictionary = MENDING_TABLE.get(level, MENDING_TABLE[1])
+	var condition: float = float(entry.get("condition", 40.0))
+	var result_text: String = String(entry.get("result", "Remiendo"))
+	var stack: ResourceStack = resources.create_stack(
+		ResourceDefinitions.TYPE_CLOTH,
+		1,
+		ResourceDefinitions.LOCATION_STORAGE,
+		storage.storage_position if storage != null else Vector3.ZERO,
+		ResourceDefinitions.LOGISTICS_STORED
+	)
+	if stack != null:
+		stack.condition = condition
+	var learn_note: String = _grant_practice(state, LearningProgress.SKILL_MENDING)
+	return "%s · condición %d%s" % [result_text, int(condition), learn_note]
 
 ## Beber consume exactamente una unidad de agua del depósito.
 func _drink(needs: PersonNeeds) -> String:
