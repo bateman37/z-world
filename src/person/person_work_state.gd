@@ -1,7 +1,8 @@
 ## Estado de trabajo de una persona, separado de su representación visual
 ## (`Survivor`) para poder probar prioridades, habilidades y elegibilidad
-## sin renderizado. No contiene necesidades, salud ni rasgos: esta entrega
-## solo cubre trabajo (ver IMPLEMENTATION-002, sección 4.1).
+## sin renderizado. Desde IMPLEMENTATION-003 incluye también sus
+## necesidades básicas y lo que lleva encima; sigue sin contener salud,
+## heridas ni rasgos.
 class_name PersonWorkState
 extends RefCounted
 
@@ -33,12 +34,15 @@ var idle_reason: String = ""
 ## Última posición conocida en el mundo; la mantiene el actor visual y la
 ## usa el selector para calcular distancias de ruta.
 var position: Vector3 = Vector3.ZERO
+## Necesidades básicas (hidratación, alimentación y descanso).
+var needs: PersonNeeds = null
 
 func _init(p_id: String = "", p_display_name: String = "") -> void:
 	id = p_id
 	display_name = p_display_name
 	priorities = WorkDefinitions.build_default_priorities()
 	skills = WorkDefinitions.build_initial_skills(p_id)
+	needs = PersonNeeds.new()
 
 func get_priority(family_id: String) -> int:
 	return int(priorities.get(family_id, WorkDefinitions.PRIORITY_MIN))

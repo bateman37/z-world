@@ -1,7 +1,20 @@
 ## Composición de la escena principal: conecta cámara, reloj, selección,
 ## tablón de trabajos y HUD entre sí. Cada sistema mantiene su propio
-## estado; este script solo cablea señales y traduce datos para el HUD.
+## estado; este script solo cablea señales, siembra las condiciones
+## iniciales del escenario y traduce datos para el HUD.
 extends Node3D
+
+## Pertenencias con las que llega cada superviviente (IMPLEMENTATION-003,
+## sección 6). Son pilas reales que hay que depositar en el almacén, no un
+## inventario abstracto.
+const ARRIVAL_BELONGINGS := {
+	"person.initial.01": [{"type_id": "basic_tools", "amount": 1}],
+	"person.initial.02": [{"type_id": "water_container", "amount": 1}],
+	"person.initial.03": [{"type_id": "basic_medicine", "amount": 1}],
+	"person.initial.04": [{"type_id": "food_preserved", "amount": 1}],
+	"person.initial.05": [{"type_id": "water_container", "amount": 1}],
+	"person.initial.06": [{"type_id": "cloth", "amount": 1}],
+}
 
 @onready var _world: Node3D = $World
 @onready var _camera_rig: StrategicCamera = $CameraRig
@@ -27,7 +40,8 @@ func _ready() -> void:
 	_hud.speed_selected.connect(_clock.set_multiplier)
 	_hud.center_camera_requested.connect(_camera_rig.center_camera)
 	_hud.priority_cycle_requested.connect(_on_priority_cycle_requested)
-	_hud.target_action_requested.connect(_on_target_action_requested)
+	_hud.site_action_requested.connect(_on_site_action_requested)
+	_hud.haul_all_requested.connect(_on_haul_all_requested)
 	_hud.cancel_direct_order_requested.connect(_work_board.cancel_direct_order)
 	_hud.context_option_chosen.connect(_on_context_option_chosen)
 
@@ -37,10 +51,12 @@ func _ready() -> void:
 
 	_work_board.jobs_changed.connect(_refresh_jobs_panel)
 	_work_board.persons_changed.connect(_refresh_priorities_panel)
+	_work_board.world_changed.connect(_refresh_world_panels)
 
 	_hud.build_priorities_matrix(_person_rows())
 	_refresh_priorities_panel()
 	_refresh_jobs_panel()
+	_refresh_world_panels()
 
 	# GameClock ya emitió su estado inicial en su propio _ready(), antes de
 	# que este método conectara el HUD; se empuja una vez a mano para que
@@ -61,6 +77,20 @@ func _setup_work_board() -> void:
 	if navigation_region != null:
 		_work_board.navigation.set_map(navigation_region.get_navigation_map())
 
+	var buildings: Node = _world.get_node_or_null("Buildings")
+	if buildings:
+		for building in buildings.get_children():
+			if building is Building and building.explorable:
+				_work_board.register_site(building)
+
+	var targets: Node = _world.get_node_or_null("WorkTargets")
+	if targets:
+		for target in targets.get_children():
+			if target is WorkTarget:
+				_work_board.register_site(target)
+
+	_register_sources()
+
 	var survivors: Node = _world.get_node_or_null("Survivors")
 	if survivors:
 		for survivor in survivors.get_children():
@@ -69,12 +99,28 @@ func _setup_work_board() -> void:
 				state.position = survivor.global_position
 				_work_board.register_person(state, survivor)
 				survivor.setup(state, _work_board)
+				_work_board.give_arrival_belongings(
+					survivor.id, ARRIVAL_BELONGINGS.get(survivor.id, [])
+				)
 
-	var targets: Node = _world.get_node_or_null("WorkTargets")
-	if targets:
-		for target in targets.get_children():
-			if target is WorkTarget:
-				_work_board.register_target(target)
+## Fuentes finitas del escenario. Los valores son fijos: esta entrega no
+## implementa generación procedural.
+func _register_sources() -> void:
+	var pond := FiniteSource.new("source.pond_fishing", "Banco de peces del estanque")
+	pond.place_id = WorkBoard.POND_SITE_ID
+	pond.type_id = ResourceDefinitions.TYPE_FOOD_FRESH
+	pond.action_id = WorkActions.FISH_POND
+	pond.total = GameConstants.POND_FISH_TOTAL
+	pond.remaining = GameConstants.POND_FISH_TOTAL
+	_work_board.register_source(pond)
+
+	var forest := FiniteSource.new("source.forest_mushrooms", "Hongos del claro")
+	forest.place_id = WorkBoard.FOREST_SITE_ID
+	forest.type_id = ResourceDefinitions.TYPE_FOOD_FRESH
+	forest.action_id = WorkActions.GATHER_MUSHROOMS
+	forest.total = GameConstants.FOREST_MUSHROOM_TOTAL
+	forest.remaining = GameConstants.FOREST_MUSHROOM_TOTAL
+	_work_board.register_source(forest)
 
 func _on_simulation_advanced(gameplay_delta: float) -> void:
 	_work_board.advance(gameplay_delta)
@@ -100,7 +146,8 @@ func _refresh_selection_panel() -> void:
 		return
 	_hud.update_selection(_build_selection_info())
 
-## Amplía la información del `Selectable` con el estado de trabajo real.
+## Amplía la información del `Selectable` con el estado real de trabajo,
+## necesidades, carga, información del lugar y acciones disponibles.
 func _build_selection_info() -> Dictionary:
 	var info: Dictionary = _selected_info.duplicate()
 	var entity_type := String(info.get("entity_type", ""))
@@ -115,6 +162,11 @@ func _build_selection_info() -> Dictionary:
 			info["reason_text"] = state.idle_reason
 			info["progress"] = _work_board.get_person_progress_ratio(state)
 			info["has_direct_order"] = state.has_direct_order()
+			info["load_text"] = _work_board.describe_person_load(entity_id)
+			var needs: Array = []
+			for line in state.needs.describe_lines():
+				needs.append(line)
+			info["needs"] = needs
 			var skills: Array = []
 			for skill_id in WorkDefinitions.SKILL_IDS:
 				var level: int = state.get_skill(String(skill_id))
@@ -124,22 +176,15 @@ func _build_selection_info() -> Dictionary:
 					"label": WorkDefinitions.skill_level_label(level),
 				})
 			info["skills"] = skills
-	elif entity_type == "work_target":
-		var target: WorkTarget = _work_board.get_target(entity_id)
-		if target != null:
-			info["state_text"] = target.state_label()
-			var job: WorkOrder = _work_board.get_job_for_target(entity_id)
-			if job != null:
-				info["action_text"] = _work_board.describe_job(job)
-				info["reason_text"] = job.block_reason
-				info["progress"] = job.progress_ratio()
-				info["target_action"] = "Cancelar designación"
-			elif target.is_completed():
-				info["action_text"] = "Trabajo completado"
-				info["target_action"] = ""
-			else:
-				info["action_text"] = "%s (sin designar)" % target.action_name()
-				info["target_action"] = "Designar trabajo"
+	elif entity_type == "site":
+		var described: Dictionary = _work_board.describe_site(entity_id)
+		info["state_text"] = String(described.get("state_text", ""))
+		var info_lines: Array = []
+		for line in described.get("info_lines", PackedStringArray()):
+			info_lines.append(line)
+		info["info_lines"] = info_lines
+		info["actions"] = _work_board.describe_site_actions("", entity_id)
+		info["show_haul_all"] = not _work_board.execution.sites_with_pending_stacks().is_empty()
 	return info
 
 # --- Paneles --------------------------------------------------------------
@@ -170,14 +215,24 @@ func _refresh_jobs_panel() -> void:
 		completed_lines.append(_work_board.describe_job(completed_job))
 	_hud.update_jobs(active_lines, completed_lines)
 
+func _refresh_world_panels() -> void:
+	_hud.update_stored_strip(_work_board.storage.summary_line())
+	_hud.update_resources(_work_board.describe_resource_rows())
+
 func _on_priority_cycle_requested(person_id: String, family_id: String, increase: bool) -> void:
 	_work_board.cycle_priority(person_id, family_id, increase)
 
-func _on_target_action_requested(target_id: String) -> void:
-	if target_id == "":
+func _on_site_action_requested(site_id: String, action_id: String) -> void:
+	if site_id == "" or action_id == "":
 		return
-	_work_board.toggle_target_designation(target_id)
+	_work_board.toggle_action(site_id, action_id)
 	_refresh_selection_panel()
+	_refresh_jobs_panel()
+
+func _on_haul_all_requested() -> void:
+	_work_board.designate_haul_all()
+	_refresh_selection_panel()
+	_refresh_jobs_panel()
 
 # --- Menú contextual ------------------------------------------------------
 
@@ -199,12 +254,26 @@ func _on_context_menu_requested(hit: Dictionary, screen_position: Vector2) -> vo
 func _on_context_option_chosen(option_id: String) -> void:
 	if _context_person_id == "":
 		return
-	match option_id:
+	var site_id := String(_context_hit.get("target_id", ""))
+	var parts: PackedStringArray = option_id.split("|")
+	var verb: String = parts[0] if parts.size() > 0 else ""
+	var argument: String = parts[1] if parts.size() > 1 else ""
+	match verb:
 		"move_here":
 			_work_board.request_direct_move(_context_person_id, _context_hit.get("position", Vector3.ZERO))
-		"direct_work":
-			_work_board.request_direct_work(_context_person_id, String(_context_hit.get("target_id", "")))
+		"direct":
+			_work_board.request_direct_work(_context_person_id, site_id, argument)
 		"designate":
-			_work_board.designate_target(String(_context_hit.get("target_id", "")))
+			_work_board.designate_action(site_id, argument)
+		"cancel":
+			_work_board.cancel_action(site_id, argument)
+		"policy":
+			if argument == "water":
+				_work_board.toggle_water_policy()
+			else:
+				_work_board.toggle_source_policy(site_id)
+		"haul_all":
+			_work_board.designate_haul_all()
 	_refresh_selection_panel()
 	_refresh_jobs_panel()
+	_refresh_world_panels()

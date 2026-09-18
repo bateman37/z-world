@@ -44,8 +44,8 @@ func _raycast_world(screen_pos: Vector2) -> Dictionary:
 	if selectable == null:
 		hit["kind"] = "terrain"
 		return hit
-	if selectable.entity_type == "work_target":
-		hit["kind"] = "work_target"
+	if selectable.entity_type == "site":
+		hit["kind"] = "site"
 		hit["target_id"] = selectable.id
 		return hit
 	hit["kind"] = "other"

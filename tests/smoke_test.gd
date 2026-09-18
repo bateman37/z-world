@@ -1,9 +1,11 @@
-## Smoke test headless de IMPLEMENTATION-001 e IMPLEMENTATION-002.
+## Smoke test headless de IMPLEMENTATION-001, 002 y 003.
 ## Ejecutar con:
 ##   godot --headless --path . --script res://tests/smoke_test.gd
 ## No sustituye una suite de pruebas general ni la prueba manual: solo
-## verifica los criterios mínimos de ambas entregas (secciones 13 y 16 de
-## sus prompts respectivos).
+## verifica los criterios mínimos de las tres entregas. Las comprobaciones
+## ligadas a los ocho objetivos demostradores de IMPLEMENTATION-002
+## (pilas de escombros y puntos de reconocimiento) se han retirado junto
+## con los propios demostradores.
 extends SceneTree
 
 func _init() -> void:
@@ -67,7 +69,8 @@ func _init() -> void:
 	else:
 		var required_unique_names := [
 			"PauseButton", "SpeedX1Button", "SpeedX2Button", "SpeedX4Button",
-			"SpeedX10Button", "CenterCameraButton",
+			"SpeedX10Button", "CenterCameraButton", "ResourcesButton",
+			"StoredStripLabel",
 		]
 		for unique_name in required_unique_names:
 			if hud.get_node_or_null("%" + unique_name) == null:
@@ -106,16 +109,12 @@ func _init() -> void:
 		if not is_equal_approx(clock._seconds_in_day, seconds_before_pause):
 			failures.append("El tiempo simulado avanzó estando en pausa.")
 
-	# Comprobaciones de IMPLEMENTATION-002 (sección 16 de su prompt).
 	var board = main.get_node_or_null("WorkBoard")
 	if board == null:
 		failures.append("No se encontró el tablón de trabajos (WorkBoard).")
-	elif clock != null:
-		_check_work(board, clock, failures)
+		_finish(failures)
+		return
 
-	_finish(failures)
-
-func _check_work(board, clock, failures: Array[String]) -> void:
 	# 8. Seis estados de persona, con diez prioridades y once habilidades.
 	var person_ids: Array = board.get_person_ids()
 	if person_ids.size() != 6:
@@ -141,94 +140,275 @@ func _check_work(board, clock, failures: Array[String]) -> void:
 		failures.append("El ciclo ascendente desde 4 debería volver a 0.")
 	first.set_priority("build_repair", 2)
 
-	# 10. Designar crea un solo trabajo y una reserva no se comparte.
-	board.designate_target("work.rubble.01")
-	board.designate_target("work.rubble.01")
-	var jobs_for_target := 0
-	for active_job in board.get_active_jobs():
-		if active_job.target_id == "work.rubble.01":
-			jobs_for_target += 1
-	if jobs_for_target != 1:
-		failures.append("Designar dos veces el mismo objetivo creó %d trabajos." % jobs_for_target)
-	var owner: String = String(board.get_reservations().get("work.rubble.01", ""))
-	if owner == "":
-		failures.append("El trabajo designado no generó ninguna reserva.")
-	else:
-		var other_id := "person.initial.06" if owner != "person.initial.06" else "person.initial.01"
-		if board.request_direct_work(other_id, "work.rubble.01"):
-			failures.append("Una segunda persona pudo reservar un objetivo ya reservado.")
-		if String(board.get_reservations().get("work.rubble.01", "")) != owner:
-			failures.append("La reserva del objetivo cambió de persona indebidamente.")
-	board.cancel_target_designation("work.rubble.01")
+	# Comprobaciones de IMPLEMENTATION-003 (sección 19 de su prompt).
+	_check_place_information(board, failures)
+	_check_logistics(board, failures)
+	_check_needs(board, failures)
+	_check_spoilage(board, failures)
+	_check_finite_sources(board, failures)
+	_check_conduction(board, failures)
 
-	# 11. El selector prefiere prioridad 4 antes que 2 y excluye a quien no
-	# cumple la habilidad mínima.
-	for person_id in person_ids:
-		var reset_state = board.get_person_state(person_id)
-		reset_state.set_priority("build_repair", 0)
-		reset_state.set_priority("explore_recon", 0)
-	board.designate_target("work.rubble.02")
-	board.designate_target("work.recon.01")
-	first.set_skill("observation_inspection", 3)
-	first.set_priority("build_repair", 2)
-	first.set_priority("explore_recon", 4)
-	board.evaluate_assignments()
-	var chosen = null
-	for candidate_job in board.get_active_jobs():
-		if candidate_job.assigned_person_id == "person.initial.01":
-			chosen = candidate_job
-	if chosen == null:
-		failures.append("El selector no asignó ningún trabajo con prioridad 4 disponible.")
-	elif chosen.family_id != "explore_recon":
-		failures.append("El selector eligió la familia %s en vez de la de prioridad 4." % chosen.family_id)
-	board.cancel_target_designation("work.rubble.02")
-	board.cancel_target_designation("work.recon.01")
-	first.set_skill("observation_inspection", 1)
-	first.set_priority("explore_recon", 2)
+	_finish(failures)
 
-	for person_id in person_ids:
-		board.get_person_state(person_id).set_priority("build_repair", 0)
-	board.get_person_state("person.initial.02").set_priority("build_repair", 4)
-	board.designate_target("work.rubble.03")
-	var blocked = board.get_job_for_target("work.rubble.03")
-	if blocked == null:
-		failures.append("No se creó el trabajo de prueba de habilidad mínima.")
-	else:
-		if blocked.assigned_person_id != "":
-			failures.append("Se asignó un trabajo a quien no cumple la habilidad mínima.")
-		if blocked.block_reason != "Nadie tiene la habilidad mínima":
-			failures.append("Motivo de bloqueo inesperado: %s" % blocked.block_reason)
-	board.cancel_target_designation("work.rubble.03")
+## 10. Niveles de información y materialización única del contenido fijo.
+func _check_place_information(board, failures: Array[String]) -> void:
+	var places = board.places
+	var resources = board.resources
+	var place = places.get_place("building.house_a")
+	if place == null:
+		failures.append("No se registró el lugar building.house_a.")
+		return
+	if place.level != PlaceDefinitions.LEVEL_SIGHTED:
+		failures.append("Casa 1 debería empezar «avistada», está en «%s»." % place.level)
+	places.observe("building.house_a")
+	if place.level != PlaceDefinitions.LEVEL_OBSERVED:
+		failures.append("Observar no dejó el lugar en «observado» (%s)." % place.level)
+	if place.notes == "":
+		failures.append("Observar no reveló ningún indicio.")
 
-	# 12. La pausa detiene el progreso y ×10 no completa dos veces.
-	for person_id in person_ids:
-		var restored_state = board.get_person_state(person_id)
-		for family_id in WorkDefinitions.PRIORITY_FAMILY_IDS:
-			restored_state.set_priority(String(family_id), 2)
-	board.designate_target("work.rubble.04")
-	var final_job = board.get_job_for_target("work.rubble.04")
-	if final_job == null or final_job.assigned_person_id == "":
-		failures.append("El trabajo de escombros no se asignó a ninguna persona.")
-	else:
-		board.notify_arrived(final_job.assigned_person_id)
-		if final_job.state != "working":
-			failures.append("El trabajo no pasó a ejecución al llegar la persona.")
-		var progress_before: float = final_job.progress
-		clock.set_paused(true)
-		clock._process(1.0)
-		if not is_equal_approx(final_job.progress, progress_before):
-			failures.append("El progreso del trabajo avanzó estando en pausa.")
-		clock.set_multiplier(10.0)
-		clock._process(1.0)
-		if board.get_completed_jobs().size() != 1:
-			failures.append("A ×10 no se completó exactamente un trabajo (%d)." % board.get_completed_jobs().size())
-		clock._process(1.0)
-		if board.get_completed_jobs().size() != 1:
-			failures.append("Un trabajo se completó dos veces al seguir avanzando a ×10.")
-		var target = board.get_target("work.rubble.04")
-		if target != null and not target.is_completed():
-			failures.append("El objetivo completado no quedó marcado como completado.")
-	clock.set_paused(true)
+	places.inspect("building.house_a", resources)
+	if place.level != PlaceDefinitions.LEVEL_INSPECTED:
+		failures.append("Inspeccionar no dejó el lugar en «inspeccionado» (%s)." % place.level)
+	var after_first: int = resources.stacks_at("building.house_a").size()
+	var expected_entries: int = PlaceDefinitions.content_for("building.house_a").size()
+	if after_first != expected_entries:
+		failures.append("Inspeccionar creó %d pilas en vez de %d." % [after_first, expected_entries])
+
+	# Repetir inspección y registrar no pueden duplicar el contenido fijo.
+	places.inspect("building.house_a", resources)
+	places.exploit("building.house_a", resources)
+	var after_repeat: int = resources.stacks_at("building.house_a").size()
+	if after_repeat != after_first:
+		failures.append("El contenido fijo se materializó más de una vez (%d → %d)." % [after_first, after_repeat])
+	if place.level != PlaceDefinitions.LEVEL_EXPLOITED:
+		failures.append("Registrar no dejó el lugar en «aprovechado» (%s)." % place.level)
+	if place.emptiness_text().find("registrado") < 0:
+		failures.append("Un lugar registrado debería informar de que no queda nada: «%s»." % place.emptiness_text())
+
+## 11. Reservar, recoger y depositar conserva la cantidad exacta.
+func _check_logistics(board, failures: Array[String]) -> void:
+	var resources = board.resources
+	var storage = board.storage
+	storage.establish(Vector3.ZERO, Vector3(1.0, 0.0, 0.0))
+
+	var stack = resources.create_stack(
+		ResourceDefinitions.TYPE_WOOD_PLANKS, 5, "building.workshop", Vector3.ZERO,
+		ResourceDefinitions.LOGISTICS_AVAILABLE
+	)
+	if stack == null:
+		failures.append("No se pudo crear una pila de prueba.")
+		return
+	var total_before: int = _total_amount(resources, ResourceDefinitions.TYPE_WOOD_PLANKS)
+
+	if not resources.reserve(stack.id, "person.initial.01"):
+		failures.append("No se pudo reservar una pila disponible.")
+	if stack.logistics_state != ResourceDefinitions.LOGISTICS_RESERVED:
+		failures.append("Reservar no dejó la pila en «reservado» (%s)." % stack.logistics_state)
+	if resources.reserve(stack.id, "person.initial.02"):
+		failures.append("Una segunda persona pudo reservar una pila ya reservada.")
+
+	resources.pick_up(stack.id, "person.initial.01")
+	if stack.logistics_state != ResourceDefinitions.LOGISTICS_IN_TRANSPORT:
+		failures.append("Recoger no dejó la pila «en transporte» (%s)." % stack.logistics_state)
+
+	resources.deposit(stack.id, ResourceDefinitions.LOCATION_STORAGE)
+	if stack.logistics_state != ResourceDefinitions.LOGISTICS_STORED:
+		failures.append("Depositar no dejó la pila «almacenada» (%s)." % stack.logistics_state)
+	if stack.amount != 5:
+		failures.append("El ciclo de transporte cambió la cantidad de la pila (%d)." % stack.amount)
+	if _total_amount(resources, ResourceDefinitions.TYPE_WOOD_PLANKS) != total_before:
+		failures.append("El ciclo de transporte no conservó la cantidad total.")
+
+	# Separar un lote tampoco puede duplicar ni perder unidades.
+	var piece = resources.split(stack.id, 2)
+	if piece == null or piece.amount != 2 or stack.amount != 3:
+		failures.append("Separar un lote no repartió la cantidad correctamente.")
+	if _total_amount(resources, ResourceDefinitions.TYPE_WOOD_PLANKS) != total_before:
+		failures.append("Separar un lote no conservó la cantidad total.")
+
+## 12. Una necesidad crítica consume exactamente una unidad y el valor
+## nunca sale del rango 0–100.
+func _check_needs(board, failures: Array[String]) -> void:
+	var resources = board.resources
+	var execution = board.execution
+	var needs = board.get_person_state("person.initial.01").needs
+
+	resources.create_stack(
+		ResourceDefinitions.TYPE_WATER, 3, ResourceDefinitions.LOCATION_WATER_DEPOSIT,
+		Vector3.ZERO, ResourceDefinitions.LOGISTICS_STORED
+	)
+	var water_before: int = board.storage.water_total()
+	needs.set_value(PersonNeeds.NEED_HYDRATION, 5.0)
+	if not needs.is_critical(PersonNeeds.NEED_HYDRATION):
+		failures.append("Una hidratación de 5 debería ser crítica.")
+
+	var job := WorkOrder.new()
+	job.action_type = WorkActions.DRINK
+	job.target_id = "site.water_deposit"
+	execution.apply(job, needs)
+
+	if board.storage.water_total() != water_before - 1:
+		failures.append("Beber no consumió exactamente 1 de agua (%d → %d)." % [
+			water_before, board.storage.water_total(),
+		])
+	if not is_equal_approx(needs.get_value(PersonNeeds.NEED_HYDRATION), 5.0 + GameConstants.DRINK_RECOVERY):
+		failures.append("Beber no aplicó la recuperación esperada (%.1f)." % needs.get_value(PersonNeeds.NEED_HYDRATION))
+
+	needs.set_value(PersonNeeds.NEED_HYDRATION, 95.0)
+	needs.satisfy(PersonNeeds.NEED_HYDRATION)
+	if needs.get_value(PersonNeeds.NEED_HYDRATION) > GameConstants.NEED_MAX:
+		failures.append("Una necesidad superó el máximo de 100.")
+	needs.set_value(PersonNeeds.NEED_HYDRATION, -40.0)
+	if needs.get_value(PersonNeeds.NEED_HYDRATION) < GameConstants.NEED_MIN:
+		failures.append("Una necesidad bajó por debajo de 0.")
+	needs.set_value(PersonNeeds.NEED_HYDRATION, GameConstants.NEED_MAX)
+
+## 13. El alimento fresco se deteriora, el conservado no, y al llegar a 0
+## el fresco se transforma una sola vez en alimento echado a perder.
+func _check_spoilage(board, failures: Array[String]) -> void:
+	var resources = board.resources
+	var spoilage = board.spoilage
+	var fresh = resources.create_stack(
+		ResourceDefinitions.TYPE_FOOD_FRESH, 2, ResourceDefinitions.LOCATION_STORAGE,
+		Vector3.ZERO, ResourceDefinitions.LOGISTICS_STORED
+	)
+	var preserved = resources.create_stack(
+		ResourceDefinitions.TYPE_FOOD_PRESERVED, 2, ResourceDefinitions.LOCATION_STORAGE,
+		Vector3.ZERO, ResourceDefinitions.LOGISTICS_STORED
+	)
+
+	spoilage.advance(GameConstants.SIM_DAY_IN_GAMEPLAY_SECONDS)
+	var expected: float = 100.0 - GameConstants.FOOD_DECAY_STORED_PER_DAY
+	if absf(fresh.condition - expected) > 0.5:
+		failures.append("Un día almacenado debería dejar el fresco en %.0f; está en %.1f." % [expected, fresh.condition])
+	if not is_equal_approx(preserved.condition, 100.0):
+		failures.append("El alimento conservado no debería deteriorarse (%.1f)." % preserved.condition)
+
+	spoilage.advance(GameConstants.SIM_DAY_IN_GAMEPLAY_SECONDS * 4.0)
+	if fresh.type_id != ResourceDefinitions.TYPE_FOOD_SPOILED:
+		failures.append("Al llegar a condición 0 el fresco debería transformarse en echado a perder (%s)." % fresh.type_id)
+	if fresh.amount != 2:
+		failures.append("La transformación cambió la cantidad de la pila (%d)." % fresh.amount)
+	if preserved.type_id != ResourceDefinitions.TYPE_FOOD_PRESERVED:
+		failures.append("El alimento conservado cambió de tipo indebidamente.")
+	resources.lose(fresh.id)
+
+## 14. Pesca y hongos tienen disponibilidad limitada y distinguen «no
+## reconocido» de «agotado».
+func _check_finite_sources(board, failures: Array[String]) -> void:
+	var pond = board.execution.source_for_site("site.pond_fishing")
+	var forest = board.execution.source_for_site("site.forest_mushrooms")
+	if pond == null or forest == null:
+		failures.append("No se registraron las fuentes de pesca y hongos.")
+		return
+	if pond.block_reason() != FiniteSource.REASON_NOT_RECOGNISED:
+		failures.append("Una fuente sin inspeccionar debería decir «no reconocido»: «%s»." % pond.block_reason())
+	if pond.take(1) != 0:
+		failures.append("Se pudo extraer de una fuente todavía no reconocida.")
+
+	pond.recognised = true
+	forest.recognised = true
+	if pond.total != GameConstants.POND_FISH_TOTAL:
+		failures.append("El estanque no tiene la disponibilidad fijada (%d)." % pond.total)
+	if forest.total != GameConstants.FOREST_MUSHROOM_TOTAL:
+		failures.append("El claro de hongos no tiene la disponibilidad fijada (%d)." % forest.total)
+
+	var taken := 0
+	for i in range(GameConstants.POND_FISH_TOTAL + 3):
+		taken += pond.take(1)
+	if taken != GameConstants.POND_FISH_TOTAL:
+		failures.append("El estanque entregó %d unidades en vez de %d." % [taken, GameConstants.POND_FISH_TOTAL])
+	if not pond.is_exhausted():
+		failures.append("El estanque debería quedar agotado tras extraer todo.")
+	if pond.block_reason() != FiniteSource.REASON_EXHAUSTED:
+		failures.append("Una fuente agotada debería decir «agotada»: «%s»." % pond.block_reason())
+	if forest.block_reason() != "":
+		failures.append("El claro de hongos reconocido no debería estar bloqueado: «%s»." % forest.block_reason())
+
+## 15. La conducción por gravedad reserva y consume sus materiales una sola
+## vez y nunca supera la capacidad de 12 del depósito.
+func _check_conduction(board, failures: Array[String]) -> void:
+	var resources = board.resources
+	var execution = board.execution
+	var storage = board.storage
+	var conduction = board.conduction
+
+	# Se parte del material que ya hubiera almacenado y se añade justo el
+	# coste, para poder comprobar que se consume exactamente una vez.
+	var baseline := {}
+	for type_id in WaterConduction.BUILD_COST.keys():
+		baseline[type_id] = _stored_amount(resources, String(type_id))
+		resources.create_stack(
+			String(type_id), int(WaterConduction.BUILD_COST[type_id]),
+			ResourceDefinitions.LOCATION_STORAGE, Vector3.ZERO,
+			ResourceDefinitions.LOGISTICS_STORED
+		)
+	conduction.plan()
+
+	var job := WorkOrder.new()
+	job.action_type = WorkActions.BUILD_CONDUCTION
+	job.target_id = "site.water_deposit"
+	var error: String = execution.reserve_for(job, "person.initial.01")
+	if error != "":
+		failures.append("No se pudieron reservar los materiales de la conducción: %s" % error)
+		return
+	var reserved_total := 0
+	for stack_id in job.reserved_stack_ids:
+		reserved_total += resources.get_stack(String(stack_id)).amount
+	var expected_cost := 0
+	for type_id in WaterConduction.BUILD_COST.keys():
+		expected_cost += int(WaterConduction.BUILD_COST[type_id])
+	if reserved_total != expected_cost:
+		failures.append("La conducción reservó %d unidades en vez de %d." % [reserved_total, expected_cost])
+
+	execution.apply(job, null)
+	if not conduction.is_built():
+		failures.append("La conducción no quedó construida tras completar el trabajo.")
+	for type_id in WaterConduction.BUILD_COST.keys():
+		var expected_left: int = int(baseline.get(type_id, 0))
+		if _stored_amount(resources, String(type_id)) != expected_left:
+			failures.append("El consumo de %s no fue exacto (%d, esperado %d)." % [
+				String(type_id), _stored_amount(resources, String(type_id)), expected_left,
+			])
+
+	# Repetir la construcción no puede volver a consumir materiales.
+	var before_total: int = _total_active(resources)
+	execution.apply(job, null)
+	if _total_active(resources) != before_total:
+		failures.append("Repetir la construcción volvió a consumir materiales.")
+
+	# Producción automática limitada por la capacidad del depósito.
+	conduction.advance(GameConstants.CONDUCTION_SECONDS_PER_WATER * 40.0, storage, resources)
+	if storage.water_total() != GameConstants.WATER_DEPOSIT_CAPACITY:
+		failures.append("La conducción debería llenar el depósito hasta %d; hay %d." % [
+			GameConstants.WATER_DEPOSIT_CAPACITY, storage.water_total(),
+		])
+	conduction.advance(GameConstants.CONDUCTION_SECONDS_PER_WATER * 10.0, storage, resources)
+	if storage.water_total() > GameConstants.WATER_DEPOSIT_CAPACITY:
+		failures.append("La conducción superó la capacidad del depósito (%d)." % storage.water_total())
+
+# --- Utilidades -----------------------------------------------------------
+
+func _total_amount(resources, type_id: String) -> int:
+	var total := 0
+	for stack in resources.all_stacks():
+		if stack.type_id == type_id and stack.is_active():
+			total += stack.amount
+	return total
+
+func _stored_amount(resources, type_id: String) -> int:
+	var total := 0
+	for stack in resources.all_stacks():
+		if stack.type_id == type_id and stack.logistics_state == ResourceDefinitions.LOGISTICS_STORED:
+			total += stack.amount
+	return total
+
+func _total_active(resources) -> int:
+	var total := 0
+	for stack in resources.all_stacks():
+		if stack.is_active():
+			total += stack.amount
+	return total
 
 func _finish(failures: Array[String]) -> void:
 	if failures.is_empty():

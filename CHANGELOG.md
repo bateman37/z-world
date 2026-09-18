@@ -4,6 +4,78 @@ Registra entregas documentales y de diseño de Z-World. No atribuye código ni
 funcionalidad implementada salvo que se indique explícitamente como
 `implemented` en la documentación afectada.
 
+## IMPLEMENTATION-003 — Exploración y subsistencia
+
+Tercera entrega de código ejecutable de Z-World: la tercera de las cinco
+entregas fijadas en
+[RDM-001](docs/roadmap/RDM-001_first-playable-slice.md). Cierra el primer
+bucle completo de subsistencia sobre el sistema de trabajo existente:
+
+- **Información de lugares** con los cinco niveles de `WLD-002`
+  (`unknown`, `sighted`, `observed`, `inspected`, `exploited`) y tres
+  acciones que la hacen avanzar: «Observar el lugar»
+  (`observation_inspection >= 1`, 5 s a ×1), «Inspeccionar el lugar»
+  (`observation_inspection >= 2`, 10 s) y «Registrar el lugar»
+  (`search_recovery >= 2`, 12 s). El nivel nunca retrocede y el contenido
+  fijo se materializa exactamente una vez.
+- **Sustitución de los ocho demostradores** de `IMPLEMENTATION-002` (cuatro
+  pilas de escombros y cuatro puntos de reconocimiento) por ocho lugares
+  reales: tres edificios explorables (refugio candidato, Casa 1 y taller)
+  con contenido fijo, y cinco lugares del terreno (orilla del arroyo,
+  estanque de pesca, claro de hongos, manantial elevado y depósito de agua).
+- **Catálogo de diez tipos de recurso** con identificador estable y pilas
+  localizadas con tipo, cantidad, ubicación, condición, accesibilidad,
+  portador y reserva, más los seis estados logísticos de `SET-003`
+  (`available`, `reserved`, `in_transport`, `stored`, `consumed`, `lost`).
+- **Pertenencias de llegada** por persona, como pilas reales que hay que
+  depositar en el almacén.
+- **Almacén** de capacidad 50 y **depósito de agua** localizado de capacidad
+  12, establecidos al registrar el refugio candidato, con transporte
+  (`haul_storage`) en lotes de hasta 5 unidades y acción «Transportar todo
+  lo accesible».
+- **Necesidades básicas** de hidratación, alimentación y descanso en escala
+  `0–100`, con pérdidas de 40, 30 y 25 puntos por día simulado, umbrales
+  normal/advertida/crítica (50 y 20), acciones automáticas de beber (1
+  agua, +40), comer (1 alimento comestible, +45) y descansar (+60), y una
+  cadena de supervivencia que rompe el bloqueo circular ignorando las
+  prioridades desactivadas.
+- **Alimento por varias rutas**: registro de edificios, pesca en el
+  estanque (`fishing >= 2`, 12 unidades) y recolección de hongos
+  (`mushroom_foraging >= 2`, 8 unidades), con política de obtención
+  continua y distinción explícita entre «no reconocido» y «agotado».
+- **Agua por dos rutas**: acarreo desde la orilla del arroyo con recipientes
+  reutilizables (2 unidades por viaje) y política «Mantener 12 de agua», y
+  conducción por gravedad desde el manantial elevado (planificar con
+  `plumbing_water >= 2`, construir con `construction_carpentry >= 2`
+  consumiendo 4 tablones y 2 materiales de reparación una sola vez), que
+  produce 1 unidad de agua cada 10 s observables a ×1 sin superar la
+  capacidad del depósito.
+- **Condición y conservación**: el alimento fresco pierde 60, 45 o 25 puntos
+  de condición por día simulado según esté en el terreno, en transporte o
+  almacenado, y al llegar a 0 se transforma una sola vez en alimento echado
+  a perder; el secado convierte 3 frescos en 2 conservados.
+- **Ejecución por fases** en el mismo tablón de trabajos (`travel`, `act`,
+  `return`, `deliver`), con recursos reservados y destino de entrega, sin
+  crear un segundo sistema de trabajos.
+- **Interfaz**: franja de almacenados, panel «Recursos» con estados por
+  tipo, panel de selección de lugar con acciones y bloqueos explicados, menú
+  contextual con múltiples acciones y políticas, y ficha de persona con
+  necesidades y carga.
+
+No implementa defensa, cierre de accesos, zombis, combate, ruido, guardia,
+autonomía, iniciativas, aprendizaje, relaciones, salud, enfermedad, muerte,
+zonas de territorio, interiores 3D, agricultura, animales, combustible,
+electricidad, potabilización, cocina, recetas, generación procedural,
+guardado ni carga: quedan para las dos entregas posteriores de `RDM-001`.
+`WLD-002`, `SET-003`, `CHR-001` y `UI-001` siguen siendo `approved`: esta
+entrega solo implementa su subconjunto.
+
+Los dos comandos de Godot quedan como `NOT RUN` porque `godot --headless`
+no estaba disponible en el entorno de implementación; no se instaló Godot
+para forzar su ejecución. `git diff --check` sí se ejecutó y no informó
+errores. La aceptación manual descrita en [README.md](README.md) queda
+pendiente de que Dennis la ejecute.
+
 ## IMPLEMENTATION-002 — Trabajo y personas
 
 Segunda entrega de código ejecutable de Z-World: la segunda de las cinco

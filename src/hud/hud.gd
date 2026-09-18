@@ -8,7 +8,10 @@ signal pause_pressed()
 signal speed_selected(multiplier: float)
 signal center_camera_requested()
 signal priority_cycle_requested(person_id: String, family_id: String, increase: bool)
-signal target_action_requested(target_id: String)
+## Designa o cancela una acción concreta sobre un lugar desde el panel de
+## selección.
+signal site_action_requested(site_id: String, action_id: String)
+signal haul_all_requested()
 signal cancel_direct_order_requested(person_id: String)
 signal context_option_chosen(option_id: String)
 
@@ -29,6 +32,8 @@ const PRIORITY_COLORS := [
 @onready var _center_button: Button = %CenterCameraButton
 @onready var _priorities_button: Button = %PrioritiesButton
 @onready var _jobs_button: Button = %JobsButton
+@onready var _resources_button: Button = %ResourcesButton
+@onready var _stored_strip: Label = %StoredStripLabel
 
 @onready var _selection_id: Label = %SelectionIdValue
 @onready var _selection_type: Label = %SelectionTypeValue
@@ -44,7 +49,14 @@ const PRIORITY_COLORS := [
 @onready var _selection_progress: Label = %SelectionProgressValue
 @onready var _skills_title: Label = %SelectionSkillsTitle
 @onready var _skills_list: Label = %SelectionSkillsList
-@onready var _target_action_button: Button = %TargetActionButton
+@onready var _needs_title: Label = %SelectionNeedsTitle
+@onready var _needs_list: Label = %SelectionNeedsList
+@onready var _load_row: HBoxContainer = %SelectionLoadRow
+@onready var _load_value: Label = %SelectionLoadValue
+@onready var _info_list: Label = %SelectionInfoList
+@onready var _actions_title: Label = %SelectionActionsTitle
+@onready var _actions_box: VBoxContainer = %SelectionActionsBox
+@onready var _haul_all_button: Button = %HaulAllButton
 @onready var _cancel_direct_order_button: Button = %CancelDirectOrderButton
 
 @onready var _priorities_panel: Panel = %PrioritiesPanel
@@ -52,6 +64,8 @@ const PRIORITY_COLORS := [
 @onready var _jobs_panel: Panel = %JobsPanel
 @onready var _jobs_list: Label = %JobsListLabel
 @onready var _completed_list: Label = %CompletedListLabel
+@onready var _resources_panel: Panel = %ResourcesPanel
+@onready var _resources_list: Label = %ResourcesListLabel
 @onready var _context_menu: ContextMenu = %ContextMenu
 
 var _priority_cells: Dictionary = {}
@@ -67,11 +81,13 @@ func _ready() -> void:
 	_center_button.pressed.connect(func() -> void: center_camera_requested.emit())
 	_priorities_button.pressed.connect(_toggle_priorities_panel)
 	_jobs_button.pressed.connect(_toggle_jobs_panel)
-	_target_action_button.pressed.connect(func() -> void: target_action_requested.emit(_selected_target_id))
+	_resources_button.pressed.connect(_toggle_resources_panel)
+	_haul_all_button.pressed.connect(func() -> void: haul_all_requested.emit())
 	_cancel_direct_order_button.pressed.connect(func() -> void: cancel_direct_order_requested.emit(_selected_person_id))
 	_context_menu.option_chosen.connect(func(option_id: String) -> void: context_option_chosen.emit(option_id))
 	_priorities_panel.visible = false
 	_jobs_panel.visible = false
+	_resources_panel.visible = false
 	clear_selection()
 
 # --- Reloj y velocidades --------------------------------------------------
@@ -88,9 +104,20 @@ func update_speed_state(paused: bool, multiplier: float) -> void:
 
 # --- Selección ------------------------------------------------------------
 
+func update_stored_strip(text: String) -> void:
+	_stored_strip.text = text
+
+func update_resources(rows: Array) -> void:
+	var lines := PackedStringArray()
+	for row in rows:
+		lines.append("%s — total %d · %s" % [
+			String(row.get("name", "")), int(row.get("total", 0)), String(row.get("detail", "")),
+		])
+	_resources_list.text = "\n".join(lines) if not lines.is_empty() else "Sin recursos conocidos."
+
 func update_selection(info: Dictionary) -> void:
 	var entity_type := String(info.get("entity_type", ""))
-	_selected_target_id = String(info.get("id", "")) if entity_type == "work_target" else ""
+	_selected_target_id = String(info.get("id", "")) if entity_type == "site" else ""
 	_selected_person_id = String(info.get("id", "")) if entity_type == "person" else ""
 
 	_selection_id.text = String(info.get("id", ""))
@@ -127,11 +154,54 @@ func update_selection(info: Dictionary) -> void:
 			])
 		_skills_list.text = "\n".join(lines)
 
-	var target_action := String(info.get("target_action", ""))
-	_target_action_button.visible = target_action != ""
-	_target_action_button.text = target_action
+	var needs: Array = info.get("needs", [])
+	_needs_title.visible = not needs.is_empty()
+	_needs_list.visible = not needs.is_empty()
+	if not needs.is_empty():
+		_needs_list.text = "\n".join(PackedStringArray(needs))
+
+	var load_text := String(info.get("load_text", ""))
+	_load_row.visible = load_text != ""
+	_load_value.text = load_text
+
+	var info_lines: Array = info.get("info_lines", [])
+	_info_list.visible = not info_lines.is_empty()
+	if not info_lines.is_empty():
+		_info_list.text = "\n".join(PackedStringArray(info_lines))
+
+	_build_action_buttons(String(info.get("id", "")), info.get("actions", []))
+	_haul_all_button.visible = bool(info.get("show_haul_all", false))
 
 	_cancel_direct_order_button.visible = bool(info.get("has_direct_order", false))
+
+## `actions` es [{action_id, label, enabled, reason, designated}].
+func _build_action_buttons(site_id: String, actions: Array) -> void:
+	for child in _actions_box.get_children():
+		child.queue_free()
+	_actions_title.visible = not actions.is_empty()
+	_actions_box.visible = not actions.is_empty()
+	for action in actions:
+		var action_id := String(action.get("action_id", ""))
+		var designated: bool = bool(action.get("designated", false))
+		var reason := String(action.get("reason", ""))
+		var enabled: bool = bool(action.get("enabled", false))
+		var button := Button.new()
+		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		button.custom_minimum_size = Vector2(300, 0)
+		if designated:
+			button.text = "Cancelar designación: %s" % String(action.get("label", ""))
+		elif enabled or reason == "":
+			button.text = "Designar: %s" % String(action.get("label", ""))
+		else:
+			button.text = "Designar: %s — %s" % [String(action.get("label", "")), reason]
+		var family := String(action.get("family", ""))
+		if reason != "":
+			button.tooltip_text = "%s · %s" % [family, reason]
+		else:
+			button.tooltip_text = family
+		button.pressed.connect(func() -> void: site_action_requested.emit(site_id, action_id))
+		_actions_box.add_child(button)
 
 func clear_selection() -> void:
 	_selected_target_id = ""
@@ -146,8 +216,16 @@ func clear_selection() -> void:
 	_selection_progress_row.visible = false
 	_skills_title.visible = false
 	_skills_list.visible = false
-	_target_action_button.visible = false
+	_needs_title.visible = false
+	_needs_list.visible = false
+	_load_row.visible = false
+	_info_list.visible = false
+	_actions_title.visible = false
+	_actions_box.visible = false
+	_haul_all_button.visible = false
 	_cancel_direct_order_button.visible = false
+	for child in _actions_box.get_children():
+		child.queue_free()
 
 func _entity_type_label(entity_type: String) -> String:
 	match entity_type:
@@ -155,28 +233,32 @@ func _entity_type_label(entity_type: String) -> String:
 			return "Persona"
 		"building":
 			return "Edificio"
-		"work_target":
-			return "Objetivo de trabajo"
+		"site":
+			return "Lugar"
 		_:
 			return "—"
 
 # --- Paneles grandes ------------------------------------------------------
 
 func _toggle_priorities_panel() -> void:
-	var opening: bool = not _priorities_panel.visible
-	_priorities_panel.visible = opening
-	if opening:
-		_jobs_panel.visible = false
-	_priorities_button.button_pressed = _priorities_panel.visible
-	_jobs_button.button_pressed = _jobs_panel.visible
+	_show_only_panel(_priorities_panel)
 
 func _toggle_jobs_panel() -> void:
-	var opening: bool = not _jobs_panel.visible
-	_jobs_panel.visible = opening
-	if opening:
-		_priorities_panel.visible = false
+	_show_only_panel(_jobs_panel)
+
+func _toggle_resources_panel() -> void:
+	_show_only_panel(_resources_panel)
+
+## Solo hay un panel grande abierto a la vez.
+func _show_only_panel(panel: Panel) -> void:
+	var opening: bool = not panel.visible
+	_priorities_panel.visible = false
+	_jobs_panel.visible = false
+	_resources_panel.visible = false
+	panel.visible = opening
 	_priorities_button.button_pressed = _priorities_panel.visible
 	_jobs_button.button_pressed = _jobs_panel.visible
+	_resources_button.button_pressed = _resources_panel.visible
 
 ## `persons` es [{id, display_name}]. Construye la matriz una sola vez.
 func build_priorities_matrix(persons: Array) -> void:
