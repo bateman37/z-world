@@ -354,7 +354,7 @@ func _check_conduction(board, failures: Array[String]) -> void:
 		return
 	var reserved_total := 0
 	for stack_id in job.reserved_stack_ids:
-		reserved_total += resources.get_stack(String(stack_id)).amount
+		reserved_total += resources.stack_by_id(String(stack_id)).amount
 	var expected_cost := 0
 	for type_id in WaterConduction.BUILD_COST.keys():
 		expected_cost += int(WaterConduction.BUILD_COST[type_id])
