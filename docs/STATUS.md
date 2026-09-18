@@ -11,9 +11,31 @@ Tercera implementación de código ejecutable: **exploración y subsistencia**
 [RDM-001](roadmap/RDM-001_first-playable-slice.md). La primera entrega
 (`IMPLEMENTATION-001`) fue **aceptada manualmente por Dennis el 18 de
 septiembre de 2026**. La aceptación manual de `IMPLEMENTATION-003` sigue
-**pendiente** de que Dennis la ejecute (ver [README.md](../README.md)).
+**pendiente** de que Dennis la ejecute (ver [README.md](../README.md)); esta
+entrega documental (`DESIGN-003`) no la declara superada ni cambia el juego
+ejecutable.
 
-## Última entrega completada
+## Última entrega documental completada
+
+`DESIGN-003` — trabajo, recuperación y conocimiento aplicado: horizonte
+máximo documental de prioridades, órdenes, zonas, políticas, eventos y
+trabajos (nueve bloques y 34 prioridades con escala `Nunca/1–5`,
+`UI-003`); presentación cualitativa de capacidad sin números internos
+(`UI-004`); inspección, saqueo, reconocimiento experto y revisitas
+dependientes de la persona con contenido base estable (`WLD-004`); fuentes
+de conocimiento físicas, humanas y digitales, estados comunitarios de un
+fragmento y capacidad real (`SET-006`); y la decisión transversal que
+respalda las 34 prioridades separadas de habilidad y del alcance
+implementado (`DEC-0007`). Los cinco documentos son `approved`. No cambia
+el juego ejecutable: no se tocó código, escenas, `game_data/` ni `tests/`,
+no se amplió `RDM-001` y `CHR-005`/`RDM-002` siguen `draft`. Ver
+[UI-003](80-interface/UI-003_work-priority-taxonomy.md),
+[UI-004](80-interface/UI-004_qualitative-capability-presentation.md),
+[WLD-004](20-world/WLD-004_expertise-dependent-recovery.md),
+[SET-006](40-settlement/SET-006_knowledge-assets-and-capability.md) y
+[DEC-0007](decisions/DEC-0007_layered-work-and-priorities.md).
+
+## Última entrega de código
 
 `IMPLEMENTATION-003` — exploración y subsistencia: información de lugares
 con los cinco niveles de `WLD-002` y acciones de observar, inspeccionar y
@@ -166,17 +188,19 @@ posteriores de `RDM-001`.
 
 - **Aprobada (`approved`)**: visión, pilares y horizonte máximo
   (`10-vision`, incluyendo `VIS-003`), escalas, exploración y mundo
-  estratégico (`WLD-001`, `WLD-002`, `WLD-003`), modelo de personaje,
-  aprendizaje, autonomía e historia vital (`CHR-001`, `CHR-002`, `CHR-003`,
-  `CHR-004`), crecimiento, producción, recursos, transición tecnológica y
-  red productiva del asentamiento (`SET-001` a `SET-005`), comunidad viva,
+  estratégico (`WLD-001`, `WLD-002`, `WLD-003`), recuperación dependiente de
+  la persona (`WLD-004`), modelo de personaje, aprendizaje, autonomía e
+  historia vital (`CHR-001`, `CHR-002`, `CHR-003`, `CHR-004`), crecimiento,
+  producción, recursos, transición tecnológica, red productiva y activos de
+  conocimiento del asentamiento (`SET-001` a `SET-006`), comunidad viva,
   política interna y comunidades externas (`SOC-001`, `SOC-002`, `SOC-003`),
   narrativa emergente y memoria causal (`NAR-001`, `NAR-002`), interacción,
-  control y gestión a escala (`UI-001`, `UI-002`), amenaza zombi (`THR-001`),
-  dirección técnica, generación procedural y simulación multiescala
-  (`ARC-001`, `ARC-002`, `ARC-003`), escenario inicial (`SCN-001`), alcance
-  del primer corte jugable (`RDM-001`), decisiones `DEC-0001` a `DEC-0006`,
-  sistema documental (`DOC-001`).
+  control, gestión a escala, taxonomía de trabajo y presentación cualitativa
+  de capacidad (`UI-001`, `UI-002`, `UI-003`, `UI-004`), amenaza zombi
+  (`THR-001`), dirección técnica, generación procedural y simulación
+  multiescala (`ARC-001`, `ARC-002`, `ARC-003`), escenario inicial
+  (`SCN-001`), alcance del primer corte jugable (`RDM-001`), decisiones
+  `DEC-0001` a `DEC-0007`, sistema documental (`DOC-001`).
 - **Borrador (`draft`)**: síntesis de descubrimiento (`DISC-0001`,
   `DISC-0002`), taxonomía extendida de habilidades (`CHR-005`), horizonte
   configurable de amenazas (`THR-002`) y horizonte de capacidades a largo

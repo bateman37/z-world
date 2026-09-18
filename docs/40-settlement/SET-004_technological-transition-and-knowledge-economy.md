@@ -12,6 +12,7 @@ depends_on:
 related:
   - CHR-002
   - SET-005
+  - SET-006
 ---
 
 ## 1. Propósito
@@ -42,9 +43,13 @@ obligatorias:
 
 ### 3.1 Investigación
 
-Investigar es recuperar, comprender y aplicar conocimiento. Sus fuentes
-pueden ser libros, manuales, planos, cintas, notas, servidores,
-instalaciones, experimentos y personas.
+Investigar es recuperar, comprender y aplicar conocimiento; no es un árbol
+tecnológico. Sus fuentes pueden ser libros, manuales, planos, cintas,
+notas, servidores, instalaciones, experimentos y personas. El modelo
+detallado de fuentes, fragmentos, estados comunitarios y capacidad real
+vive en
+[SET-006](SET-006_knowledge-assets-and-capability.md), que este documento
+no repite.
 
 ### 3.2 Resiliencia comunitaria
 
@@ -73,6 +78,9 @@ obligatorios para todas las partidas.
   [SET-005](SET-005_production-web-and-infrastructure.md).
 - La transmisión y pérdida de conocimiento individual se rige por
   [CHR-002](../30-characters/CHR-002_knowledge-and-learning.md).
+- El modelo de fuentes, fragmentos, estados comunitarios y capacidad real
+  que sustenta la investigación de esta sección se desarrolla en
+  [SET-006](SET-006_knowledge-assets-and-capability.md).
 
 ## 6. Casos límite o riesgos
 

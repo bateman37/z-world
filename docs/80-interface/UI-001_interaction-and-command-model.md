@@ -15,6 +15,7 @@ related:
   - SET-003
   - ARC-001
   - UI-002
+  - UI-003
 ---
 
 ## 1. Propósito
@@ -56,8 +57,14 @@ detallado.
 
 Cada superviviente tiene una tabla individual de diez familias de trabajo con
 cinco valores: `0` desactivado, `1` bajo, `2` normal, `3` alto y `4` crítico.
-El jugador la modifica desde la ficha o un panel de trabajo. Las familias
-iniciales son:
+El jugador la modifica desde la ficha o un panel de trabajo. Estas diez
+familias y esta escala `0–4` son el **subconjunto implementado del primer
+corte** (ver [RDM-001](../roadmap/RDM-001_first-playable-slice.md)), no el
+modelo final del horizonte completo. El horizonte aprobado de nueve bloques,
+34 prioridades y escala `Nunca/1–5` vive en
+[UI-003](UI-003_work-priority-taxonomy.md), que no se reescribe aquí; esta
+entrega no migra datos, interfaz ni código. Las familias iniciales
+implementadas son:
 
 1. Necesidades personales y cuidado.
 2. Transporte y almacenamiento.
@@ -191,6 +198,10 @@ efectos ya ocurridos.
 - El horizonte máximo de gestión a escala comunitaria se desarrolla en
   [UI-002](UI-002_management-at-community-scale.md), sin alterar las reglas
   ya cerradas en este documento por `DESIGN-001`.
+- El horizonte aprobado de prioridades, órdenes, zonas, políticas, eventos y
+  trabajos, con nueve bloques y 34 prioridades, se desarrolla en
+  [UI-003](UI-003_work-priority-taxonomy.md), sin sustituir las diez
+  familias implementadas de la sección 3.2.
 
 ## 6. Casos límite o riesgos
 

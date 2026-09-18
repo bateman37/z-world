@@ -17,6 +17,7 @@ related:
   - ARC-002
   - SCN-001
   - RDM-002
+  - UI-003
 ---
 
 ## 1. Propósito
@@ -52,6 +53,11 @@ y en qué orden.
   [CHR-001](../30-characters/CHR-001_character-model.md).
 - Prioridades individuales de cinco niveles y los diez grupos de trabajo
   definidos en [UI-001](../80-interface/UI-001_interaction-and-command-model.md).
+  Este demostrador de diez familias y escala `0–4` es distinto del horizonte
+  aprobado de nueve bloques, 34 prioridades y escala `Nunca/1–5` de
+  [UI-003](../80-interface/UI-003_work-priority-taxonomy.md); esta entrega
+  documental no amplía el alcance del primer corte ni cambia sus entregas 4
+  y 5.
 - Designaciones con ratón, trabajos, estados, reservas y motivos de bloqueo
   (ver [UI-001](../80-interface/UI-001_interaction-and-command-model.md)).
 - Zonas habitual, de precaución y prohibida.

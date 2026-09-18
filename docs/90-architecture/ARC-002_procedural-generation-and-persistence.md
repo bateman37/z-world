@@ -12,6 +12,7 @@ related:
   - DEC-0005
   - WLD-002
   - ARC-003
+  - WLD-004
 ---
 
 ## 1. Propósito
@@ -57,6 +58,13 @@ a abrir bajo las mismas condiciones, el contenido base será el mismo. No
 existe un modo alternativo que vuelva a sortear lo desconocido al cargar: eso
 añade complejidad, dificulta depurar y no aporta el ahorro de memoria
 buscado (ver [DEC-0005](../decisions/DEC-0005_reproducible-lazy-generation.md)).
+
+La persona que interviene cambia causalmente lo que se reconoce o se
+recupera de un lugar —qué observa, identifica, extrae o desmonta—, nunca el
+contenido base derivado de semilla, ID, versión y cambios persistentes
+descrito en esta sección. El modelo completo de reconocimiento e
+inspección dependientes de la persona, sin contradecir esta regla, vive en
+[WLD-004](../20-world/WLD-004_expertise-dependent-recovery.md).
 
 ### 3.2 Separación conceptual
 

@@ -9,5 +9,6 @@
 | [IMPLEMENTATION-001_visual-vertical-slice.md](IMPLEMENTATION-001_visual-vertical-slice.md) | Primera entrega de código: vertical slice visual (proyecto Godot, cámara, selección, mapa local, seis supervivientes, reloj). |
 | [IMPLEMENTATION-002_work-and-people.md](IMPLEMENTATION-002_work-and-people.md) | Segunda entrega de código: trabajo y personas (prioridades, habilidades, designaciones, trabajos, reservas, navegación, ficha y control puntual con ratón). |
 | [IMPLEMENTATION-003_exploration-and-subsistence.md](IMPLEMENTATION-003_exploration-and-subsistence.md) | Tercera entrega de código: exploración y subsistencia (información de lugares, recursos, almacén, transporte, necesidades, agua por dos rutas, alimento alternativo, deterioro y conservación). |
+| [DESIGN-003_work-recovery-and-knowledge.md](DESIGN-003_work-recovery-and-knowledge.md) | Horizonte máximo documental de trabajo, prioridades, recuperación dependiente de la persona y conocimiento individual/comunitario, sin ampliar el primer corte jugable. |
 
 Ver el protocolo de prompts futuros en [README.md](README.md).

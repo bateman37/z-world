@@ -4,6 +4,54 @@ Registra entregas documentales y de diseño de Z-World. No atribuye código ni
 funcionalidad implementada salvo que se indique explícitamente como
 `implemented` en la documentación afectada.
 
+## DESIGN-003 — Trabajo, recuperación y conocimiento aplicado
+
+Entrega exclusivamente documental que formaliza el horizonte máximo de tres
+sistemas conectados: prioridades y trabajo, recuperación dependiente de la
+persona y conocimiento individual/comunitario. Crea cinco documentos nuevos,
+todos `approved`, sin implementar nada:
+
+- **Cinco documentos nuevos**: `UI-003` (taxonomía de trabajo y
+  prioridades), `UI-004` (presentación cualitativa de capacidad), `WLD-004`
+  (recuperación dependiente de la persona), `SET-006` (activos de
+  conocimiento y capacidad) y `DEC-0007` (decisión transversal de 34
+  prioridades por capas).
+- **34 prioridades en nueve bloques desplegables**, con IDs candidatos
+  estables, organizando trabajo desde Emergencias hasta Enseñar y
+  transmitir (ver `UI-003`).
+- **Escala `Nunca`, `1`–`5`** con `1` como máxima prioridad y capacidad
+  presentada como una dimensión cualitativa separada, sin umbrales
+  numéricos en la experiencia normal (ver `UI-003` y `UI-004`).
+- **Emergencias** como prioridad real y exclusiva de respuesta a
+  desastres, que no sustituye a Medicina, Rescate, Combate ni Reparación
+  en la actividad cotidiana; **Caza** se separa definitivamente de
+  **Combate y limpieza de amenazas**.
+- **Recuperación dependiente de la persona** sobre un contenido base
+  siempre estable: la persona cambia lo reconocido, accedido y extraído,
+  nunca el contenido derivado de la semilla; revisitas, agotamiento por
+  categoría y diferencia entre registrar, recuperar, desmontar y catalogar
+  (ver `WLD-004`).
+- **Conocimiento físico, digital, humano, individual y comunitario**: el
+  modelo de fuente, fragmento, conocimiento individual, conocimiento
+  comunitario y capacidad real, con seis estados comunitarios de un
+  fragmento (Desconocido, Indicado, Disponible, Parcialmente comprendido,
+  Operativo, Resiliente) (ver `SET-006`).
+- **Aprendizaje, enseñanza, experimentación y pérdida**: práctica, libros,
+  material audiovisual, documentación, enseñanza, mentoría, experimentación,
+  desmontaje, reparación, intercambio y observación como vías válidas y
+  distintas; pérdida de capacidad por muerte, abandono, deterioro de
+  soportes o falta de hardware (ver `CHR-002` ampliado).
+- **Ausencia total de implementación**: no se modificó ningún `.gd`,
+  `.tscn`, `project.godot`, archivo de `game_data/` ni de `tests/`. Las diez
+  familias y escala `0–4` de `IMPLEMENTATION-002`/`IMPLEMENTATION-003`
+  siguen siendo el sistema real del juego ejecutable y quedan explícitamente
+  como provisionales del primer corte, no como modelo final.
+  `IMPLEMENTATION-003` continúa con aceptación manual **pendiente**;
+  `RDM-001` no se amplía y `CHR-005`/`RDM-002` continúan `draft`.
+
+Ver [docs/STATUS.md](docs/STATUS.md) y
+[prompts/DESIGN-003_work-recovery-and-knowledge.md](prompts/DESIGN-003_work-recovery-and-knowledge.md).
+
 ## IMPLEMENTATION-003 — Exploración y subsistencia
 
 Tercera entrega de código ejecutable de Z-World: la tercera de las cinco

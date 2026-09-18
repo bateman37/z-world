@@ -25,6 +25,7 @@ documento canónico de dominio correspondiente.
 | [DEC-0004](DEC-0004_mouse-strategic-control.md) | `approved` | Control individual con ratón dentro de un juego de gestión. |
 | [DEC-0005](DEC-0005_reproducible-lazy-generation.md) | `approved` | Generación bajo demanda estable y reproducible. |
 | [DEC-0006](DEC-0006_maximum-envelope-vs-delivery-scope.md) | `approved` | Separar visión máxima, alcance de entrega y estado implementado. |
+| [DEC-0007](DEC-0007_layered-work-and-priorities.md) | `approved` | Conservar 34 prioridades jerárquicas, separadas de habilidades y del alcance implementado. |
 
 ## Dependencias con otros dominios
 
