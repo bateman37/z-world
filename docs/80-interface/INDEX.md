@@ -20,6 +20,8 @@ paneles, cámara, información mostrada y flujos de interacción.
 |---|---|---|
 | [UI-001](UI-001_interaction-and-command-model.md) | `approved` | Selección, prioridades, designaciones, zonas, control puntual con ratón e información operativa. |
 | [UI-002](UI-002_management-at-community-scale.md) | `approved` | Gestión legible al crecer población, territorio y sistemas. |
+| [UI-003](UI-003_work-priority-taxonomy.md) | `approved` | Arquitectura de prioridad, orden y trabajo; nueve bloques, 34 prioridades y escala `Nunca/1–5`. |
+| [UI-004](UI-004_qualitative-capability-presentation.md) | `approved` | Presentación cualitativa de capacidad, dificultad, incertidumbre y bloqueos sin números internos. |
 
 ## Dependencias con otros dominios
 

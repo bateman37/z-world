@@ -7,6 +7,10 @@ depends_on:
   - RDM-001
 related:
   - VIS-003
+  - UI-003
+  - WLD-004
+  - SET-006
+  - DEC-0007
 ---
 
 ## 1. Propósito
@@ -33,6 +37,13 @@ Capacidades acumulativas, en este orden:
    [SET-004](../40-settlement/SET-004_technological-transition-and-knowledge-economy.md)
    y
    [SET-005](../40-settlement/SET-005_production-web-and-infrastructure.md)).
+   Incluye la matriz completa de nueve bloques y 34 prioridades de
+   [UI-003](../80-interface/UI-003_work-priority-taxonomy.md) (ver
+   [DEC-0007](../decisions/DEC-0007_layered-work-and-priorities.md)), el
+   reconocimiento y saqueo dependientes de la persona de
+   [WLD-004](../20-world/WLD-004_expertise-dependent-recovery.md) y el
+   modelo de conocimiento recuperado y capacidad real de
+   [SET-006](../40-settlement/SET-006_knowledge-assets-and-capability.md).
 3. **Comunidad social**: integración, liderazgo, políticas, facciones y
    memoria (ver
    [SOC-002](../50-society/SOC-002_internal-politics-and-leadership.md) y

@@ -24,6 +24,7 @@ estratégico) y sus reglas de relación.
 | [WLD-001](WLD-001_world-scales.md) | `approved` | Mapa local y mapa estratégico: definición y relación. |
 | [WLD-002](WLD-002_local-exploration-and-information.md) | `approved` | Exploración local: estados de información y familias de acciones de descubrimiento. |
 | [WLD-003](WLD-003_strategic-world-and-regional-simulation.md) | `approved` | Mapa estratégico, exploración regional y simulación distante. |
+| [WLD-004](WLD-004_expertise-dependent-recovery.md) | `approved` | Inspección, saqueo, reconocimiento experto, revisitas y recuperación dependientes de la persona, con contenido base estable. |
 
 ## Dependencias con otros dominios
 

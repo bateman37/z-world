@@ -12,6 +12,7 @@ depends_on:
 related:
   - SET-004
   - CHR-005
+  - SET-006
 ---
 
 ## 1. Propósito
@@ -32,7 +33,9 @@ infraestructura.
 Cada solución futura declara:
 
 - Necesidad o resultado.
-- Conocimientos y habilidades.
+- Conocimientos y habilidades, incluidos los fragmentos de conocimiento o
+  técnicas concretos que requiere (ver
+  [SET-006](SET-006_knowledge-assets-and-capability.md)).
 - Personas y tiempo.
 - Herramientas, instalaciones, materiales y energía.
 - Entradas, salidas, residuos y subproductos relevantes.
@@ -70,6 +73,9 @@ resiliencia.
   [SET-004](SET-004_technological-transition-and-knowledge-economy.md).
 - Depende de las habilidades disponibles, incluida la taxonomía candidata de
   [CHR-005](../30-characters/CHR-005_extended-skill-taxonomy.md) (`draft`).
+- Los fragmentos de conocimiento o técnicas que cada solución declara se
+  definen según el modelo de
+  [SET-006](SET-006_knowledge-assets-and-capability.md).
 - No repite las reglas ya aprobadas en
   [SET-002](SET-002_production-and-solutions.md) sobre ausencia de ruta
   única.

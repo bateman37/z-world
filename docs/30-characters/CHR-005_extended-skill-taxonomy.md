@@ -8,6 +8,7 @@ depends_on:
 related:
   - CHR-004
   - SET-005
+  - UI-003
 ---
 
 ## 1. Propósito
@@ -23,6 +24,13 @@ de [CHR-001](CHR-001_character-model.md).
   habilidades que agrupan.
 - No reemplaza las once habilidades iniciales de
   [RDM-001](../roadmap/RDM-001_first-playable-slice.md).
+- Esta taxonomía de **habilidades** sigue siendo `draft` y no es la lista
+  aprobada de **prioridades** de
+  [UI-003](../80-interface/UI-003_work-priority-taxonomy.md). Las 34
+  prioridades de `UI-003` son `approved` y organizan disposición de
+  trabajo, no competencia práctica; esta taxonomía candidata de
+  habilidades y técnicas es un espacio de diseño distinto, todavía sin
+  cerrar.
 
 ## 3. Modelo funcional
 

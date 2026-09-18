@@ -24,6 +24,7 @@ que sostienen a la comunidad.
 | [SET-003](SET-003_resources-logistics-and-condition.md) | `approved` | Recursos, logística, condición y rutas alternativas iniciales. |
 | [SET-004](SET-004_technological-transition-and-knowledge-economy.md) | `approved` | Del aprovechamiento del mundo anterior a la reconstrucción local. |
 | [SET-005](SET-005_production-web-and-infrastructure.md) | `approved` | Red de soluciones, mantenimiento e infraestructuras. |
+| [SET-006](SET-006_knowledge-assets-and-capability.md) | `approved` | Fuentes de conocimiento, estados comunitarios, acceso físico/digital y conversión en capacidad real. |
 
 ## Dependencias con otros dominios
 

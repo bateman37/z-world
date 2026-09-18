@@ -11,6 +11,7 @@ depends_on:
 related:
   - UI-001
   - SET-003
+  - WLD-004
 ---
 
 ## 1. Propósito
@@ -83,6 +84,10 @@ cuáles pueden aplicar.
   [SET-003](../40-settlement/SET-003_resources-logistics-and-condition.md).
 - La generación del contenido base de cada lugar se rige por
   [ARC-002](../90-architecture/ARC-002_procedural-generation-and-persistence.md).
+- El reconocimiento dependiente de la persona, las revisitas y el
+  agotamiento por categoría se amplían, sobre estos mismos estados
+  generales, en
+  [WLD-004](WLD-004_expertise-dependent-recovery.md).
 
 ## 6. Casos límite o riesgos
 

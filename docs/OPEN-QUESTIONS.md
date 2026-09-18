@@ -26,6 +26,11 @@ Cuando una pregunta se cierre:
 - Flujo exacto de expediciones, puestos, colonias y materialización de
   zonas. Ver
   [WLD-003](20-world/WLD-003_strategic-world-and-regional-simulation.md).
+- Catálogo exhaustivo de acciones, herramientas de diagnóstico y objetos
+  declarables por categoría de reconocimiento dependiente de la persona, y
+  fórmulas numéricas exactas de calidad de reconocimiento según persona,
+  herramienta y tiempo. Ver
+  [WLD-004](20-world/WLD-004_expertise-dependent-recovery.md).
 
 ## Personajes (`30-characters`)
 
@@ -36,7 +41,10 @@ Cuando una pregunta se cierre:
 - Técnicas exactas, prerrequisitos y transferencia completa entre
   habilidades más allá de los ejemplos registrados. Ver
   [CHR-002](30-characters/CHR-002_knowledge-and-learning.md).
-- Fórmulas exactas de velocidad de aprendizaje y enseñanza. Ver
+- Fórmulas exactas de velocidad de aprendizaje, enseñanza, olvido, fallo y
+  desperdicio, y qué conocimientos concretos puede olvidar una persona. Ver
+  [CHR-002](30-characters/CHR-002_knowledge-and-learning.md).
+- Duración y profundidad exactas de cursos o mentorías. Ver
   [CHR-002](30-characters/CHR-002_knowledge-and-learning.md).
 - Valores y curvas del modelo profundo de personas. Ver
   [CHR-004](30-characters/CHR-004_life-history-and-personal-arcs.md).
@@ -63,6 +71,14 @@ Cuando una pregunta se cierre:
   [SET-004](40-settlement/SET-004_technological-transition-and-knowledge-economy.md)
   y
   [SET-005](40-settlement/SET-005_production-web-and-infrastructure.md).
+- Fórmulas numéricas exactas de cobertura, confianza, dificultad y progreso
+  interno de un fragmento de conocimiento; catálogo exhaustivo de
+  fragmentos, dominios y técnicas; frecuencia y equilibrio de aparición de
+  fuentes de conocimiento por semilla; número de personas o copias
+  necesarias para considerar un fragmento `Resiliente`; reglas completas de
+  idiomas, cifrado, contraseñas y recuperación forense de fuentes
+  digitales. Ver
+  [SET-006](40-settlement/SET-006_knowledge-assets-and-capability.md).
 
 ## Sociedad (`50-society`)
 
@@ -106,6 +122,18 @@ Cuando una pregunta se cierre:
   Ver [UI-001](80-interface/UI-001_interaction-and-command-model.md).
 - Flujos visuales de gestión a escala. Ver
   [UI-002](80-interface/UI-002_management-at-community-scale.md).
+- Estrategia de migración técnica desde las diez familias y escala `0–4`
+  implementadas hacia el horizonte de nueve bloques, 34 prioridades y
+  escala `Nunca/1–5`; valores iniciales por personaje y plantillas
+  definitivas de prioridad. Ver
+  [UI-003](80-interface/UI-003_work-priority-taxonomy.md).
+- Color, iconografía y disposición visual final de la matriz de prioridades
+  y de los estados cualitativos de capacidad. Ver
+  [UI-003](80-interface/UI-003_work-priority-taxonomy.md) y
+  [UI-004](80-interface/UI-004_qualitative-capability-presentation.md).
+- Fórmulas numéricas exactas de idoneidad, dificultad, riesgo y confianza
+  que alimentan los estados cualitativos de capacidad. Ver
+  [UI-004](80-interface/UI-004_qualitative-capability-presentation.md).
 
 ## Arquitectura técnica (`90-architecture`)
 

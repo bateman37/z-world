@@ -11,6 +11,8 @@ depends_on:
 related:
   - CHR-004
   - SOC-002
+  - UI-003
+  - UI-004
 ---
 
 ## 1. Propósito
@@ -42,7 +44,34 @@ sean necesarios, zonas, plantillas y excepciones.
 Una alerta conduce a su causa y a acciones posibles. No se ocultan fallos
 tras estados genéricos ni se satura con cada pensamiento cotidiano.
 
-### 3.2 Ficha personal progresiva
+### 3.2 Gestión a escala de la matriz de prioridades
+
+Cuando la matriz de prioridades crece hasta los nueve bloques y 34
+prioridades del horizonte aprobado (ver
+[UI-003](UI-003_work-priority-taxonomy.md)), la gestión a escala se apoya
+en:
+
+- **Bloques plegables**: vista plegada con resumen por persona y vista
+  desplegada con las prioridades hijas del bloque.
+- **Filtros**: por equipo, rol, turno, zona o selección, sin alterar la
+  simulación.
+- **Edición por grupo**: cambiar un bloque completo aplica un mismo valor a
+  todas sus prioridades hijas mediante una acción explícita del jugador; no
+  borra después los ajustes individuales salvo nueva acción.
+- **Plantillas reutilizables**: una plantilla propone valores, pero cada
+  persona conserva sus ajustes.
+
+Un bloque con valores distintos entre sus prioridades hijas muestra estado
+«Mixto», sin inventar una media que cambie el comportamiento. No se oculta
+una prioridad porque todavía no exista una persona capaz: puede resultar
+importante al planificar formación o incorporar especialistas. El panel
+debe permitir comparar personas sin obligar a abrir 34 fichas. La
+presentación cualitativa de capacidad, dificultad e incertidumbre por celda
+se rige por
+[UI-004](UI-004_qualitative-capability-presentation.md), sin repetirse
+aquí.
+
+### 3.3 Ficha personal progresiva
 
 La ficha muestra lo necesario para trabajar y cuidar a alguien. Historia,
 relaciones, deseos, recuerdos y aptitudes se descubren progresivamente
@@ -65,6 +94,10 @@ mediante indicios, rangos o confianza, no números secretos sin contexto
   [CHR-004](../30-characters/CHR-004_life-history-and-personal-arcs.md).
 - Los paneles de sociedad presentan la política interna de
   [SOC-002](../50-society/SOC-002_internal-politics-and-leadership.md).
+- La matriz de bloques y prioridades gestionada a escala en la sección 3.2
+  se define en [UI-003](UI-003_work-priority-taxonomy.md); la presentación
+  cualitativa de sus celdas se define en
+  [UI-004](UI-004_qualitative-capability-presentation.md).
 - No repite las reglas de selección, prioridades, designaciones, zonas y
   control puntual ya cerradas en
   [UI-001](UI-001_interaction-and-command-model.md).

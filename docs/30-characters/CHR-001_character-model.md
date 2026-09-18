@@ -12,6 +12,8 @@ related:
   - CHR-004
   - CHR-005
   - VIS-002
+  - UI-003
+  - SET-006
 ---
 
 ## 1. Propósito
@@ -48,6 +50,30 @@ herramientas, instalaciones, componentes, energía y materias primas.
 
 Una acción compleja puede exigir una combinación de varias habilidades,
 conocimiento disponible, personas, herramientas, tiempo y materiales.
+
+### 3.1.1 Prioridad, habilidad, técnica, conocimiento, aptitud y medios
+
+Estos seis conceptos no deben confundirse entre sí:
+
+- **Prioridad** es la disposición relativa de una persona a atender una
+  familia de trabajos; no concede ninguna capacidad por sí sola (ver el
+  horizonte aprobado de nueve bloques y 34 prioridades en
+  [UI-003](../80-interface/UI-003_work-priority-taxonomy.md)).
+- **Habilidad** es la competencia práctica general o específica en una
+  disciplina.
+- **Técnica** es un procedimiento concreto dentro de una habilidad.
+- **Conocimiento** es lo que la persona o la comunidad reconoce, comprende
+  y sabe aplicar, incluidos los fragmentos recuperados de fuentes del mundo
+  anterior (ver
+  [SET-006](../40-settlement/SET-006_knowledge-assets-and-capability.md)).
+- **Aptitud** es el ritmo, techo, constancia o facilidad personal para
+  progresar, parcialmente oculta.
+- **Medios materiales** son las herramientas, materiales, energía,
+  instalación, acceso, tiempo y ayuda necesarios para ejecutar.
+
+Una persona puede tener prioridad máxima en una familia sin habilidad
+alguna, o habilidad y conocimiento sin medios materiales disponibles.
+Ninguna de estas capas sustituye a otra.
 
 ### 3.1 Habilidades específicas iniciales
 
@@ -99,6 +125,12 @@ esta regla: sirven para priorizar tareas, no otorgan competencia en ellas.
   [SET-002](../40-settlement/SET-002_production-and-solutions.md).
 - Relaciones, prestigio y facciones se desarrollan en
   [SOC-001](../50-society/SOC-001_living-community.md).
+- El horizonte aprobado de prioridades, órdenes, zonas, políticas y trabajos
+  que usa estas capas sin confundirlas se desarrolla en
+  [UI-003](../80-interface/UI-003_work-priority-taxonomy.md).
+- El modelo de fuentes, fragmentos y capacidad real que sustenta el
+  conocimiento comunitario se desarrolla en
+  [SET-006](../40-settlement/SET-006_knowledge-assets-and-capability.md).
 
 ## 6. Casos límite o riesgos
 
