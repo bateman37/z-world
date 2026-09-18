@@ -4,6 +4,59 @@ Registra entregas documentales y de diseño de Z-World. No atribuye código ni
 funcionalidad implementada salvo que se indique explícitamente como
 `implemented` en la documentación afectada.
 
+## IMPLEMENTATION-002 — Trabajo y personas
+
+Segunda entrega de código ejecutable de Z-World: la segunda de las cinco
+entregas fijadas en
+[RDM-001](docs/roadmap/RDM-001_first-playable-slice.md). Convierte las seis
+figuras quietas en personas que reciben prioridades, eligen trabajos
+factibles, se desplazan, reservan su objetivo y lo ejecutan:
+
+- Estado de trabajo por persona, separado de su representación visual, con
+  las diez familias de prioridad de `UI-001` (todas en `2` al inicio, escala
+  `0–4`), las once habilidades iniciales de `CHR-001` (escala provisional
+  `0–4`), estado operativo (`idle`, `moving`, `working`, `direct_order`),
+  trabajo actual, orden directa y motivo operativo.
+- Ocho objetivos de trabajo demostradores en el mapa local: cuatro pilas de
+  escombros («Despejar escombros», `build_repair`,
+  `construction_carpentry >= 2`, 8 s a ×1) y cuatro puntos de reconocimiento
+  («Reconocer punto», `explore_recon`, `observation_inspection >= 2`, 6 s a
+  ×1), con estados `available`, `designated`, `in_progress` y `completed`.
+- Tablón de trabajos con reservas (máximo una por objetivo), estados
+  `pending`, `reserved`, `moving`, `working`, `completed`, `cancelled` y
+  `blocked`, progreso conservado al cancelar y selector determinista según
+  el orden aprobado (prioridad, urgencia, distancia de ruta, espera, nivel
+  de habilidad exigido e ID estable).
+- Cuatro razones de bloqueo y tres razones de «sin trabajo» concretas, que
+  se recuperan automáticamente al cambiar la causa.
+- Navegación 3D local con malla generada en código al cargar la escena y
+  `NavigationAgent3D` por persona: las rutas no atraviesan edificios, agua
+  ni arbolado, ni salen del terreno útil, y no hay que hornear nada a mano.
+- Avance de simulación propio del reloj
+  (`gameplay_delta = delta real × multiplicador`, `0` en pausa) para
+  movimiento y progreso, sin `Engine.time_scale` y sin tocar la conversión
+  de calendario de 20 minutos por día.
+- Control puntual con ratón mediante menú contextual de clic derecho («Mover
+  aquí», «Hacer ahora …», «Designar para la comunidad»), con opciones
+  deshabilitadas y su razón concreta cuando no son posibles.
+- Paneles de HUD «Prioridades» (matriz de diez familias × seis personas con
+  clic izquierdo y derecho, número, color y tooltip) y «Trabajos» (activos y
+  últimos completados), y ficha de persona ampliada.
+
+No implementa necesidades, hambre, sed, cansancio, salud, inventarios,
+objetos, almacenes, recursos, interiores, inspección de edificios, agua,
+comida, construcción real, aprendizaje, autonomía, iniciativas, zonas,
+zombis, combate, generación procedural, guardado ni carga: quedan para las
+tres entregas posteriores de `RDM-001`. Los escombros y los puntos de
+reconocimiento son demostradores del sistema de trabajo, no un adelanto de
+recursos, exploración o construcción.
+
+Los dos comandos de Godot de la sección 16 del prompt quedan como `NOT RUN`
+porque `godot --headless` no estaba disponible en el entorno de
+implementación; no se instaló Godot para forzar su ejecución.
+`git diff --check` sí se ejecutó y no informó errores. La aceptación manual
+descrita en [README.md](README.md) queda pendiente de que Dennis la ejecute.
+
 ## IMPLEMENTATION-001 — Vertical slice visual
 
 Primera entrega de código ejecutable de Z-World: la primera de las cinco
@@ -30,8 +83,8 @@ necesidades, amenazas, autonomía, generación procedural, guardado ni
 ninguna de las cuatro entregas posteriores de `RDM-001`. El smoke test
 queda como `NOT RUN` porque `godot --headless` no estaba disponible en el
 entorno de implementación; no se instaló Godot para forzar su ejecución.
-La aceptación manual descrita en [README.md](README.md) queda pendiente de
-que Dennis la ejecute.
+La aceptación manual descrita en [README.md](README.md) fue superada por
+Dennis el 18 de septiembre de 2026.
 
 ## DESIGN-002 — Horizonte máximo de diseño
 

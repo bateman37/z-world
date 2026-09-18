@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://src/hud/hud.gd" id="1"]
+[ext_resource type="Script" path="res://src/hud/context_menu.gd" id="2"]
 
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("1")
@@ -58,23 +59,36 @@ unique_name_in_owner = true
 toggle_mode = true
 text = "×10"
 
-[node name="CenterCameraButton" type="Button" parent="Root"]
-unique_name_in_owner = true
+[node name="PanelButtons" type="HBoxContainer" parent="Root"]
 offset_left = 16.0
 offset_top = 120.0
-offset_right = 176.0
+offset_right = 520.0
 offset_bottom = 152.0
+
+[node name="CenterCameraButton" type="Button" parent="Root/PanelButtons"]
+unique_name_in_owner = true
 text = "Centrar cámara"
+
+[node name="PrioritiesButton" type="Button" parent="Root/PanelButtons"]
+unique_name_in_owner = true
+toggle_mode = true
+text = "Prioridades"
+
+[node name="JobsButton" type="Button" parent="Root/PanelButtons"]
+unique_name_in_owner = true
+toggle_mode = true
+text = "Trabajos"
 
 [node name="SelectionPanel" type="Panel" parent="Root"]
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -340.0
+anchor_bottom = 1.0
+offset_left = -360.0
 offset_top = 16.0
 offset_right = -16.0
-offset_bottom = 210.0
+offset_bottom = -72.0
 
-[node name="SelectionVBox" type="VBoxContainer" parent="Root/SelectionPanel"]
+[node name="SelectionScroll" type="ScrollContainer" parent="Root/SelectionPanel"]
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 12.0
@@ -82,69 +96,244 @@ offset_top = 12.0
 offset_right = -12.0
 offset_bottom = -12.0
 
-[node name="SelectionTitle" type="Label" parent="Root/SelectionPanel/SelectionVBox"]
+[node name="SelectionVBox" type="VBoxContainer" parent="Root/SelectionPanel/SelectionScroll"]
+size_flags_horizontal = 3
+
+[node name="SelectionTitle" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
 text = "Selección"
 theme_override_font_sizes/font_size = 18
 
-[node name="SelectionIdRow" type="HBoxContainer" parent="Root/SelectionPanel/SelectionVBox"]
+[node name="SelectionIdRow" type="HBoxContainer" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
 
-[node name="SelectionIdLabel" type="Label" parent="Root/SelectionPanel/SelectionVBox/SelectionIdRow"]
+[node name="SelectionIdLabel" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox/SelectionIdRow"]
 text = "ID:"
 custom_minimum_size = Vector2(90, 0)
 
-[node name="SelectionIdValue" type="Label" parent="Root/SelectionPanel/SelectionVBox/SelectionIdRow"]
+[node name="SelectionIdValue" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox/SelectionIdRow"]
 unique_name_in_owner = true
 text = "—"
 
-[node name="SelectionTypeRow" type="HBoxContainer" parent="Root/SelectionPanel/SelectionVBox"]
+[node name="SelectionTypeRow" type="HBoxContainer" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
 
-[node name="SelectionTypeLabel" type="Label" parent="Root/SelectionPanel/SelectionVBox/SelectionTypeRow"]
+[node name="SelectionTypeLabel" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox/SelectionTypeRow"]
 text = "Tipo:"
 custom_minimum_size = Vector2(90, 0)
 
-[node name="SelectionTypeValue" type="Label" parent="Root/SelectionPanel/SelectionVBox/SelectionTypeRow"]
+[node name="SelectionTypeValue" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox/SelectionTypeRow"]
 unique_name_in_owner = true
 text = "—"
 
-[node name="SelectionNameRow" type="HBoxContainer" parent="Root/SelectionPanel/SelectionVBox"]
+[node name="SelectionNameRow" type="HBoxContainer" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
 
-[node name="SelectionNameLabel" type="Label" parent="Root/SelectionPanel/SelectionVBox/SelectionNameRow"]
+[node name="SelectionNameLabel" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox/SelectionNameRow"]
 text = "Nombre:"
 custom_minimum_size = Vector2(90, 0)
 
-[node name="SelectionNameValue" type="Label" parent="Root/SelectionPanel/SelectionVBox/SelectionNameRow"]
+[node name="SelectionNameValue" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox/SelectionNameRow"]
 unique_name_in_owner = true
 text = "—"
 
-[node name="SelectionDescriptionLabel" type="Label" parent="Root/SelectionPanel/SelectionVBox"]
-text = "Descripción:"
+[node name="SelectionStateRow" type="HBoxContainer" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
+unique_name_in_owner = true
 
-[node name="SelectionDescriptionValue" type="Label" parent="Root/SelectionPanel/SelectionVBox"]
+[node name="SelectionStateLabel" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox/SelectionStateRow"]
+text = "Estado:"
+custom_minimum_size = Vector2(90, 0)
+
+[node name="SelectionStateValue" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox/SelectionStateRow"]
+unique_name_in_owner = true
+text = "—"
+
+[node name="SelectionActionRow" type="HBoxContainer" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
+unique_name_in_owner = true
+
+[node name="SelectionActionLabel" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox/SelectionActionRow"]
+text = "Actividad:"
+custom_minimum_size = Vector2(90, 0)
+
+[node name="SelectionActionValue" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox/SelectionActionRow"]
 unique_name_in_owner = true
 autowrap_mode = 3
+custom_minimum_size = Vector2(200, 0)
+text = "—"
+
+[node name="SelectionReasonRow" type="HBoxContainer" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
+unique_name_in_owner = true
+
+[node name="SelectionReasonLabel" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox/SelectionReasonRow"]
+text = "Motivo:"
+custom_minimum_size = Vector2(90, 0)
+
+[node name="SelectionReasonValue" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox/SelectionReasonRow"]
+unique_name_in_owner = true
+autowrap_mode = 3
+custom_minimum_size = Vector2(200, 0)
+text = "—"
+
+[node name="SelectionProgressRow" type="HBoxContainer" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
+unique_name_in_owner = true
+
+[node name="SelectionProgressLabel" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox/SelectionProgressRow"]
+text = "Progreso:"
+custom_minimum_size = Vector2(90, 0)
+
+[node name="SelectionProgressValue" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox/SelectionProgressRow"]
+unique_name_in_owner = true
+text = "0 %"
+
+[node name="SelectionDescriptionLabel" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
+text = "Descripción:"
+
+[node name="SelectionDescriptionValue" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
+unique_name_in_owner = true
+autowrap_mode = 3
+custom_minimum_size = Vector2(300, 0)
 text = "Nada seleccionado todavía."
+
+[node name="TargetActionButton" type="Button" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
+unique_name_in_owner = true
+visible = false
+text = "Designar trabajo"
+
+[node name="CancelDirectOrderButton" type="Button" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
+unique_name_in_owner = true
+visible = false
+text = "Cancelar orden directa"
+
+[node name="SelectionSkillsTitle" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
+unique_name_in_owner = true
+visible = false
+text = "Habilidades"
+theme_override_font_sizes/font_size = 16
+
+[node name="SelectionSkillsList" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
+unique_name_in_owner = true
+visible = false
+autowrap_mode = 3
+custom_minimum_size = Vector2(300, 0)
+text = "—"
+
+[node name="PrioritiesPanel" type="Panel" parent="Root"]
+unique_name_in_owner = true
+visible = false
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -460.0
+offset_top = -250.0
+offset_right = 460.0
+offset_bottom = 250.0
+
+[node name="PrioritiesVBox" type="VBoxContainer" parent="Root/PrioritiesPanel"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
+
+[node name="PrioritiesTitle" type="Label" parent="Root/PrioritiesPanel/PrioritiesVBox"]
+text = "Prioridades de trabajo"
+theme_override_font_sizes/font_size = 20
+
+[node name="PrioritiesHint" type="Label" parent="Root/PrioritiesPanel/PrioritiesVBox"]
+text = "Clic izquierdo: sube 0→1→2→3→4→0 · Clic derecho: baja 4→3→2→1→0→4 · 0 excluye los trabajos automáticos de esa familia."
+autowrap_mode = 3
+
+[node name="PrioritiesScroll" type="ScrollContainer" parent="Root/PrioritiesPanel/PrioritiesVBox"]
+size_flags_vertical = 3
+
+[node name="PrioritiesGrid" type="GridContainer" parent="Root/PrioritiesPanel/PrioritiesVBox/PrioritiesScroll"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+columns = 7
+
+[node name="JobsPanel" type="Panel" parent="Root"]
+unique_name_in_owner = true
+visible = false
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -460.0
+offset_top = -250.0
+offset_right = 460.0
+offset_bottom = 250.0
+
+[node name="JobsVBox" type="VBoxContainer" parent="Root/JobsPanel"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
+
+[node name="JobsTitle" type="Label" parent="Root/JobsPanel/JobsVBox"]
+text = "Trabajos"
+theme_override_font_sizes/font_size = 20
+
+[node name="JobsHint" type="Label" parent="Root/JobsPanel/JobsVBox"]
+text = "Acción · objetivo · persona · estado · progreso · motivo de bloqueo"
+autowrap_mode = 3
+
+[node name="JobsScroll" type="ScrollContainer" parent="Root/JobsPanel/JobsVBox"]
+size_flags_vertical = 3
+
+[node name="JobsListLabel" type="Label" parent="Root/JobsPanel/JobsVBox/JobsScroll"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+autowrap_mode = 3
+text = "No hay trabajos designados."
+
+[node name="CompletedTitle" type="Label" parent="Root/JobsPanel/JobsVBox"]
+text = "Últimos completados"
+theme_override_font_sizes/font_size = 16
+
+[node name="CompletedScroll" type="ScrollContainer" parent="Root/JobsPanel/JobsVBox"]
+custom_minimum_size = Vector2(0, 140)
+
+[node name="CompletedListLabel" type="Label" parent="Root/JobsPanel/JobsVBox/CompletedScroll"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+autowrap_mode = 3
+text = "Todavía no se ha completado ningún trabajo."
+
+[node name="ContextMenu" type="PanelContainer" parent="Root"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(280, 0)
+script = ExtResource("2")
+
+[node name="Margin" type="MarginContainer" parent="Root/ContextMenu"]
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="Options" type="VBoxContainer" parent="Root/ContextMenu/Margin"]
 
 [node name="HelpLabel" type="Label" parent="Root"]
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -280.0
+offset_left = -420.0
 offset_top = -56.0
-offset_right = 280.0
+offset_right = 420.0
 offset_bottom = -34.0
 horizontal_alignment = 1
-text = "Clic: seleccionar · Botón central: mover · Rueda: zoom"
+text = "Clic izq.: seleccionar · Clic der. con persona seleccionada: mover, hacer ahora o designar · Botón central: mover cámara · Rueda: zoom"
 
 [node name="PrototypeNoticeLabel" type="Label" parent="Root"]
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -280.0
+offset_left = -420.0
 offset_top = -28.0
-offset_right = 280.0
+offset_right = 420.0
 offset_bottom = -8.0
 horizontal_alignment = 1
 modulate = Color(1, 1, 1, 0.6)
-text = "Prototipo visual — sin simulación de supervivencia"
+text = "Prototipo — trabajo y personas, sin necesidades, recursos ni amenazas"

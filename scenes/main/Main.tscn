@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://src/main.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/world/MountainVillage.tscn" id="2"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://src/clock/game_clock.gd" id="4"]
 [ext_resource type="Script" path="res://src/selection/selection_manager.gd" id="5"]
 [ext_resource type="PackedScene" path="res://scenes/hud/HUD.tscn" id="6"]
+[ext_resource type="Script" path="res://src/work/work_board.gd" id="7"]
 
 [node name="Main" type="Node3D"]
 script = ExtResource("1")
@@ -19,5 +20,8 @@ script = ExtResource("4")
 
 [node name="SelectionManager" type="Node" parent="."]
 script = ExtResource("5")
+
+[node name="WorkBoard" type="Node" parent="."]
+script = ExtResource("7")
 
 [node name="HUDLayer" parent="." instance=ExtResource("6")]

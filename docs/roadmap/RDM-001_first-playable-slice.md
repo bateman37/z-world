@@ -106,14 +106,23 @@ El roadmap fija estas cinco entregas, en este orden, sin fechas:
    implementada técnicamente como `IMPLEMENTATION-001` (proyecto Godot
    4.7.2 importable, mapa local fijo, seis supervivientes seleccionables,
    cámara estratégica con ratón, reloj con pausa y velocidades ×1/×2/×4/×10);
-   **aceptación manual pendiente** de que Dennis la ejecute (ver
+   **aceptada manualmente por Dennis el 18 de septiembre de 2026** (ver
    [README.md](../../README.md) y [docs/STATUS.md](../STATUS.md)). No
    incluye trabajo, prioridades, designaciones, recursos, autonomía,
    amenazas, generación procedural ni guardado: esos siguen en las
-   entregas 2 a 5, que no se han iniciado.
+   entregas 2 a 5.
 2. **Trabajo y personas**: prioridades, designaciones, trabajos, movimiento,
    reservas, estado básico, ficha y control puntual con ratón. Dennis podrá
    asignar prioridades, designar tareas y ver a las personas ejecutarlas.
+   **Estado:** implementada técnicamente como `IMPLEMENTATION-002` (estado
+   de trabajo por persona con diez prioridades y once habilidades, ocho
+   objetivos de trabajo demostradores, tablón con reservas y selector
+   determinista, navegación 3D generada en código, ejecución con progreso,
+   menú contextual de clic derecho y paneles de prioridades, trabajos y
+   ficha); **aceptación manual pendiente** de que Dennis la ejecute. No
+   incluye necesidades, recursos, exploración funcional, aprendizaje,
+   autonomía, amenazas ni persistencia: siguen en las entregas 3 a 5, que no
+   se han iniciado.
 3. **Exploración y subsistencia**: estado de información, edificios,
    recursos, transporte, almacén, descanso, agua y alimento alternativo.
    Dennis podrá explorar el edificio inicial, obtener agua y alimento por al
