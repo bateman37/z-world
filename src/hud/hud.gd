@@ -118,7 +118,7 @@ func update_selection(info: Dictionary) -> void:
 	_skills_title.visible = not skills.is_empty()
 	_skills_list.visible = not skills.is_empty()
 	if not skills.is_empty():
-		var lines: Array[String] = []
+		var lines := PackedStringArray()
 		for skill in skills:
 			lines.append("%s: %d (%s)" % [
 				String(skill.get("name", "")),
@@ -240,7 +240,7 @@ func _on_priority_cell_input(event: InputEvent, person_id: String, family_id: St
 		priority_cycle_requested.emit(person_id, family_id, false)
 		cell.accept_event()
 
-func update_jobs(active_lines: Array, completed_lines: Array) -> void:
+func update_jobs(active_lines: PackedStringArray, completed_lines: PackedStringArray) -> void:
 	_jobs_list.text = "\n".join(active_lines) if not active_lines.is_empty() else "No hay trabajos designados."
 	_completed_list.text = "\n".join(completed_lines) if not completed_lines.is_empty() else "Todavía no se ha completado ningún trabajo."
 

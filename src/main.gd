@@ -162,10 +162,10 @@ func _refresh_priorities_panel() -> void:
 	_refresh_selection_panel()
 
 func _refresh_jobs_panel() -> void:
-	var active_lines: Array = []
+	var active_lines := PackedStringArray()
 	for job in _work_board.get_active_jobs():
 		active_lines.append(_work_board.describe_job(job))
-	var completed_lines: Array = []
+	var completed_lines := PackedStringArray()
 	for completed_job in _work_board.get_completed_jobs():
 		completed_lines.append(_work_board.describe_job(completed_job))
 	_hud.update_jobs(active_lines, completed_lines)
