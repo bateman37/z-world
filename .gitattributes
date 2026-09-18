@@ -1,0 +1,27 @@
+# Normaliza los finales de línea para evitar que Godot (en Windows) genere
+# diffs engañosos por CRLF/LF al reguardar archivos de texto del proyecto.
+* text=auto eol=lf
+
+*.gd text eol=lf
+*.tscn text eol=lf
+*.tres text eol=lf
+*.godot text eol=lf
+*.import text eol=lf
+*.cfg text eol=lf
+*.md text eol=lf
+*.gitignore text eol=lf
+*.gitattributes text eol=lf
+
+# Binarios habituales de un proyecto Godot: nunca se tocan los finales de
+# línea ni se intenta fusionar como texto.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ogg binary
+*.wav binary
+*.mp3 binary
+*.ttf binary
+*.otf binary
+*.glb binary
+*.gltf binary

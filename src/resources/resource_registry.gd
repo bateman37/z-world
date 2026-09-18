@@ -31,7 +31,9 @@ func create_stack(
 	return stack
 
 func get_stack(stack_id: String) -> ResourceStack:
-	return _stacks.get(stack_id, null)
+	if not _stacks.has(stack_id):
+		return null
+	return _stacks[stack_id]
 
 func all_stacks() -> Array[ResourceStack]:
 	var result: Array[ResourceStack] = []
