@@ -67,6 +67,10 @@ var guard_post_id: String = ""
 ## Zombi con el que está en combate/transgresión en curso, para no repetir
 ## la decisión de la sección 14.2 durante el mismo contacto.
 var _transgression_seen_for: String = ""
+## Acumulador de tiempo de simulación para el intervalo de golpe cuerpo a
+## cuerpo (sección 10.2): a ×10 produce el mismo número de golpes por
+## segundo simulado que a ×1, nunca uno por fotograma.
+var combat_accumulator: float = 0.0
 
 func _init(p_id: String = "", p_display_name: String = "") -> void:
 	id = p_id

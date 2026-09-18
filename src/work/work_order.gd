@@ -28,6 +28,10 @@ const STATE_LABELS := {
 const ORIGIN_COMMUNITY := "community"
 const ORIGIN_DIRECT := "direct"
 const ORIGIN_NEED := "need"
+## Iniciativa autónoma de reparación (IMPLEMENTATION-004, sección 13): un
+## trabajo normal del mismo tablón, marcado para distinguirlo en el panel
+## «Trabajos» (sección 16: «una línea de iniciativa lleva una marca textual»).
+const ORIGIN_INITIATIVE := "initiative"
 
 const URGENCY_NORMAL := 1
 ## Las necesidades críticas se atienden antes que cualquier otro trabajo
@@ -138,3 +142,6 @@ func is_assignable() -> bool:
 
 func is_survival() -> bool:
 	return origin == ORIGIN_NEED
+
+func is_initiative() -> bool:
+	return origin == ORIGIN_INITIATIVE

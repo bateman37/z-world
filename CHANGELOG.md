@@ -4,6 +4,58 @@ Registra entregas documentales y de diseño de Z-World. No atribuye código ni
 funcionalidad implementada salvo que se indique explícitamente como
 `implemented` en la documentación afectada.
 
+## IMPLEMENTATION-004 — Defensa y vida propia
+
+Cuarta entrega de código ejecutable de Z-World: la cuarta de las cinco
+entregas fijadas en
+[RDM-001](docs/roadmap/RDM-001_first-playable-slice.md). Añade defensa y
+vida propia sobre el bucle de exploración y subsistencia existente:
+
+- **Zonas territoriales**: rejilla de 2 m con estados habitual/precaución/
+  prohibida, rectángulo habitual inicial, herramienta «Zonas» con pintura
+  por arrastre (`MultiMesh`), y bloqueo de trabajos y rutas físicas por
+  «Zona prohibida», con salida garantizada desde una celda recién
+  prohibida.
+- **Cuatro puntos de defensa fijos** del refugio (puerta sur, dos
+  ventanas, hueco norte del perímetro) con estados abierto/intacto/dañado/
+  destruido, coste y reparación reales, y bloqueo del sector
+  correspondiente frente a los zombis que se acercan al asentamiento.
+- **Cinco zombis lentos de población fija**, con estados `idle`,
+  `investigating_noise`, `pursuing`, `attacking_defense`,
+  `attacking_person` y `dead`, visión, memoria de ruido y de objetivo
+  perdido.
+- **Ruido causal y visible**: diez causas con radio propio, emitido una
+  sola vez al empezar la fase «act» de cada trabajo o por cada impacto,
+  con aro visual y agrupado de presentación en el registro de sucesos.
+- **Salud de persona** (`0–100`, Sana/Herida/Crítica/Fallecida) y reglas de
+  baja que interrumpen movimiento, combate y trabajo sin borrar a la
+  persona de la partida.
+- **Dos puestos de guardia** con el trabajo continuo «Vigilar acceso»,
+  detección, enganche y desenganche automáticos.
+- **Combate cuerpo a cuerpo puntual** por clic derecho y **retirada**
+  ordenada o automática hacia el punto de reunión, ambos gobernados por
+  tiempo simulado.
+- **Indicador de amenaza** (tranquila/alerta/contacto) y panel «Sucesos»
+  acotado a 50 entradas con las doce más recientes visibles.
+- **Aprendizaje observable** limitado a pesca (mínimo bajado a nivel 1) y
+  remiendo (nuevo recurso «prendas dañadas» y acción «Remendar una
+  prenda»), con contador de práctica y subida de nivel exacta.
+- **Una iniciativa autónoma** (reparar una defensa dañada al 50 % o menos)
+  y **una transgresión de zona** acotada a `person.initial.02` desde su
+  puesto de guardia, ambas con causa y mensaje en español.
+
+No migra a las 34 prioridades ni a la escala `Nunca/1–5` de `DESIGN-003`,
+no implementa generación procedural ni guardado (quedan para
+`IMPLEMENTATION-005`), y conserva las diez familias, las once habilidades
+y su escala `0–4` existentes. `THR-001`, `CHR-002`, `CHR-003` y `UI-001`
+siguen siendo `approved`: esta entrega implementa solo su subconjunto.
+
+Los dos comandos de Godot quedan como `NOT RUN` porque `godot --headless`
+no estaba disponible en el entorno de implementación; no se instaló Godot
+para forzar su ejecución. `git diff --check` sí se ejecutó y no informó
+errores. La aceptación manual descrita en [README.md](README.md) queda
+pendiente de que Dennis la ejecute.
+
 ## DESIGN-003 — Trabajo, recuperación y conocimiento aplicado
 
 Entrega exclusivamente documental que formaliza el horizonte máximo de tres

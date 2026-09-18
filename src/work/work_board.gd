@@ -50,9 +50,32 @@ var spoilage: SpoilageService = null
 var conduction := WaterConduction.new()
 var execution: WorkExecution = null
 
+## Defensa y vida propia (IMPLEMENTATION-004). Módulos pequeños y con
+## responsabilidad propia (sección 15.1); `WorkBoard` los coordina, no
+## sustituye su lógica.
+var zones := ZoneGrid.new()
+var defense := DefenseService.new()
+var noise := NoiseService.new()
+var event_log := GameEventLog.new()
+var threat := ThreatService.new()
+
 ## Política de agua por acarreo: mientras esté activa, el tablón repone el
 ## depósito hasta su capacidad.
 var water_policy_active: bool = false
+
+## Reloj actual, inyectado por `Main.gd` a través de `set_current_time` cada
+## vez que cambia, para fechar los sucesos sin acoplar este tablón al reloj.
+var _current_day: int = GameConstants.CLOCK_START_DAY
+var _current_hour: int = GameConstants.CLOCK_START_HOUR
+var _current_minute: int = GameConstants.CLOCK_START_MINUTE
+var zone_overlay_shown: bool = true
+## Segundos de juego observables a ×1 acumulados desde el arranque, para el
+## agrupado de sucesos de ruido (`NoiseService.should_log`); no depende del
+## reloj de calendario, que solo cambia por minutos.
+var _simulated_seconds: float = 0.0
+
+func _simulated_moment() -> float:
+	return _simulated_seconds
 
 var _person_states: Dictionary = {}
 var _person_actors: Dictionary = {}
@@ -76,6 +99,19 @@ func _init() -> void:
 	storage = StorageStore.new(resources)
 	spoilage = SpoilageService.new(resources)
 	execution = WorkExecution.new(places, resources, storage, spoilage, conduction)
+	execution.defense = defense
+
+	navigation.zones = zones
+	threat.zones = zones
+	threat.defense = defense
+	threat.noise = noise
+	threat.navigation = navigation
+	threat.board = self
+
+	noise.noise_emitted.connect(threat.on_noise_emitted)
+	defense.defense_damaged.connect(_on_defense_damaged)
+	defense.defense_destroyed.connect(_on_defense_destroyed)
+	threat.threat_level_changed.connect(func(_level: String) -> void: world_changed.emit())
 
 # --- Registro -------------------------------------------------------------
 
@@ -88,6 +124,38 @@ func register_person(state: PersonWorkState, actor: Node = null) -> void:
 	if not _person_order.has(state.id):
 		_person_order.append(state.id)
 		_person_order.sort()
+	if state.id == "person.initial.02":
+		state.traits.append(PersonWorkState.TRAIT_PURSUE_IMMEDIATE_THREAT)
+	threat.register_person(state, actor)
+
+## Punto de defensa (sección 6.1): se registra como lugar de trabajo normal y
+## además con `DefenseService`, que conoce su durabilidad y sector.
+func register_defense_point(node: DefensePoint) -> void:
+	if node == null:
+		return
+	register_site(node)
+	defense.register_point(node)
+
+## Puesto de guardia (sección 10.1): mismo contrato de lugar de trabajo, más
+## el registro en `ThreatService` para detección, alcance y visual.
+func register_guard_post(node: GuardPost) -> void:
+	if node == null:
+		return
+	register_site(node)
+	threat.register_guard_post(node.id, node.global_position, node)
+
+func register_zombie(state: ZombieState, actor: Node) -> void:
+	threat.register_zombie(state, actor)
+
+## Reloj actual, para fechar los sucesos del registro (sección 11). Lo llama
+## `Main.gd` cada vez que `GameClock` avisa de un cambio.
+func set_current_time(day: int, hour: int, minute: int) -> void:
+	_current_day = day
+	_current_hour = hour
+	_current_minute = minute
+
+func log_event(text: String) -> void:
+	event_log.log_event(_current_day, _current_hour, _current_minute, text)
 
 ## Registra un lugar del mundo. El nodo solo necesita cumplir el contrato
 ## pequeño `site_id()` / `site_position()` / `site_display_name()`, que
@@ -266,9 +334,12 @@ func _forget_job(job: WorkOrder) -> void:
 func _detach_person_from_job(job: WorkOrder) -> void:
 	if job.assigned_person_id == "":
 		return
+	if job.action_type == WorkActions.GUARD_ACCESS:
+		threat.release_guard(job.target_id)
 	var state: PersonWorkState = get_person_state(job.assigned_person_id)
 	if state != null and state.current_job_id == job.id:
 		state.current_job_id = ""
+		state.guard_post_id = ""
 		if not state.has_direct_order():
 			state.operational_state = PersonWorkState.STATE_IDLE
 		_stop_actor(job.assigned_person_id)
@@ -302,7 +373,7 @@ func evaluate_assignments() -> void:
 	_evaluating = true
 	for person_id in _person_order:
 		var state: PersonWorkState = _person_states[person_id]
-		if state.is_busy():
+		if not state.is_alive() or state.is_busy():
 			continue
 		var job: WorkOrder = _best_job_for(state)
 		if job != null:
@@ -418,6 +489,34 @@ func _start_phase(job: WorkOrder, state: PersonWorkState) -> void:
 				state.operational_state = PersonWorkState.STATE_WORKING
 			_stop_actor(state.id)
 			_mark_site_state(job.target_id, WorkTarget.STATE_IN_PROGRESS)
+			if phase == WorkActions.PHASE_ACT:
+				_on_act_phase_started(job, state)
+
+## Ruido causal (sección 8, se emite una sola vez al comenzar «act», nunca al
+## designar, por fotograma ni al terminar), duración dinámica de pesca y
+## remiendo (secciones 12.1/12.2) y arranque de guardia continua (10.1).
+func _on_act_phase_started(job: WorkOrder, state: PersonWorkState) -> void:
+	var override_duration: float = execution.dynamic_act_duration(job.action_type, state)
+	if override_duration >= 0.0 and job.phase_index < job.phase_durations.size():
+		job.phase_durations[job.phase_index] = override_duration
+		var total := 0.0
+		for phase_duration in job.phase_durations:
+			total += phase_duration
+		job.duration = maxf(total, 0.001)
+
+	var radius: float = WorkActions.noise_radius(job.action_type)
+	if radius > 0.0:
+		var event: Dictionary = noise.emit(job.action_type, job.target_position, radius, _simulated_moment())
+		threat.on_noise_emitted(event)
+		if noise.should_log(job.action_type, job.target_position, _simulated_moment()):
+			log_event("Ruido de «%s» cerca de %s (alcance %d m)." % [
+				WorkActions.action_name(job.action_type), site_name(job.target_id), int(radius),
+			])
+
+	if job.action_type == WorkActions.GUARD_ACCESS:
+		state.guard_post_id = job.target_id
+		threat.assign_guard(job.target_id, state.id)
+		state.operational_state = PersonWorkState.STATE_WORKING
 
 func _advance_phase(job: WorkOrder) -> void:
 	var state: PersonWorkState = get_person_state(job.assigned_person_id)
@@ -438,11 +537,18 @@ func notify_arrived(person_id: String) -> void:
 	var state: PersonWorkState = get_person_state(person_id)
 	if state == null:
 		return
-	if state.has_direct_order() and String(state.direct_order.get("kind", "")) == PersonWorkState.DIRECT_ORDER_MOVE:
-		state.clear_direct_order()
-		state.operational_state = PersonWorkState.STATE_IDLE
-		evaluate_assignments()
-		return
+	if state.has_direct_order():
+		var order_kind: String = String(state.direct_order.get("kind", ""))
+		if order_kind == PersonWorkState.DIRECT_ORDER_MOVE:
+			state.clear_direct_order()
+			state.operational_state = PersonWorkState.STATE_IDLE
+			evaluate_assignments()
+			return
+		if order_kind == PersonWorkState.DIRECT_ORDER_ATTACK or order_kind == PersonWorkState.DIRECT_ORDER_RETREAT:
+			# El combate puntual y la retirada gestionan su propio destino y
+			# final por sí mismos en `ThreatService` (sección 10.2/10.3); una
+			# llegada intermedia de aproximación no debe tocar su estado.
+			return
 	var job: WorkOrder = _jobs.get(state.current_job_id, null)
 	if job == null:
 		state.operational_state = PersonWorkState.STATE_IDLE
@@ -480,6 +586,7 @@ func notify_unreachable(person_id: String) -> void:
 func advance(gameplay_delta: float) -> void:
 	if gameplay_delta <= 0.0:
 		return
+	_simulated_seconds += gameplay_delta
 	for person_id in _person_order:
 		var actor: Node = _person_actors.get(person_id, null)
 		if is_instance_valid(actor) and actor.has_method("advance_simulation"):
@@ -490,6 +597,7 @@ func advance(gameplay_delta: float) -> void:
 
 	spoilage.advance(gameplay_delta)
 	conduction.advance(gameplay_delta, storage, resources)
+	threat.advance(gameplay_delta)
 
 	var finished: Array[WorkOrder] = []
 	for job_id in _jobs.keys():
@@ -529,7 +637,10 @@ func _complete_job(job: WorkOrder) -> void:
 	var person_id: String = job.assigned_person_id
 	var state: PersonWorkState = get_person_state(person_id)
 	# El efecto se aplica exactamente una vez, al pasar a `completed`.
-	job.result = execution.apply(job, state.needs if state != null else null)
+	job.result = execution.apply(job, state.needs if state != null else null, state)
+	if job.action_type == WorkActions.GUARD_ACCESS and state != null:
+		threat.release_guard(job.target_id)
+		state.guard_post_id = ""
 	_release_reservation(job)
 	_forget_job(job)
 	_key_progress.erase(job.key())
@@ -674,7 +785,7 @@ func _has_survival_job(need_id: String) -> bool:
 func _ensure_need_jobs() -> void:
 	for person_id in _person_order:
 		var state: PersonWorkState = _person_states[person_id]
-		if state.needs == null:
+		if state.needs == null or not state.is_alive():
 			continue
 		var need_id: String = state.needs.most_urgent()
 		if need_id == "":
@@ -784,6 +895,9 @@ func _block_reason_for(job: WorkOrder) -> String:
 func _update_idle_reasons() -> void:
 	for person_id in _person_order:
 		var state: PersonWorkState = _person_states[person_id]
+		if not state.is_alive():
+			state.idle_reason = ""
+			continue
 		if state.is_busy():
 			state.idle_reason = ""
 			continue
@@ -818,13 +932,15 @@ func request_direct_move(person_id: String, world_position: Vector3) -> bool:
 	var state: PersonWorkState = get_person_state(person_id)
 	if state == null:
 		return false
-	_release_current_work(state)
 	# El destino nunca sale del terreno útil.
 	var destination := Vector3(
 		clampf(world_position.x, GameConstants.MAP_BOUNDS_MIN.x, GameConstants.MAP_BOUNDS_MAX.x),
 		0.0,
 		clampf(world_position.z, GameConstants.MAP_BOUNDS_MIN.y, GameConstants.MAP_BOUNDS_MAX.y)
 	)
+	if navigation.route_block_reason(state.position, destination) != "":
+		return false
+	_release_current_work(state)
 	state.direct_order = {
 		"kind": PersonWorkState.DIRECT_ORDER_MOVE,
 		"position": destination,
@@ -920,6 +1036,192 @@ func cancel_direct_order(person_id: String) -> void:
 	_stop_actor(person_id)
 	evaluate_assignments()
 
+# --- Combate puntual y retirada (sección 10.2/10.3) ------------------------
+
+## Clic derecho sobre un zombi vivo con una persona seleccionada.
+func request_attack(person_id: String, zombie_id: String) -> bool:
+	var state: PersonWorkState = get_person_state(person_id)
+	if state == null or not state.is_alive():
+		return false
+	var z: ZombieState = threat.get_zombie_state(zombie_id)
+	if z == null or not z.is_alive():
+		return false
+	_release_current_work(state)
+	state.direct_order = {"kind": PersonWorkState.DIRECT_ORDER_ATTACK, "target_id": zombie_id}
+	state.operational_state = PersonWorkState.STATE_COMBAT
+	state.idle_reason = ""
+	evaluate_assignments()
+	return true
+
+## «Retirarse al refugio», ordenada por el jugador con una persona viva
+## seleccionada (sección 10.3).
+func request_retreat(person_id: String) -> bool:
+	start_retreat(person_id, "")
+	return true
+
+## Punto de integración pequeño para `ThreatService` (sección 15.2): inicia
+## la retirada tanto por orden del jugador como por disparo automático
+## (salud crítica o varios zombis cerca). Interrumpe incluso una orden
+## directa en curso.
+func start_retreat(person_id: String, reason: String) -> void:
+	var state: PersonWorkState = get_person_state(person_id)
+	if state == null or not state.is_alive():
+		return
+	if state.has_direct_order() and String(state.direct_order.get("kind", "")) == PersonWorkState.DIRECT_ORDER_RETREAT:
+		return
+	_release_current_work(state)
+	state.direct_order = {"kind": PersonWorkState.DIRECT_ORDER_RETREAT}
+	state.operational_state = PersonWorkState.STATE_RETREATING
+	state.idle_reason = ""
+	if reason != "":
+		state.recent_decision = reason
+		log_event("%s: %s" % [state.display_name, reason])
+	evaluate_assignments()
+
+## Llamado por `ThreatService` cuando el objetivo de un ataque puntual muere,
+## se pierde o la orden debe terminar.
+func finish_attack_order(person_id: String) -> void:
+	var state: PersonWorkState = get_person_state(person_id)
+	if state == null:
+		return
+	state.clear_direct_order()
+	state.operational_state = PersonWorkState.STATE_IDLE
+	_stop_actor(person_id)
+	evaluate_assignments()
+
+## Llamado por `ThreatService` al llegar al punto de reunión: si ya no hay
+## peligro inmediato, vuelve a la asignación automática (sección 10.3).
+func finish_retreat(person_id: String) -> void:
+	var state: PersonWorkState = get_person_state(person_id)
+	if state == null:
+		return
+	state.clear_direct_order()
+	state.operational_state = PersonWorkState.STATE_IDLE
+	_stop_actor(person_id)
+	evaluate_assignments()
+
+## Baja de una persona (sección 9): interrumpe movimiento, combate y
+## trabajo, libera reservas y deja su carga en el sitio sin duplicarla ni
+## consumirla. La persona queda excluida de nuevas asignaciones, guardias e
+## iniciativas, pero su fila y su ficha siguen visibles y deshabilitadas.
+func mark_person_dead(person_id: String) -> void:
+	var state: PersonWorkState = get_person_state(person_id)
+	if state == null:
+		return
+	_release_current_work(state)
+	state.clear_direct_order()
+	state.operational_state = PersonWorkState.STATE_IDLE
+	persons_changed.emit()
+	world_changed.emit()
+
+# --- Zonas territoriales (sección 5) ----------------------------------------
+
+## Pinta un trazo continuo de zona (sección 5.1/5.3). Si se pinta `forbidden`,
+## interrumpe en el siguiente momento seguro cualquier trabajo cuya ruta
+## quede bloqueada, conservando progreso y liberando reservas, y saca de la
+## celda a quien quede atrapado dentro hacia la habitual más cercana.
+func paint_zone(from_world: Vector3, to_world: Vector3, state_id: String) -> void:
+	var changed: Array[Vector2i] = zones.paint_stroke(from_world, to_world, state_id)
+	if changed.is_empty():
+		return
+	if state_id == ZoneDefinitions.STATE_FORBIDDEN:
+		_recheck_jobs_against_zone()
+		_release_trapped_persons()
+	evaluate_assignments()
+	world_changed.emit()
+
+func _recheck_jobs_against_zone() -> void:
+	for job_id in _jobs.keys():
+		var job: WorkOrder = _jobs[job_id]
+		if job.assigned_person_id == "" or not job.is_active():
+			continue
+		var state: PersonWorkState = get_person_state(job.assigned_person_id)
+		if state == null:
+			continue
+		if navigation.route_block_reason(state.position, job.target_position) != ZoneDefinitions.BLOCK_FORBIDDEN:
+			continue
+		_key_progress[job.key()] = {"progress": job.progress, "phase_index": job.phase_index}
+		_detach_person_from_job(job)
+		_release_reservation(job)
+		execution.release_for(job)
+		job.state = WorkOrder.STATE_BLOCKED
+		job.block_reason = ZoneDefinitions.BLOCK_FORBIDDEN
+		state.current_job_id = ""
+		state.operational_state = PersonWorkState.STATE_IDLE
+
+func _release_trapped_persons() -> void:
+	for person_id in _person_order:
+		var state: PersonWorkState = _person_states[person_id]
+		if not state.is_alive() or state.has_direct_order():
+			continue
+		if zones.state_at(state.position) != ZoneDefinitions.STATE_FORBIDDEN:
+			continue
+		var exit_position: Vector3 = zones.nearest_habitual_world(state.position)
+		_send_actor(person_id, exit_position, GameConstants.MOVE_ARRIVAL_RADIUS)
+		state.operational_state = PersonWorkState.STATE_MOVING
+		state.idle_reason = "Ha salido de una zona recién prohibida."
+
+func toggle_zone_overlay() -> void:
+	zone_overlay_shown = not zone_overlay_shown
+
+# --- Defensa: iniciativa autónoma de reparación (sección 13) ---------------
+
+func _on_defense_damaged(defense_id: String, ratio: float) -> void:
+	if defense.can_evaluate_initiative(defense_id):
+		var point: DefensePoint = defense.get_point(defense_id)
+		log_event("%s ha bajado al 50%% o menos de su durabilidad." % point.site_display_name())
+		_try_create_repair_initiative(defense_id)
+	world_changed.emit()
+
+func _on_defense_destroyed(defense_id: String) -> void:
+	var point: DefensePoint = defense.get_point(defense_id)
+	log_event("%s ha sido destruida." % (point.site_display_name() if point != null else defense_id))
+	world_changed.emit()
+
+## Sección 13: evalúa las cinco condiciones y, si hay una persona elegible,
+## crea el trabajo de reparación con origen `initiative`.
+func _try_create_repair_initiative(defense_id: String) -> void:
+	defense.mark_initiative_evaluated(defense_id)
+	if get_job_for(defense_id, WorkActions.REPAIR_DEFENSE) != null:
+		return
+	if resources.stored_stacks_of_type(ResourceDefinitions.TYPE_REPAIR_MATERIALS).is_empty():
+		return
+	var point: DefensePoint = defense.get_point(defense_id)
+	if point == null:
+		return
+	if zones.state_at(point.site_position()) == ZoneDefinitions.STATE_FORBIDDEN:
+		return
+	var candidates: Array = []
+	for person_id in _person_order:
+		var state: PersonWorkState = _person_states[person_id]
+		if not state.is_alive() or state.is_busy():
+			continue
+		var urgent: String = state.needs.most_urgent() if state.needs != null else ""
+		if urgent != "" and state.needs.is_critical(urgent):
+			continue
+		if state.get_skill("construction_carpentry") < 2:
+			continue
+		if state.get_priority("build_repair") <= 0:
+			continue
+		if threat.zombie_within(state.position, GameConstants.INITIATIVE_ZOMBIE_RANGE):
+			continue
+		var route: Dictionary = navigation.query(state.position, point.site_position())
+		if not bool(route.get("reachable", false)):
+			continue
+		candidates.append({
+			"person_id": person_id,
+			"skill_level": state.get_skill("construction_carpentry"),
+			"route_length": float(route.get("length", INF)),
+		})
+	var chosen_id: String = AutonomyService.choose_repair_initiative(candidates)
+	if chosen_id == "":
+		return
+	_create_job(defense_id, WorkActions.REPAIR_DEFENSE, WorkOrder.ORIGIN_INITIATIVE, chosen_id)
+	var chosen_state: PersonWorkState = _person_states[chosen_id]
+	chosen_state.recent_decision = AutonomyService.INITIATIVE_MESSAGE
+	log_event("%s: %s" % [chosen_state.display_name, AutonomyService.INITIATIVE_MESSAGE])
+	evaluate_assignments()
+
 ## Libera el trabajo automático en curso de una persona: vuelve a `pending`,
 ## conserva su progreso y libera las reservas.
 func _release_current_work(state: PersonWorkState) -> void:
@@ -930,11 +1232,16 @@ func _release_current_work(state: PersonWorkState) -> void:
 	var job: WorkOrder = _jobs.get(state.current_job_id, null)
 	state.current_job_id = ""
 	if job != null:
+		if job.action_type == WorkActions.GUARD_ACCESS:
+			# El puesto sigue designado: otra persona puede ocuparlo
+			# (sección 10.1). Solo se libera la ocupación actual.
+			threat.release_guard(job.target_id)
 		_key_progress[job.key()] = {"progress": job.progress, "phase_index": job.phase_index}
 		job.assigned_person_id = ""
 		_release_reservation(job)
 		execution.release_for(job)
 		job.state = WorkOrder.STATE_PENDING
+	state.guard_post_id = ""
 	_stop_actor(state.id)
 
 # --- Actores --------------------------------------------------------------
@@ -976,6 +1283,10 @@ func describe_job(job: WorkOrder) -> String:
 	]
 	if job.is_survival():
 		line = "⚠ " + line
+	if job.is_initiative():
+		line += " · Iniciativa"
+	if WorkActions.is_continuous(job.action_type) and job.current_phase() == WorkActions.PHASE_ACT:
+		line += " · Guardia continua"
 	if job.current_phase() != "":
 		line += " · %s" % job.phase_label()
 	if job.block_reason != "":
@@ -986,8 +1297,14 @@ func describe_job(job: WorkOrder) -> String:
 
 ## Descripción de la actividad actual de una persona para la ficha y el HUD.
 func describe_person_action(state: PersonWorkState) -> String:
-	if state.has_direct_order() and String(state.direct_order.get("kind", "")) == PersonWorkState.DIRECT_ORDER_MOVE:
-		return "Orden directa: mover a un punto"
+	if state.has_direct_order():
+		match String(state.direct_order.get("kind", "")):
+			PersonWorkState.DIRECT_ORDER_MOVE:
+				return "Orden directa: mover a un punto"
+			PersonWorkState.DIRECT_ORDER_ATTACK:
+				return "Orden directa: atacar cuerpo a cuerpo"
+			PersonWorkState.DIRECT_ORDER_RETREAT:
+				return "Retirándose al refugio"
 	var job: WorkOrder = _jobs.get(state.current_job_id, null)
 	if job == null:
 		return "Sin trabajo"
@@ -1011,11 +1328,21 @@ func describe_person_load(person_id: String) -> String:
 
 ## Acciones que ofrece un lugar a una persona, con su estado de bloqueo.
 ## Se usa tanto en el panel de selección como en el menú contextual.
+## Acciones estáticas de `WorkActions.SITE_ACTIONS`, salvo en un punto de
+## defensa: ahí la acción disponible depende de su estado real (abierto,
+## dañado o destruido; sección 6.2), así que se resuelve con
+## `DefenseService.available_action_for`.
+func _site_action_ids(site_id: String) -> Array[String]:
+	var defense_action: String = defense.available_action_for(site_id)
+	if defense_action != "":
+		return [defense_action]
+	return WorkActions.site_actions(site_id)
+
 func describe_site_actions(person_id: String, site_id: String) -> Array:
 	var rows: Array = []
 	if not _sites.has(site_id):
 		return rows
-	var action_ids: Array[String] = WorkActions.site_actions(site_id)
+	var action_ids: Array[String] = _site_action_ids(site_id)
 	if not execution.haulable_stacks(site_id).is_empty() and not action_ids.has(WorkActions.HAUL_STORAGE):
 		action_ids.append(WorkActions.HAUL_STORAGE)
 	for action_id in action_ids:
@@ -1043,7 +1370,23 @@ func get_context_options(person_id: String, hit: Dictionary) -> Array:
 	var options: Array = []
 	var kind: String = String(hit.get("kind", ""))
 	if kind == "terrain":
-		options.append({"id": "move_here", "label": "Mover aquí", "enabled": true, "reason": ""})
+		var state: PersonWorkState = get_person_state(person_id)
+		var reason := ""
+		if state != null:
+			reason = navigation.route_block_reason(state.position, hit.get("position", Vector3.ZERO))
+		options.append({"id": "move_here", "label": "Mover aquí", "enabled": reason == "", "reason": reason})
+		return options
+	if kind == "zombie":
+		var zombie_id := String(hit.get("target_id", ""))
+		var z: ZombieState = threat.get_zombie_state(zombie_id)
+		var enabled: bool = z != null and z.is_alive()
+		var reason := "" if enabled else "Objetivo muerto"
+		options.append({
+			"id": "attack|%s" % zombie_id,
+			"label": "Atacar cuerpo a cuerpo",
+			"enabled": enabled,
+			"reason": reason,
+		})
 		return options
 	if kind != "site":
 		return options
@@ -1117,10 +1460,51 @@ func describe_site(site_id: String) -> Dictionary:
 	if site_id == SHELTER_SITE_ID:
 		lines.append("Almacén: %s" % ("establecido" if storage.ready_for_use else "sin establecer"))
 		lines.append("Plazas de descanso: %d" % storage.rest_places)
+	var state_text: String = place.level_label()
+	## Un punto de defensa muestra su estado, durabilidad y sector reales en
+	## vez del nivel de información genérico (sección 6.2: «El panel del
+	## punto muestra estado, durabilidad actual/máxima, sector, trabajo
+	## activo y bloqueo»).
+	var point: DefensePoint = defense.get_point(site_id)
+	if point != null:
+		state_text = point.state_label()
+		lines = PackedStringArray()
+		lines.append("Estado: %s · Sector: %s" % [point.state_label(), DefensePoint.sector(site_id)])
+		if point.defense_state != DefensePoint.STATE_OPEN:
+			lines.append("Durabilidad: %d/%d" % [int(round(point.durability)), int(point.max_durability_value())])
+		var active_job: WorkOrder = _job_for_site(site_id)
+		if active_job != null:
+			lines.append("Trabajo activo: %s (%s)" % [active_job.action_name, active_job.state_label()])
+		var pending_action: String = defense.available_action_for(site_id)
+		if pending_action != "":
+			var block: String = defense.requirement_block(pending_action, site_id)
+			if block != "":
+				lines.append("Bloqueo: %s" % block)
+	elif _guard_post_ids().has(site_id):
+		var occupant_id: String = threat.guard_occupant(site_id)
+		var occupant_name := "sin ocupar"
+		if occupant_id != "":
+			var occupant_state: PersonWorkState = get_person_state(occupant_id)
+			occupant_name = occupant_state.display_name if occupant_state != null else occupant_id
+		state_text = "En guardia (%s)" % occupant_name if occupant_id != "" else "Sin ocupar"
+		lines = PackedStringArray(["Puesto de guardia: %s" % state_text])
 	return {
-		"state_text": place.level_label(),
+		"state_text": state_text,
 		"info_lines": lines,
 	}
+
+## Punto de defensa en trabajo activo (designado o en curso) para su ficha,
+## o null si no tiene ninguno.
+func _job_for_site(site_id: String) -> WorkOrder:
+	for job_id in _jobs.keys():
+		var job: WorkOrder = _jobs[job_id]
+		if job.target_id == site_id and job.is_active():
+			return job
+	return null
+
+func _guard_post_ids() -> Array[String]:
+	var ids: Array[String] = [GuardPost.ID_SOUTH, GuardPost.ID_EAST]
+	return ids
 
 ## Filas del panel «Recursos»: cantidad por tipo y estado logístico.
 func describe_resource_rows() -> Array:

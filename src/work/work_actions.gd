@@ -45,10 +45,31 @@ const DRINK := "drink"
 const EAT := "eat"
 const REST := "rest"
 
+## Acciones de defensa, guardia, combate y remiendo (IMPLEMENTATION-004,
+## secciones 6, 10.1, 10.2 y 12.2).
+const REINFORCE_DOOR := "reinforce_door"
+const BARRICADE_WINDOW := "barricade_window"
+const BUILD_BASIC_WALL := "build_basic_wall"
+const REPAIR_DEFENSE := "repair_defense"
+const GUARD_ACCESS := "guard_access"
+const MEND_CLOTHING := "mend_clothing"
+## Ataque cuerpo a cuerpo puntual: no es una acción designable desde el
+## tablón (no tiene lugar fijo, el objetivo es un zombi vivo), pero comparte
+## el mismo catálogo de duración/ruido que el resto para no repartir números
+## mágicos por varios scripts (sección 8).
+const ATTACK_MELEE := "attack_melee"
+
+## Duración de la fase «act» de la guardia continua: deliberadamente enorme
+## para que el trabajo nunca complete por progreso (sección 10.1: permanece
+## «En guardia» hasta cancelar, ser relevada, retirarse o morir).
+const GUARD_ACT_DURATION := 1000000.0
+
 ## `requires_level` es el nivel de información mínimo del lugar.
 ## `exclusive` indica si el lugar solo admite una persona a la vez.
 ## `automatic` marca las acciones que genera el propio sistema de
 ## necesidades y que no se designan desde la interfaz.
+## `noise_radius` es el radio de ruido causal de la sección 8; 0 si la acción
+## no genera ruido (catálogo único, sin números mágicos repartidos).
 const ACTIONS := {
 	OBSERVE_PLACE: {
 		"name": "Observar el lugar",
@@ -71,6 +92,7 @@ const ACTIONS := {
 		"requires_level": PlaceDefinitions.LEVEL_OBSERVED,
 		"exclusive": true,
 		"automatic": false,
+		"noise_radius": 4.0,
 	},
 	REGISTER_PLACE: {
 		"name": "Registrar el lugar",
@@ -82,6 +104,7 @@ const ACTIONS := {
 		"requires_level": PlaceDefinitions.LEVEL_INSPECTED,
 		"exclusive": true,
 		"automatic": false,
+		"noise_radius": 8.0,
 	},
 	HAUL_STORAGE: {
 		"name": "Transportar al almacén",
@@ -128,12 +151,14 @@ const ACTIONS := {
 		"requires_level": "",
 		"exclusive": true,
 		"automatic": false,
+		"noise_radius": 22.0,
 	},
 	FISH_POND: {
 		"name": "Pescar en el estanque",
 		"family_id": "food",
 		"skill_id": "fishing",
-		"skill_level": 2,
+		# Sección 12.1: un principiante puede intentarlo (antes exigía 2).
+		"skill_level": 1,
 		"duration": 10.0,
 		"phases": [PHASE_TRAVEL, PHASE_ACT],
 		"requires_level": PlaceDefinitions.LEVEL_INSPECTED,
@@ -172,6 +197,92 @@ const ACTIONS := {
 		"requires_level": PlaceDefinitions.LEVEL_INSPECTED,
 		"exclusive": true,
 		"automatic": false,
+		"noise_radius": 12.0,
+	},
+	REINFORCE_DOOR: {
+		"name": "Reforzar puerta",
+		"family_id": "build_repair",
+		"skill_id": "construction_carpentry",
+		"skill_level": 2,
+		"duration": 10.0,
+		"phases": [PHASE_TRAVEL, PHASE_ACT],
+		"requires_level": "",
+		"exclusive": true,
+		"automatic": false,
+		"noise_radius": 22.0,
+	},
+	BARRICADE_WINDOW: {
+		"name": "Tapiar ventana",
+		"family_id": "build_repair",
+		"skill_id": "construction_carpentry",
+		"skill_level": 1,
+		"duration": 8.0,
+		"phases": [PHASE_TRAVEL, PHASE_ACT],
+		"requires_level": "",
+		"exclusive": true,
+		"automatic": false,
+		"noise_radius": 22.0,
+	},
+	BUILD_BASIC_WALL: {
+		"name": "Construir muro básico",
+		"family_id": "build_repair",
+		"skill_id": "construction_carpentry",
+		"skill_level": 2,
+		"duration": 12.0,
+		"phases": [PHASE_TRAVEL, PHASE_ACT],
+		"requires_level": "",
+		"exclusive": true,
+		"automatic": false,
+		"noise_radius": 22.0,
+	},
+	REPAIR_DEFENSE: {
+		"name": "Reparar defensa",
+		"family_id": "build_repair",
+		"skill_id": "construction_carpentry",
+		"skill_level": 1,
+		"duration": 4.0,
+		"phases": [PHASE_TRAVEL, PHASE_ACT],
+		"requires_level": "",
+		"exclusive": true,
+		"automatic": false,
+		"noise_radius": 12.0,
+	},
+	GUARD_ACCESS: {
+		"name": "Vigilar acceso",
+		"family_id": "guard_defense",
+		"skill_id": "",
+		"skill_level": 0,
+		"duration": GUARD_ACT_DURATION,
+		"phases": [PHASE_TRAVEL, PHASE_ACT],
+		"requires_level": "",
+		"exclusive": true,
+		"automatic": false,
+		"noise_radius": 0.0,
+		"continuous": true,
+	},
+	MEND_CLOTHING: {
+		"name": "Remendar una prenda",
+		"family_id": "prepare_preserve_mend",
+		"skill_id": "mending_sewing",
+		"skill_level": 1,
+		"duration": 14.0,
+		"phases": [PHASE_TRAVEL, PHASE_ACT],
+		"requires_level": "",
+		"exclusive": false,
+		"automatic": false,
+		"noise_radius": 0.0,
+	},
+	ATTACK_MELEE: {
+		"name": "Atacar cuerpo a cuerpo",
+		"family_id": "guard_defense",
+		"skill_id": "",
+		"skill_level": 0,
+		"duration": 0.0,
+		"phases": [],
+		"requires_level": "",
+		"exclusive": false,
+		"automatic": false,
+		"noise_radius": GameConstants.MELEE_NOISE_RADIUS,
 	},
 	DRINK: {
 		"name": "Beber",
@@ -213,7 +324,7 @@ const ACTIONS := {
 ## «Transportar al almacén» no figura aquí porque se ofrece en cualquier
 ## lugar que tenga pilas accesibles sin recoger.
 const SITE_ACTIONS := {
-	"building.shelter_candidate": [OBSERVE_PLACE, INSPECT_PLACE, REGISTER_PLACE, PREPARE_REST_AREA],
+	"building.shelter_candidate": [OBSERVE_PLACE, INSPECT_PLACE, REGISTER_PLACE, PREPARE_REST_AREA, MEND_CLOTHING],
 	"building.house_a": [OBSERVE_PLACE, INSPECT_PLACE, REGISTER_PLACE],
 	"building.workshop": [OBSERVE_PLACE, INSPECT_PLACE, REGISTER_PLACE, DRY_FOOD],
 	"site.stream_water": [OBSERVE_PLACE, FETCH_WATER],
@@ -221,6 +332,16 @@ const SITE_ACTIONS := {
 	"site.forest_mushrooms": [OBSERVE_PLACE, INSPECT_PLACE, GATHER_MUSHROOMS],
 	"site.highland_spring": [OBSERVE_PLACE, INSPECT_PLACE, PLAN_CONDUCTION],
 	"site.water_deposit": [BUILD_CONDUCTION],
+	## Los cuatro puntos de defensa (sección 6.1) y los dos puestos de guardia
+	## (sección 10.1) ofrecen una única acción estática cada uno; los puntos
+	## de defensa además dependen del estado real, que `WorkBoard` resuelve
+	## dinámicamente con `DefenseService.available_action_for`.
+	"defense.shelter.south_door": [REINFORCE_DOOR],
+	"defense.shelter.east_window": [BARRICADE_WINDOW],
+	"defense.shelter.west_window": [BARRICADE_WINDOW],
+	"defense.perimeter.north_gap": [BUILD_BASIC_WALL],
+	"guard.post.south": [GUARD_ACCESS],
+	"guard.post.east": [GUARD_ACCESS],
 }
 
 static func site_actions(site_id: String) -> Array[String]:
@@ -246,6 +367,14 @@ static func skill_level(action_id: String) -> int:
 
 static func duration(action_id: String) -> float:
 	return float(data(action_id).get("duration", 1.0))
+
+## Radio de ruido causal de la sección 8; 0 si la acción no genera ruido.
+static func noise_radius(action_id: String) -> float:
+	return float(data(action_id).get("noise_radius", 0.0))
+
+## Trabajo continuo (sección 10.1): no completa por progreso acumulado.
+static func is_continuous(action_id: String) -> bool:
+	return bool(data(action_id).get("continuous", false))
 
 static func required_level(action_id: String) -> String:
 	return String(data(action_id).get("requires_level", ""))

@@ -38,6 +38,22 @@ func point_ids() -> Array[String]:
 	ids.sort()
 	return ids
 
+## Acción disponible ahora mismo para un punto de defensa según su estado
+## real (sección 6.2), o "" si no es un punto de defensa conocido. `open` y
+## `destroyed` ofrecen la acción inicial completa; `damaged` ofrece
+## reparación; `intact` no ofrece nada (ya está construido y sano).
+func available_action_for(defense_id: String) -> String:
+	var point: DefensePoint = get_point(defense_id)
+	if point == null:
+		return ""
+	match point.defense_state:
+		DefensePoint.STATE_DAMAGED:
+			return "repair_defense"
+		DefensePoint.STATE_OPEN, DefensePoint.STATE_DESTROYED:
+			return DefensePoint.initial_action_id(defense_id)
+		_:
+			return ""
+
 ## Motivo por el que la acción de construcción/reparación no se puede hacer
 ## ahora, o "" si sí se puede.
 func requirement_block(action_id: String, defense_id: String) -> String:

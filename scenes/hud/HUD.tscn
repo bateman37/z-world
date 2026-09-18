@@ -28,6 +28,15 @@ offset_bottom = 68.0
 theme_override_font_sizes/font_size = 18
 text = "Día 1, 08:00"
 
+[node name="ThreatLabel" type="Label" parent="Root"]
+unique_name_in_owner = true
+offset_left = 340.0
+offset_top = 44.0
+offset_right = 620.0
+offset_bottom = 68.0
+theme_override_font_sizes/font_size = 18
+text = "Amenaza: tranquila"
+
 [node name="SpeedControls" type="HBoxContainer" parent="Root"]
 offset_left = 16.0
 offset_top = 80.0
@@ -83,6 +92,87 @@ text = "Trabajos"
 unique_name_in_owner = true
 toggle_mode = true
 text = "Recursos"
+
+[node name="ZonesButton" type="Button" parent="Root/PanelButtons"]
+unique_name_in_owner = true
+toggle_mode = true
+text = "Zonas"
+
+[node name="EventsButton" type="Button" parent="Root/PanelButtons"]
+unique_name_in_owner = true
+toggle_mode = true
+text = "Sucesos"
+
+[node name="ZoneBar" type="PanelContainer" parent="Root"]
+unique_name_in_owner = true
+visible = false
+offset_left = 16.0
+offset_top = 156.0
+offset_right = 620.0
+offset_bottom = 196.0
+
+[node name="ZoneBarBox" type="HBoxContainer" parent="Root/ZoneBar"]
+
+[node name="ZoneHabitualButton" type="Button" parent="Root/ZoneBar/ZoneBarBox"]
+unique_name_in_owner = true
+toggle_mode = true
+button_pressed = true
+text = "Habitual"
+
+[node name="ZoneCautionButton" type="Button" parent="Root/ZoneBar/ZoneBarBox"]
+unique_name_in_owner = true
+toggle_mode = true
+text = "Precaución"
+
+[node name="ZoneForbiddenButton" type="Button" parent="Root/ZoneBar/ZoneBarBox"]
+unique_name_in_owner = true
+toggle_mode = true
+text = "Prohibida"
+
+[node name="ZoneOverlayToggleButton" type="Button" parent="Root/ZoneBar/ZoneBarBox"]
+unique_name_in_owner = true
+text = "Ocultar/mostrar zonas"
+
+[node name="ZoneDoneButton" type="Button" parent="Root/ZoneBar/ZoneBarBox"]
+unique_name_in_owner = true
+text = "Terminar"
+
+[node name="EventsPanel" type="Panel" parent="Root"]
+unique_name_in_owner = true
+visible = false
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -420.0
+offset_top = -250.0
+offset_right = 420.0
+offset_bottom = 250.0
+
+[node name="EventsVBox" type="VBoxContainer" parent="Root/EventsPanel"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
+
+[node name="EventsTitle" type="Label" parent="Root/EventsPanel/EventsVBox"]
+text = "Sucesos"
+theme_override_font_sizes/font_size = 20
+
+[node name="EventsHint" type="Label" parent="Root/EventsPanel/EventsVBox"]
+text = "Los doce hechos más recientes, con día y hora del reloj."
+autowrap_mode = 3
+
+[node name="EventsScroll" type="ScrollContainer" parent="Root/EventsPanel/EventsVBox"]
+size_flags_vertical = 3
+
+[node name="EventsListLabel" type="Label" parent="Root/EventsPanel/EventsVBox/EventsScroll"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+autowrap_mode = 3
+text = "Todavía no hay sucesos registrados."
 
 [node name="StoredStripLabel" type="Label" parent="Root"]
 unique_name_in_owner = true
@@ -195,6 +285,50 @@ custom_minimum_size = Vector2(90, 0)
 [node name="SelectionProgressValue" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox/SelectionProgressRow"]
 unique_name_in_owner = true
 text = "0 %"
+
+[node name="SelectionHealthRow" type="HBoxContainer" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
+unique_name_in_owner = true
+visible = false
+
+[node name="SelectionHealthLabel" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox/SelectionHealthRow"]
+text = "Salud:"
+custom_minimum_size = Vector2(90, 0)
+
+[node name="SelectionHealthValue" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox/SelectionHealthRow"]
+unique_name_in_owner = true
+text = "—"
+
+[node name="SelectionDecisionRow" type="HBoxContainer" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
+unique_name_in_owner = true
+visible = false
+
+[node name="SelectionDecisionLabel" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox/SelectionDecisionRow"]
+text = "Decisión reciente:"
+custom_minimum_size = Vector2(140, 0)
+
+[node name="SelectionDecisionValue" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox/SelectionDecisionRow"]
+unique_name_in_owner = true
+autowrap_mode = 3
+custom_minimum_size = Vector2(200, 0)
+text = "—"
+
+[node name="SelectionLearningTitle" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
+unique_name_in_owner = true
+visible = false
+text = "Progreso de aprendizaje"
+theme_override_font_sizes/font_size = 16
+
+[node name="SelectionLearningList" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
+unique_name_in_owner = true
+visible = false
+autowrap_mode = 3
+custom_minimum_size = Vector2(300, 0)
+text = "—"
+
+[node name="RetreatButton" type="Button" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
+unique_name_in_owner = true
+visible = false
+text = "Retirarse al refugio"
 
 [node name="SelectionDescriptionLabel" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
 text = "Descripción:"
@@ -421,7 +555,7 @@ offset_top = -56.0
 offset_right = 420.0
 offset_bottom = -34.0
 horizontal_alignment = 1
-text = "Clic izq.: seleccionar · Clic der. con persona seleccionada: mover, hacer ahora, designar o cambiar política · Botón central: mover cámara · Rueda: zoom"
+text = "Clic izq.: seleccionar · Clic der. con persona: mover, atacar, hacer ahora, designar o política · En modo Zonas, arrastrar pinta · Botón central: cámara · Rueda: zoom"
 
 [node name="PrototypeNoticeLabel" type="Label" parent="Root"]
 anchor_left = 0.5
@@ -434,4 +568,4 @@ offset_right = 420.0
 offset_bottom = -8.0
 horizontal_alignment = 1
 modulate = Color(1, 1, 1, 0.6)
-text = "Prototipo — exploración y subsistencia, sin defensa, amenazas, autonomía ni guardado"
+text = "Prototipo — incluye defensa y vida propia (zonas, amenaza, guardia, combate, retirada, aprendizaje); sin persistencia ni guardado"

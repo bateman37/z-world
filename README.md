@@ -7,21 +7,23 @@ secuencia fija de misiones.
 
 ## Estado actual
 
-Tercera entrega de código ejecutable: **exploración y subsistencia**
-(`IMPLEMENTATION-003`). Sobre el sistema de trabajo anterior, el mapa deja de
-tener objetivos demostradores y pasa a tener lugares reales de los que la
-comunidad obtiene información, materiales, agua, alimento y descanso: se
-observa, se inspecciona y se registra, se transporta al almacén, se bebe, se
-come y se descansa, se pesca y se recolectan hongos, se acarrea agua o se
-construye una conducción por gravedad, y el alimento fresco se estropea si no
-se conserva. Sigue **sin** haber defensa, zombis, autonomía, aprendizaje ni
-guardado. Ver el estado detallado en [docs/STATUS.md](docs/STATUS.md) y el
-alcance exacto en
+Cuarta entrega de código ejecutable: **defensa y vida propia**
+(`IMPLEMENTATION-004`). Sobre el bucle de exploración y subsistencia
+anterior, el asentamiento ahora puede protegerse y las personas tienen
+salud y decisiones propias: se pintan zonas de territorio (habitual,
+precaución, prohibida), se cierran cuatro accesos del refugio, aparecen
+cinco zombis lentos que reaccionan al ruido y a la vista, dos puestos de
+guardia enganchan a las amenazas automáticamente, una persona puede atacar
+cuerpo a cuerpo o retirarse al refugio, y la pesca y el remiendo mejoran
+con la práctica. Sigue **sin** generación procedural, semillas ni guardado.
+Ver el estado detallado en [docs/STATUS.md](docs/STATUS.md) y el alcance
+exacto en
 [docs/roadmap/RDM-001_first-playable-slice.md](docs/roadmap/RDM-001_first-playable-slice.md).
 
 `IMPLEMENTATION-001` fue **aceptada manualmente por Dennis el 18 de
-septiembre de 2026**. La aceptación manual de `IMPLEMENTATION-003` (lista de
-pasos más abajo) está **pendiente** de que Dennis la ejecute.
+septiembre de 2026**. La aceptación manual de `IMPLEMENTATION-003` e
+`IMPLEMENTATION-004` (listas de pasos más abajo) está **pendiente** de que
+Dennis las ejecute.
 
 ## Tecnología
 
@@ -48,12 +50,30 @@ pasos más abajo) está **pendiente** de que Dennis la ejecute.
 - **Rueda del ratón**: acerca y aleja la cámara, con límites y transición
   suave.
 - **Clic izquierdo**: selecciona una persona, un edificio, un lugar de
-  trabajo o limpia la selección al hacer clic en terreno vacío.
+  trabajo, un punto de defensa, un puesto de guardia, un zombi o limpia la
+  selección al hacer clic en terreno vacío. En modo «Zonas» pinta en su
+  lugar (ver más abajo).
 - **Clic derecho con una persona seleccionada**: abre un menú contextual
-  junto al cursor con «Mover aquí» sobre terreno transitable o, sobre un
-  lugar, con «Hacer ahora …», «Designar …», «Cancelar designación …», las
-  políticas de obtención y «Transportar todo lo accesible». Las opciones
-  imposibles aparecen deshabilitadas con su razón.
+  junto al cursor con «Mover aquí» sobre terreno transitable, «Atacar
+  cuerpo a cuerpo» sobre un zombi vivo, o sobre un lugar «Hacer ahora …»,
+  «Designar …», «Cancelar designación …», las políticas de obtención y
+  «Transportar todo lo accesible». Las opciones imposibles aparecen
+  deshabilitadas con su razón (zona prohibida, refugio sin registrar,
+  materiales insuficientes, habilidad insuficiente, defensa intacta,
+  objetivo muerto o ruta física inexistente).
+- **Botón «Retirarse al refugio»**: aparece en la ficha de una persona viva
+  seleccionada; la envía al punto de reunión, cancelando su trabajo u orden
+  actual sin duplicar recursos.
+- **Botón «Zonas»**: abre una barra con «Habitual», «Precaución»,
+  «Prohibida», «Ocultar/mostrar zonas» y «Terminar». Con el modo activo,
+  clic izquierdo y arrastre pintan zonas; el botón central sigue moviendo
+  la cámara y la rueda sigue haciendo zoom. Pintar una zona no explora,
+  limpia ni asegura el terreno por sí sola.
+- **Botón «Sucesos»**: panel con los doce hechos más recientes (ruido,
+  detecciones, ataques, daño relevante, heridas, muertes, iniciativas,
+  transgresiones y subidas de nivel), con día y hora del reloj.
+- **Indicador de amenaza**: «Amenaza: tranquila», «alerta» o «contacto»,
+  junto al reloj.
 - **Botón «Centrar cámara»**: devuelve la vista al refugio candidato.
 - **Botón «Prioridades»**: matriz de diez familias de trabajo × seis
   personas. Clic izquierdo sube `0→1→2→3→4→0`; clic derecho baja
@@ -70,10 +90,14 @@ pasos más abajo) está **pendiente** de que Dennis la ejecute.
 El panel de selección muestra, para una persona, su estado operativo,
 actividad y fase actual, motivo cuando está inactiva, progreso cuando
 trabaja, carga que lleva encima, las tres necesidades con su valor y nivel,
-las once habilidades y un botón «Cancelar orden directa» cuando procede.
-Para un lugar muestra su nivel de información, los indicios conocidos, el
-contenido pendiente, el estado de la fuente o de la conducción y un botón
-por cada acción disponible, con su motivo cuando no es posible.
+las once habilidades, salud y decisión reciente cuando exista, progreso de
+aprendizaje de pesca y remiendo, un botón «Cancelar orden directa» cuando
+procede y «Retirarse al refugio» mientras esté viva. Para un lugar muestra
+su nivel de información, los indicios conocidos, el contenido pendiente, el
+estado de la fuente o de la conducción, y un botón por cada acción
+disponible con su motivo cuando no es posible; un punto de defensa muestra
+además su estado, durabilidad, sector y trabajo activo, y un puesto de
+guardia quién lo ocupa. Para un zombi muestra su salud y su estado.
 
 ## Bucle de exploración y subsistencia
 
@@ -89,6 +113,28 @@ por cada acción disponible, con su motivo cuando no es posible.
    transportarlo y secarlo en el taller antes de que se estropee.
 6. Acondicionar la zona de descanso del refugio para que las personas puedan
    descansar.
+
+## Bucle de defensa y vida propia
+
+1. Abrir «Zonas» y pintar terreno habitual, de precaución o prohibido; una
+   zona prohibida bloquea trabajos y rutas con el mensaje «Zona prohibida»,
+   sin explorar ni asegurar nada por sí sola.
+2. Tapiar una ventana, reforzar la puerta sur o construir el muro básico
+   del hueco norte, consumiendo materiales reales una sola vez.
+3. Designar a una persona en un puesto de guardia («Vigilar acceso»); se
+   mantiene «En guardia» hasta cancelar, ser relevada, retirarse o morir.
+4. Generar ruido con una construcción o reparación cercana: solo los
+   zombis dentro de su radio empiezan a investigar.
+5. Ver a un zombi acercarse, golpear una defensa o amenazar a una persona;
+   el indicador de amenaza cambia y aparece en «Sucesos».
+6. Defenderse con «Atacar cuerpo a cuerpo» o dejar que la guardia combata
+   automáticamente; ordenar «Retirarse al refugio» y comprobar la retirada
+   automática por salud crítica o varios zombis cercanos.
+7. Observar la iniciativa de reparar una defensa dañada al 50 % y, con
+   `person.initial.02` de guardia, la transgresión de zona para interceptar
+   un zombi que amenaza su puesto.
+8. Hacer que una persona mejore pescando o remendando, y ver el progreso y
+   el cambio de resultado en su ficha.
 
 ## Prueba manual de aceptación de `IMPLEMENTATION-003` (pendiente — la ejecuta Dennis)
 
@@ -142,6 +188,96 @@ entrega; debe ejecutarla Dennis después de recibirla. La prueba manual de
     y confirmar que en pausa nada avanza y que no aparecen errores rojos en
     el depurador.
 
+## Prueba manual de aceptación de `IMPLEMENTATION-004` (pendiente — la ejecuta Dennis)
+
+Esta lista **no** se declara superada por el agente que implementó la
+entrega; debe ejecutarla Dennis después de recibirla.
+
+### Preparación y regresión
+
+1. Abrir el proyecto con Godot 4.7.2 Standard, pulsar F5 y confirmar que no
+   aparecen errores rojos; cámara, selección, reloj, pausa, velocidades,
+   prioridades, trabajos y recursos siguen funcionando.
+2. Observar, inspeccionar y registrar el refugio; transportar sus
+   materiales y las pertenencias. Confirmar que el almacén y el depósito
+   se establecen como antes y que aparecen cuatro prendas dañadas una sola
+   vez.
+3. Inspeccionar el taller y transportar sus tablones y materiales de
+   reparación para disponer de más de una alternativa de defensa.
+
+### Zonas
+
+4. Abrir «Zonas»: comprobar el rectángulo habitual verde alrededor del
+   asentamiento y la precaución ámbar exterior; pintar con arrastre celdas
+   de los tres tipos y ocultar/mostrar la capa.
+5. Pintar una franja prohibida entre una persona y un objetivo exterior.
+   Confirmar que una designación o movimiento que la cruce queda bloqueado
+   con «Zona prohibida»; devolver una celda a precaución y comprobar que se
+   recupera sin reiniciar.
+
+### Defensa, ruido y amenaza
+
+6. Seleccionar una ventana y tapiarla. Ver la reserva y consumo exactos de
+   2 tablones, su durabilidad 60/60, el aro de ruido de 22 m y el suceso
+   con la causa. Cancelar otra construcción a mitad y confirmar que
+   conserva progreso y devuelve reservas.
+7. Construir el muro norte o reforzar la puerta sur; confirmar que usa su
+   coste distinto y que no puede completarse dos veces.
+8. Asignar directamente `person.initial.02` al puesto de guardia sur y
+   comprobar que permanece «En guardia». Antes de atraer zombis, pintar
+   dos o tres celdas inmediatamente al sur del puesto como prohibidas.
+9. Generar ruido construyendo o reparando cerca del refugio, pausar y
+   localizar qué zombis quedaron dentro del aro. Reanudar a ×1: solo esos
+   deben investigar; los lejanos permanecen quietos.
+10. Ver al guardia detectar el contacto, cambiar el indicador de amenaza y
+    combatir sin control individual continuo. Cuando el zombi esté al otro
+    lado de la franja prohibida y se cumplan las condiciones, comprobar el
+    mensaje «Ha cruzado el límite para interceptar un zombi que amenazaba
+    el acceso» y su regreso o retirada posterior.
+11. Dejar que otro zombi alcance un sector cerrado: debe detenerse, golpear
+    la defensa y reducir su durabilidad; un sector abierto no debe
+    bloquearlo. Confirmar estados visuales dañado/destruido y ruido de los
+    impactos.
+12. Mantener libre a una persona con construcción `>= 2`, prioridad de
+    construcción mayor que 0 y un material de reparación almacenado. Al
+    quedar una defensa viva al 50 % o menos, comprobar que crea una
+    reparación de iniciativa y muestra «Ha decidido reparar la defensa
+    dañada antes de que ceda». Cancelarla y confirmar que no reaparece
+    hasta un daño nuevo.
+
+### Control puntual, daño y retirada
+
+13. Seleccionar una persona y usar clic derecho sobre un zombi para
+    «Atacar cuerpo a cuerpo». Ver aproximación y golpes por intervalos, sin
+    WASD ni puntería; cancelar o neutralizar el objetivo y confirmar que la
+    persona vuelve a la gestión automática.
+14. Con una persona amenazada, pulsar «Retirarse al refugio» y comprobar
+    que abandona su trabajo sin duplicar recursos, va al punto de reunión y
+    conserva salud y consecuencias. Observar también una retirada
+    automática por salud crítica o dos zombis cercanos si surge durante la
+    prueba.
+15. Confirmar que la ficha refleja salud y que un zombi muerto no vuelve a
+    actuar. No es necesario provocar la muerte de una persona; si ocurre,
+    comprobar que libera trabajo, deja su carga y queda excluida sin
+    desaparecer de la historia de la sesión.
+
+### Aprendizaje
+
+16. Inspeccionar el estanque y asignar dos pescas útiles a una persona con
+    pesca nivel 1. Ver `0/2 → 1/2 → nivel 2, 0/4`, una unidad de alimento
+    por resultado y el cambio de duración en el siguiente intento.
+17. Almacenar las prendas dañadas y hacer que una persona con remiendo
+    nivel 1 remiende dos. Comprobar dos transformaciones uno a uno,
+    condición 40 en esos resultados, subida a nivel 2 y que el siguiente
+    remiendo produce condición 65 y tarda menos.
+
+### Integridad temporal
+
+18. Durante amenaza, guardia y trabajo, alternar pausa, ×1, ×2, ×4 y ×10.
+    Confirmar que en pausa nada avanza, que no hay ataques por fotograma,
+    que recursos y práctica no se duplican y que el depurador sigue sin
+    errores rojos.
+
 ## Documentación
 
 - [docs/INDEX.md](docs/INDEX.md) — punto de entrada a toda la documentación.
@@ -153,8 +289,8 @@ entrega; debe ejecutarla Dennis después de recibirla. La prueba manual de
 El alcance del primer corte jugable y la secuencia de entregas de
 implementación están en
 [docs/roadmap/RDM-001_first-playable-slice.md](docs/roadmap/RDM-001_first-playable-slice.md).
-La siguiente entrega prevista es **«Defensa y vida propia»**; no se ha
-iniciado.
+La siguiente entrega prevista es **«Persistencia y prueba integrada»**
+(`IMPLEMENTATION-005`); no se ha iniciado.
 
 Las instrucciones para agentes (Claude Code, Codex y otros) están en
 [AGENTS.md](AGENTS.md).

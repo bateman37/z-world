@@ -1,8 +1,11 @@
-[gd_scene load_steps=23 format=3]
+[gd_scene load_steps=26 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/building/Building.tscn" id="Building"]
 [ext_resource type="PackedScene" path="res://scenes/person/Survivor.tscn" id="Survivor"]
 [ext_resource type="PackedScene" path="res://scenes/work/WorkTarget.tscn" id="WorkTarget"]
+[ext_resource type="PackedScene" path="res://scenes/defense/DefensePoint.tscn" id="DefensePoint"]
+[ext_resource type="PackedScene" path="res://scenes/threat/GuardPost.tscn" id="GuardPost"]
+[ext_resource type="PackedScene" path="res://scenes/threat/ZombieAgent.tscn" id="ZombieAgent"]
 [ext_resource type="Script" path="res://src/world/navigation_builder.gd" id="NavigationBuilder"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
@@ -446,6 +449,61 @@ id = "site.water_deposit"
 site_kind = "deposit"
 display_name = "Depósito de agua"
 description = "Depósito de agua del asentamiento, con capacidad para 12 unidades. Aquí se construye el final de la conducción por gravedad y aquí se bebe."
+
+[node name="DefensePoints" type="Node3D" parent="."]
+
+[node name="ShelterSouthDoor" parent="DefensePoints" instance=ExtResource("DefensePoint")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 4.2)
+id = "defense.shelter.south_door"
+
+[node name="ShelterEastWindow" parent="DefensePoints" instance=ExtResource("DefensePoint")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.2, 0, 8)
+id = "defense.shelter.east_window"
+
+[node name="ShelterWestWindow" parent="DefensePoints" instance=ExtResource("DefensePoint")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.2, 0, 8)
+id = "defense.shelter.west_window"
+
+[node name="PerimeterNorthGap" parent="DefensePoints" instance=ExtResource("DefensePoint")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 12.2)
+id = "defense.perimeter.north_gap"
+
+[node name="GuardPosts" type="Node3D" parent="."]
+
+[node name="GuardPostSouth" parent="GuardPosts" instance=ExtResource("GuardPost")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+id = "guard.post.south"
+
+[node name="GuardPostEast" parent="GuardPosts" instance=ExtResource("GuardPost")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, 8)
+id = "guard.post.east"
+
+[node name="Zombies" type="Node3D" parent="."]
+
+[node name="ZombieLocal01" parent="Zombies" instance=ExtResource("ZombieAgent")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, -14)
+id = "zombie.local.01"
+display_name = "Zombi local 1"
+
+[node name="ZombieLocal02" parent="Zombies" instance=ExtResource("ZombieAgent")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 0, -16)
+id = "zombie.local.02"
+display_name = "Zombi local 2"
+
+[node name="ZombieLocal03" parent="Zombies" instance=ExtResource("ZombieAgent")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21, 0, 0)
+id = "zombie.local.03"
+display_name = "Zombi local 3"
+
+[node name="ZombieLocal04" parent="Zombies" instance=ExtResource("ZombieAgent")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 22, 0, 14)
+id = "zombie.local.04"
+display_name = "Zombi local 4"
+
+[node name="ZombieLocal05" parent="Zombies" instance=ExtResource("ZombieAgent")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0, -20)
+id = "zombie.local.05"
+display_name = "Zombi local 5"
 
 [node name="Navigation" type="NavigationRegion3D" parent="."]
 script = ExtResource("NavigationBuilder")

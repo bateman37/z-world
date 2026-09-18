@@ -88,11 +88,15 @@ func paint_stroke(from_world: Vector3, to_world: Vector3, state_id: String) -> A
 	return changed
 
 ## Comprueba si el segmento cruza alguna celda `forbidden`, muestreando cada
-## metro como mucho (sección 5.2). Incluye ambos extremos.
-func segment_crosses_forbidden(from_world: Vector3, to_world: Vector3) -> bool:
+## metro como mucho (sección 5.2). Incluye ambos extremos salvo que
+## `skip_start` pida ignorar el punto de partida (una persona que ya está
+## dentro de una celda prohibida debe poder salir de ella; sección 5.2).
+func segment_crosses_forbidden(from_world: Vector3, to_world: Vector3, skip_start: bool = false) -> bool:
 	var distance: float = Vector2(from_world.x, from_world.z).distance_to(Vector2(to_world.x, to_world.z))
 	var steps: int = maxi(1, int(ceil(distance / 1.0)))
 	for i in range(steps + 1):
+		if i == 0 and skip_start:
+			continue
 		var t: float = float(i) / float(steps)
 		var point: Vector3 = from_world.lerp(to_world, t)
 		if state_at(point) == ZoneDefinitions.STATE_FORBIDDEN:
@@ -100,10 +104,15 @@ func segment_crosses_forbidden(from_world: Vector3, to_world: Vector3) -> bool:
 	return false
 
 ## Comprueba una ruta completa (lista de puntos consecutivos) por segmentos.
+## El primer punto de toda la ruta (la posición actual de quien se mueve) no
+## se cuenta por sí solo: si ya está dentro de una celda prohibida, la regla
+## nunca debe atraparla; el resto de la ruta sigue comprobándose entera.
 func path_crosses_forbidden(points: PackedVector3Array) -> bool:
 	if points.size() < 2:
-		return points.size() == 1 and state_at(points[0]) == ZoneDefinitions.STATE_FORBIDDEN
-	for i in range(1, points.size()):
+		return false
+	if segment_crosses_forbidden(points[0], points[1], true):
+		return true
+	for i in range(2, points.size()):
 		if segment_crosses_forbidden(points[i - 1], points[i]):
 			return true
 	return false
