@@ -6,25 +6,32 @@ real del proyecto. No sustituye a las fuentes canónicas: para reglas, consulta
 
 ## Fase actual
 
-Primera implementación de código ejecutable: el **vertical slice visual**
-(`IMPLEMENTATION-001`), primera de las cinco entregas fijadas en
-[RDM-001](roadmap/RDM-001_first-playable-slice.md). Existe ya un proyecto
-Godot importable, pero su **aceptación manual sigue pendiente** de que
-Dennis la ejecute (ver [README.md](../README.md)).
+Segunda implementación de código ejecutable: **trabajo y personas**
+(`IMPLEMENTATION-002`), segunda de las cinco entregas fijadas en
+[RDM-001](roadmap/RDM-001_first-playable-slice.md). La primera entrega
+(`IMPLEMENTATION-001`) fue **aceptada manualmente por Dennis el 18 de
+septiembre de 2026**. La aceptación manual de `IMPLEMENTATION-002` sigue
+**pendiente** de que Dennis la ejecute (ver [README.md](../README.md)).
 
 ## Última entrega completada
 
-`IMPLEMENTATION-001` — vertical slice visual: proyecto Godot 4.7.2
-importable desde la raíz, mapa local fijo de pueblo de montaña (terreno,
-montañas, camino y desvío, agua, bosque, campo, seis edificios incluyendo un
-refugio candidato), seis supervivientes visuales seleccionables, cámara
-estratégica cenital controlada solo con ratón (desplazamiento, zoom y
-centrado), selección con panel de información en español y reloj de
-simulación con pausa y velocidades ×1, ×2, ×4 y ×10. No implementa trabajos,
-prioridades, designaciones, recursos, necesidades, amenazas, autonomía,
-generación procedural, guardado ni ninguna de las cuatro entregas
-posteriores de `RDM-001`. Técnicamente implementado; **aceptación manual
-pendiente**.
+`IMPLEMENTATION-002` — trabajo y personas: estado de trabajo por persona
+(diez prioridades y once habilidades), ocho objetivos de trabajo
+demostradores en el mapa (cuatro pilas de escombros y cuatro puntos de
+reconocimiento), tablón de trabajos con reservas de objetivo y selector
+determinista, navegación 3D generada en código con `NavigationAgent3D`,
+ejecución de trabajo con progreso visible, menú contextual de clic derecho
+para órdenes puntuales y paneles de «Prioridades», «Trabajos» y ficha de
+persona. No implementa necesidades, recursos, inventarios, interiores,
+exploración funcional, aprendizaje, autonomía, zombis, generación procedural
+ni guardado. Técnicamente implementado; **aceptación manual pendiente**.
+
+Entrega previa: `IMPLEMENTATION-001` — vertical slice visual: proyecto Godot
+4.7.2 importable desde la raíz, mapa local fijo de pueblo de montaña, seis
+supervivientes visuales seleccionables, cámara estratégica cenital
+controlada solo con ratón, selección con panel de información en español y
+reloj de simulación con pausa y velocidades ×1, ×2, ×4 y ×10. **Aceptada
+manualmente el 18 de septiembre de 2026.**
 
 Entrega previa: `DESIGN-002` — horizonte máximo de diseño documentado, sin
 ampliar el primer corte jugable. Ver
@@ -57,12 +64,12 @@ Detalle en [ARC-001](90-architecture/ARC-001_technical-direction.md).
   pueblo de montaña: terreno, siluetas de montaña, camino principal con un
   desvío, agua, bosque, campo abierto y seis edificios (uno marcado como
   refugio candidato).
-- Seis supervivientes visuales quietos, con ID estable
-  (`person.initial.01`–`06`), nombre provisional y una diferencia visual de
-  color.
-- Selección con clic izquierdo de las seis personas, el refugio y los demás
-  edificios, con indicador visual y panel en español (ID, tipo, nombre,
-  descripción).
+- Seis supervivientes con ID estable (`person.initial.01`–`06`), nombre
+  provisional y una diferencia visual de color, que ahora se desplazan por
+  el mapa mediante navegación.
+- Selección con clic izquierdo de las seis personas, el refugio, los demás
+  edificios y los objetivos de trabajo, con indicador visual y panel en
+  español (ID, tipo, nombre, descripción).
 - Cámara estratégica cenital inclinada, controlada solo con ratón
   (desplazamiento con botón central, zoom con rueda, botón «Centrar
   cámara»), con límites de mapa y zoom.
@@ -71,13 +78,44 @@ Detalle en [ARC-001](90-architecture/ARC-001_technical-direction.md).
 - HUD mínimo en español con nombre del escenario, reloj, controles de
   velocidad, botón de centrar cámara, panel de selección, ayuda compacta y
   aviso de prototipo.
+- Estado de trabajo por persona, separado de su representación visual: diez
+  familias de prioridad (todas en `2` al inicio, escala `0–4`) y once
+  habilidades iniciales con escala provisional `0–4`, más estado operativo
+  (`idle`, `moving`, `working`, `direct_order`), trabajo actual, orden
+  directa y motivo operativo.
+- Ocho objetivos de trabajo demostradores en el mapa: cuatro pilas de
+  escombros («Despejar escombros», `build_repair`,
+  `construction_carpentry >= 2`, 8 s a ×1) y cuatro puntos de
+  reconocimiento («Reconocer punto», `explore_recon`,
+  `observation_inspection >= 2`, 6 s a ×1), seleccionables y designables.
+- Tablón de trabajos con estados `pending`, `reserved`, `moving`, `working`,
+  `completed`, `cancelled` y `blocked`, una única reserva por objetivo,
+  progreso conservado al cancelar y selector determinista por prioridad,
+  urgencia, distancia de ruta, espera, nivel de habilidad e ID.
+- Cuatro razones de bloqueo y tres razones de «sin trabajo» concretas, que
+  se recuperan automáticamente al cambiar la causa.
+- Navegación 3D local con malla generada en código al cargar la escena
+  (`NavigationRegion3D` + `NavigationAgent3D`): las rutas no atraviesan
+  edificios, agua, arbolado ni salen del terreno útil, y Dennis no hornea
+  nada a mano.
+- Movimiento y progreso gobernados por el avance de simulación del reloj
+  (`gameplay_delta = delta real × multiplicador`, `0` en pausa), sin usar
+  `Engine.time_scale` y sin alterar la conversión de calendario.
+- Órdenes puntuales con clic derecho: «Mover aquí», «Hacer ahora …» y
+  «Designar para la comunidad», con opciones deshabilitadas y su razón
+  cuando no son posibles.
+- Paneles de HUD «Prioridades» (matriz 10 × 6 con clic izquierdo/derecho,
+  número, color y tooltip) y «Trabajos» (activos y últimos completados), y
+  ficha de persona ampliada con estado, actividad, motivo, progreso y las
+  once habilidades.
 - Smoke test headless en `tests/smoke_test.gd` (ver validaciones ejecutadas
   o no ejecutadas más abajo).
 
-No implementa trabajos, prioridades, designaciones, movimiento, estado,
-ficha completa, exploración, recursos, agua, comida, defensa, zombis,
-autonomía, aprendizaje, generación procedural, guardado ni carga: quedan
-para las cuatro entregas posteriores de `RDM-001`.
+No implementa necesidades, hambre, sed, cansancio, salud, inventarios,
+objetos, almacenes, recursos, interiores, inspección de edificios, agua,
+comida, construcción real, aprendizaje, autonomía, iniciativas, zonas,
+zombis, combate, generación procedural, guardado ni carga: quedan para las
+tres entregas posteriores de `RDM-001`.
 
 ## Documentación
 
@@ -99,19 +137,29 @@ para las cuatro entregas posteriores de `RDM-001`.
   configurable de amenazas (`THR-002`) y horizonte de capacidades a largo
   plazo (`RDM-002`).
 - **Implementado (`implemented`)**: no se usa todavía en ningún documento de
-  dominio. `IMPLEMENTATION-001` es una entrega de código, no un cambio de
-  estado documental de `UI-001`, `SCN-001`, `ARC-002` ni del resto de
-  `RDM-001`, que siguen siendo `approved` a la espera de sus entregas
-  correspondientes.
+  dominio. `IMPLEMENTATION-001` e `IMPLEMENTATION-002` son entregas de
+  código, no un cambio de estado documental de `UI-001`, `CHR-001`,
+  `CHR-003`, `SCN-001`, `ARC-002` ni del resto de `RDM-001`, que siguen
+  siendo `approved` a la espera de sus entregas correspondientes: esta
+  entrega implementa solo el subconjunto de trabajo y personas descrito en
+  su prompt.
 
-## Validaciones automatizadas de `IMPLEMENTATION-001`
+## Validaciones automatizadas de `IMPLEMENTATION-002`
 
-`godot --headless` no está disponible en el entorno donde se implementó esta
-entrega: los comandos de la sección 13 del prompt (`godot --headless --path
-. --editor --quit` y `godot --headless --path . --script
+`godot --headless` tampoco está disponible en el entorno donde se implementó
+esta entrega: los dos comandos de la sección 16 del prompt (`godot
+--headless --path . --editor --quit` y `godot --headless --path . --script
 res://tests/smoke_test.gd`) quedan como **NOT RUN** por ausencia del motor.
 No se instaló Godot para forzar su ejecución. `git diff --check` sí se
-ejecutó y no informó errores.
+ejecutó y no informó errores. El smoke test conserva las siete
+comprobaciones de `IMPLEMENTATION-001` y añade cinco: estados de persona con
+diez prioridades y once habilidades, límites `0–4` de las prioridades, un
+solo trabajo y una sola reserva por objetivo, preferencia del selector por
+prioridad `4` y exclusión por habilidad mínima, y pausa/×10 sin doble
+finalización.
+
+Las mismas validaciones de `IMPLEMENTATION-001` quedaron en su momento como
+**NOT RUN** por la misma razón.
 
 ## Bloqueos o contradicciones conocidos
 
@@ -120,15 +168,16 @@ Godot en el entorno de implementación (ver sección anterior).
 
 ## Aceptación manual pendiente
 
-La aceptación manual de `IMPLEMENTATION-001` (lista de pasos en
-[README.md](../README.md)) está pendiente de que Dennis la ejecute. No se
-declara superada por el agente que implementó la entrega.
+`IMPLEMENTATION-001` fue aceptada manualmente por Dennis el 18 de septiembre
+de 2026. La aceptación manual de `IMPLEMENTATION-002` (lista de catorce
+pasos en [README.md](../README.md)) está pendiente de que Dennis la
+ejecute. No se declara superada por el agente que implementó la entrega.
 
 ## Próximo candidato de trabajo (no es un compromiso)
 
-La siguiente entrega de implementación candidata es **«Trabajo y
-personas»**, descrita en
-[RDM-001](roadmap/RDM-001_first-playable-slice.md): prioridades,
-designaciones, trabajos, movimiento, reservas, estado básico, ficha y
-control puntual con ratón. No se ha iniciado y requerirá su propio prompt de
+La siguiente entrega de implementación candidata es **«Exploración y
+subsistencia»**, descrita en
+[RDM-001](roadmap/RDM-001_first-playable-slice.md): estado de información,
+edificios, recursos, transporte, almacén, descanso, agua y alimento
+alternativo. No se ha iniciado y requerirá su propio prompt de
 programación.
