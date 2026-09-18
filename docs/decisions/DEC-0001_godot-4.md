@@ -28,8 +28,18 @@ legible. No existe un plan de migración automática a Unity.
 - Si en el futuro se decide cambiar de motor, se conservarán principalmente
   diseño, datos y recursos reutilizables; escenas, interfaz y código
   específico de Godot requerirían trabajo nuevo.
+- `IMPLEMENTATION-001` (vertical slice visual) fija el baseline reproducible
+  concreto de esta decisión: **Godot 4.7.2-stable, edición estándar**, no
+  .NET, GDScript exclusivamente y renderizador Forward+. Este baseline
+  concreto no impide que una entrega futura actualice la versión de Godot 4
+  si hace falta; solo documenta con qué versión exacta se validó esta
+  primera implementación.
 
 ## Aspectos que siguen abiertos
 
-- Detalles exactos de cámara y arte.
-- Estructura de carpetas del proyecto Godot.
+- Detalles exactos de cámara y arte más allá de lo fijado en
+  `IMPLEMENTATION-001`.
+- Estructura interna definitiva de `scenes/` y `src/` para entregas
+  posteriores.
+- Si y cuándo se actualizará la versión exacta de Godot 4 usada como
+  baseline.

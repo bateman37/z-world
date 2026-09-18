@@ -4,6 +4,35 @@ Registra entregas documentales y de diseño de Z-World. No atribuye código ni
 funcionalidad implementada salvo que se indique explícitamente como
 `implemented` en la documentación afectada.
 
+## IMPLEMENTATION-001 — Vertical slice visual
+
+Primera entrega de código ejecutable de Z-World: la primera de las cinco
+entregas fijadas en
+[RDM-001](docs/roadmap/RDM-001_first-playable-slice.md). Añade un proyecto
+Godot 4.7.2-stable (GDScript, Forward+) importable desde la raíz, con:
+
+- Un mapa local fijo de pueblo de montaña (terreno, siluetas de montaña,
+  camino con un desvío, agua, bosque, campo abierto y seis edificios,
+  incluyendo un refugio candidato).
+- Seis supervivientes visuales quietos (`person.initial.01`–`06`),
+  seleccionables individualmente.
+- Cámara estratégica cenital inclinada controlada solo con ratón
+  (desplazamiento, zoom suave y botón «Centrar cámara»), con límites.
+- Selección con clic izquierdo, indicador visual y panel en español (ID,
+  tipo, nombre, descripción) para personas y edificios.
+- Reloj de simulación independiente de `Engine.time_scale`, con pausa y
+  velocidades ×1, ×2, ×4 y ×10, iniciando en Día 1, 08:00.
+- HUD mínimo en español y un smoke test headless
+  (`tests/smoke_test.gd`).
+
+No implementa trabajos, prioridades, designaciones, movimiento, recursos,
+necesidades, amenazas, autonomía, generación procedural, guardado ni
+ninguna de las cuatro entregas posteriores de `RDM-001`. El smoke test
+queda como `NOT RUN` porque `godot --headless` no estaba disponible en el
+entorno de implementación; no se instaló Godot para forzar su ejecución.
+La aceptación manual descrita en [README.md](README.md) queda pendiente de
+que Dennis la ejecute.
+
 ## DESIGN-002 — Horizonte máximo de diseño
 
 Documenta el horizonte máximo conocido de Z-World: mundo estratégico y
