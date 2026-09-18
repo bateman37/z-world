@@ -268,25 +268,66 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.9, 0)
 mesh = SubResource("CylinderMesh_canopy")
 surface_material_override/0 = SubResource("StandardMaterial3D_canopy")
 
+[node name="Tree9" type="Node3D" parent="Forest"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0, -16)
+
+[node name="Trunk" type="MeshInstance3D" parent="Forest/Tree9"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("CylinderMesh_trunk")
+surface_material_override/0 = SubResource("StandardMaterial3D_trunk")
+
+[node name="Canopy" type="MeshInstance3D" parent="Forest/Tree9"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.9, 0)
+mesh = SubResource("CylinderMesh_canopy")
+surface_material_override/0 = SubResource("StandardMaterial3D_canopy")
+
+[node name="Tree10" type="Node3D" parent="Forest"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, -17)
+
+[node name="Trunk" type="MeshInstance3D" parent="Forest/Tree10"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("CylinderMesh_trunk")
+surface_material_override/0 = SubResource("StandardMaterial3D_trunk")
+
+[node name="Canopy" type="MeshInstance3D" parent="Forest/Tree10"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.9, 0)
+mesh = SubResource("CylinderMesh_canopy")
+surface_material_override/0 = SubResource("StandardMaterial3D_canopy")
+
+[node name="Tree11" type="Node3D" parent="Forest"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0, -19)
+
+[node name="Trunk" type="MeshInstance3D" parent="Forest/Tree11"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("CylinderMesh_trunk")
+surface_material_override/0 = SubResource("StandardMaterial3D_trunk")
+
+[node name="Canopy" type="MeshInstance3D" parent="Forest/Tree11"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.9, 0)
+mesh = SubResource("CylinderMesh_canopy")
+surface_material_override/0 = SubResource("StandardMaterial3D_canopy")
+
 [node name="Buildings" type="Node3D" parent="."]
 
 [node name="ShelterCandidate" parent="Buildings" instance=ExtResource("Building")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 8)
 id = "building.shelter_candidate"
 display_name = "Refugio candidato"
-description = "Edificio candidato a convertirse en el refugio principal del grupo. Inspeccionarlo y acondicionarlo llegará en otra entrega."
+description = "Edificio candidato a refugio principal, almacén y zona de descanso. Observarlo, inspeccionarlo y registrarlo establece el almacén y el depósito de agua."
 body_size = Vector3(7, 3.4, 6)
 body_color = Color(0.82, 0.55, 0.28, 1)
 roof_color = Color(0.55, 0.28, 0.15, 1)
+explorable = true
 
 [node name="HouseA" parent="Buildings" instance=ExtResource("Building")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 0, 4)
 id = "building.house_a"
 display_name = "Casa 1"
-description = "Vivienda existente del pueblo. Su inspección e interior llegarán en otra entrega."
+description = "Vivienda existente del pueblo. Guarda alimento conservado, recipientes de agua, tela y medicinas básicas."
 body_size = Vector3(4, 2.6, 4)
 body_color = Color(0.72, 0.66, 0.6, 1)
 roof_color = Color(0.4, 0.24, 0.18, 1)
+explorable = true
 
 [node name="HouseB" parent="Buildings" instance=ExtResource("Building")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 0, 3)
@@ -301,10 +342,11 @@ roof_color = Color(0.38, 0.22, 0.17, 1)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, 14)
 id = "building.workshop"
 display_name = "Taller"
-description = "Posible taller o almacén del pueblo. Su función quedará definida en otra entrega."
+description = "Taller del pueblo. Guarda herramientas, materiales de reparación y tablones, y permite secar alimento fresco."
 body_size = Vector3(5, 2.8, 4)
 body_color = Color(0.6, 0.58, 0.55, 1)
 roof_color = Color(0.35, 0.32, 0.3, 1)
+explorable = true
 
 [node name="Barn" parent="Buildings" instance=ExtResource("Building")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0, 15)
@@ -330,101 +372,80 @@ roof_color = Color(0.36, 0.28, 0.2, 1)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.0, 0, 2.5)
 id = "person.initial.01"
 display_name = "Superviviente 1"
-description = "Superviviente inicial del grupo. Sus prioridades se editan en el panel «Prioridades»; sus habilidades y su actividad, en esta ficha. Sin necesidades ni recursos todavía."
+description = "Superviviente inicial del grupo. Sus prioridades se editan en el panel «Prioridades»; sus habilidades, necesidades, carga y actividad, en esta ficha."
 accessory_color = Color(0.8, 0.2, 0.2, 1)
 
 [node name="Survivor2" parent="Survivors" instance=ExtResource("Survivor")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.8, 0, 1.8)
 id = "person.initial.02"
 display_name = "Superviviente 2"
-description = "Superviviente inicial del grupo. Sus prioridades se editan en el panel «Prioridades»; sus habilidades y su actividad, en esta ficha. Sin necesidades ni recursos todavía."
+description = "Superviviente inicial del grupo. Sus prioridades se editan en el panel «Prioridades»; sus habilidades, necesidades, carga y actividad, en esta ficha."
 accessory_color = Color(0.2, 0.4, 0.8, 1)
 
 [node name="Survivor3" parent="Survivors" instance=ExtResource("Survivor")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, 0, 1.5)
 id = "person.initial.03"
 display_name = "Superviviente 3"
-description = "Superviviente inicial del grupo. Sus prioridades se editan en el panel «Prioridades»; sus habilidades y su actividad, en esta ficha. Sin necesidades ni recursos todavía."
+description = "Superviviente inicial del grupo. Sus prioridades se editan en el panel «Prioridades»; sus habilidades, necesidades, carga y actividad, en esta ficha."
 accessory_color = Color(0.3, 0.7, 0.3, 1)
 
 [node name="Survivor4" parent="Survivors" instance=ExtResource("Survivor")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 0, 1.5)
 id = "person.initial.04"
 display_name = "Superviviente 4"
-description = "Superviviente inicial del grupo. Sus prioridades se editan en el panel «Prioridades»; sus habilidades y su actividad, en esta ficha. Sin necesidades ni recursos todavía."
+description = "Superviviente inicial del grupo. Sus prioridades se editan en el panel «Prioridades»; sus habilidades, necesidades, carga y actividad, en esta ficha."
 accessory_color = Color(0.85, 0.75, 0.2, 1)
 
 [node name="Survivor5" parent="Survivors" instance=ExtResource("Survivor")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.8, 0, 1.8)
 id = "person.initial.05"
 display_name = "Superviviente 5"
-description = "Superviviente inicial del grupo. Sus prioridades se editan en el panel «Prioridades»; sus habilidades y su actividad, en esta ficha. Sin necesidades ni recursos todavía."
+description = "Superviviente inicial del grupo. Sus prioridades se editan en el panel «Prioridades»; sus habilidades, necesidades, carga y actividad, en esta ficha."
 accessory_color = Color(0.6, 0.3, 0.75, 1)
 
 [node name="Survivor6" parent="Survivors" instance=ExtResource("Survivor")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.0, 0, 2.5)
 id = "person.initial.06"
 display_name = "Superviviente 6"
-description = "Superviviente inicial del grupo. Sus prioridades se editan en el panel «Prioridades»; sus habilidades y su actividad, en esta ficha. Sin necesidades ni recursos todavía."
+description = "Superviviente inicial del grupo. Sus prioridades se editan en el panel «Prioridades»; sus habilidades, necesidades, carga y actividad, en esta ficha."
 accessory_color = Color(0.2, 0.7, 0.7, 1)
 
 [node name="WorkTargets" type="Node3D" parent="."]
 
-[node name="Rubble1" parent="WorkTargets" instance=ExtResource("WorkTarget")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.5, 0, 6)
-id = "work.rubble.01"
-action_type = "clear_rubble"
-display_name = "Pila de escombros 1"
-description = "Pila de escombros junto al refugio candidato. Designarla crea un trabajo de construcción y reparación."
+[node name="StreamWater" parent="WorkTargets" instance=ExtResource("WorkTarget")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0, 6)
+id = "site.stream_water"
+site_kind = "water_point"
+display_name = "Orilla del arroyo"
+description = "Punto de acarreo de agua. Observarlo permite llenar recipientes y llevarlos al depósito; la política «Mantener 12 de agua» repite el viaje automáticamente."
 
-[node name="Rubble2" parent="WorkTargets" instance=ExtResource("WorkTarget")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, 0)
-id = "work.rubble.02"
-action_type = "clear_rubble"
-display_name = "Pila de escombros 2"
-description = "Pila de escombros al oeste del camino principal. Designarla crea un trabajo de construcción y reparación."
+[node name="PondFishing" parent="WorkTargets" instance=ExtResource("WorkTarget")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.5, 0, -8)
+id = "site.pond_fishing"
+site_kind = "fishing"
+display_name = "Estanque de pesca"
+description = "Orilla firme del estanque. Una vez inspeccionado, quien sepa pescar puede obtener alimento fresco hasta agotar el banco."
 
-[node name="Rubble3" parent="WorkTargets" instance=ExtResource("WorkTarget")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0, -4)
-id = "work.rubble.03"
-action_type = "clear_rubble"
-display_name = "Pila de escombros 3"
-description = "Pila de escombros en el borde del campo abierto. Designarla crea un trabajo de construcción y reparación."
+[node name="ForestMushrooms" parent="WorkTargets" instance=ExtResource("WorkTarget")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.5, 0, -20)
+id = "site.forest_mushrooms"
+site_kind = "foraging"
+display_name = "Claro de hongos"
+description = "Tocones húmedos en el borde del bosque. Una vez inspeccionado, quien identifique hongos seguros puede recolectar alimento fresco limitado."
 
-[node name="Rubble4" parent="WorkTargets" instance=ExtResource("WorkTarget")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, 18)
-id = "work.rubble.04"
-action_type = "clear_rubble"
-display_name = "Pila de escombros 4"
-description = "Pila de escombros al norte del pueblo. Designarla crea un trabajo de construcción y reparación."
+[node name="HighlandSpring" parent="WorkTargets" instance=ExtResource("WorkTarget")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, 20)
+id = "site.highland_spring"
+site_kind = "spring"
+display_name = "Manantial elevado"
+description = "Manantial por encima del pueblo. Inspeccionarlo y planificar desde aquí es el primer paso de la conducción por gravedad."
 
-[node name="ReconPoint1" parent="WorkTargets" instance=ExtResource("WorkTarget")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0, -10)
-id = "work.recon.01"
-action_type = "scout_point"
-display_name = "Punto de reconocimiento 1"
-description = "Punto por reconocer al suroeste. Designarlo crea un trabajo de exploración y reconocimiento."
-
-[node name="ReconPoint2" parent="WorkTargets" instance=ExtResource("WorkTarget")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, -14)
-id = "work.recon.02"
-action_type = "scout_point"
-display_name = "Punto de reconocimiento 2"
-description = "Punto por reconocer al sureste. Designarlo crea un trabajo de exploración y reconocimiento."
-
-[node name="ReconPoint3" parent="WorkTargets" instance=ExtResource("WorkTarget")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, 6)
-id = "work.recon.03"
-action_type = "scout_point"
-display_name = "Punto de reconocimiento 3"
-description = "Punto por reconocer al este del pueblo. Designarlo crea un trabajo de exploración y reconocimiento."
-
-[node name="ReconPoint4" parent="WorkTargets" instance=ExtResource("WorkTarget")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11, 0, 10)
-id = "work.recon.04"
-action_type = "scout_point"
-display_name = "Punto de reconocimiento 4"
-description = "Punto por reconocer al noroeste. Designarlo crea un trabajo de exploración y reconocimiento."
+[node name="WaterDeposit" parent="WorkTargets" instance=ExtResource("WorkTarget")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, 6)
+id = "site.water_deposit"
+site_kind = "deposit"
+display_name = "Depósito de agua"
+description = "Depósito de agua del asentamiento, con capacidad para 12 unidades. Aquí se construye el final de la conducción por gravedad y aquí se bebe."
 
 [node name="Navigation" type="NavigationRegion3D" parent="."]
 script = ExtResource("NavigationBuilder")

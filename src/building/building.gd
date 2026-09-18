@@ -10,6 +10,13 @@ extends StaticBody3D
 @export var body_size: Vector3 = Vector3(4.0, 3.0, 4.0)
 @export var body_color: Color = Color(0.75, 0.68, 0.55)
 @export var roof_color: Color = Color(0.45, 0.22, 0.18)
+## Verdadero solo en los edificios que esta entrega hace explorables
+## (refugio candidato, Casa 1 y taller). El resto sigue siendo decorado
+## seleccionable sin acciones.
+@export var explorable: bool = false
+
+## Estado de trabajo visible en el panel de selección.
+var target_state: String = WorkTarget.STATE_AVAILABLE
 
 @onready var _body: MeshInstance3D = $Body
 @onready var _roof: MeshInstance3D = $Roof
@@ -46,6 +53,29 @@ func _ready() -> void:
 	_ring.scale = Vector3(body_size.x * 0.35, 1.0, body_size.z * 0.35)
 
 	_selectable.id = id
-	_selectable.entity_type = "building"
+	_selectable.entity_type = "site" if explorable else "building"
 	_selectable.display_name = display_name
 	_selectable.description = description
+
+# --- Contrato de lugar de trabajo ----------------------------------------
+# Idéntico al de `WorkTarget`, para que `WorkBoard` no distinga entre un
+# edificio explorable y un lugar del terreno.
+
+func site_id() -> String:
+	return id
+
+## Las personas trabajan delante del edificio, no dentro de su volumen.
+func site_position() -> Vector3:
+	return global_position + Vector3(0.0, 0.0, -(body_size.z * 0.5 + 1.4))
+
+func site_kind_id() -> String:
+	return "building"
+
+func site_display_name() -> String:
+	return display_name
+
+func state_label() -> String:
+	return String(WorkTarget.STATE_LABELS.get(target_state, target_state))
+
+func set_target_state(value: String) -> void:
+	target_state = value

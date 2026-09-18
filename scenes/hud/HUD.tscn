@@ -79,6 +79,21 @@ unique_name_in_owner = true
 toggle_mode = true
 text = "Trabajos"
 
+[node name="ResourcesButton" type="Button" parent="Root/PanelButtons"]
+unique_name_in_owner = true
+toggle_mode = true
+text = "Recursos"
+
+[node name="StoredStripLabel" type="Label" parent="Root"]
+unique_name_in_owner = true
+offset_left = 16.0
+offset_top = 160.0
+offset_right = 900.0
+offset_bottom = 200.0
+autowrap_mode = 3
+modulate = Color(1, 1, 1, 0.9)
+text = "Almacén: sin establecer · Depósito de agua: sin establecer"
+
 [node name="SelectionPanel" type="Panel" parent="Root"]
 anchor_left = 1.0
 anchor_right = 1.0
@@ -190,15 +205,61 @@ autowrap_mode = 3
 custom_minimum_size = Vector2(300, 0)
 text = "Nada seleccionado todavía."
 
-[node name="TargetActionButton" type="Button" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
+[node name="SelectionLoadRow" type="HBoxContainer" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
 unique_name_in_owner = true
 visible = false
-text = "Designar trabajo"
+
+[node name="SelectionLoadLabel" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox/SelectionLoadRow"]
+text = "Carga:"
+custom_minimum_size = Vector2(90, 0)
+
+[node name="SelectionLoadValue" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox/SelectionLoadRow"]
+unique_name_in_owner = true
+autowrap_mode = 3
+custom_minimum_size = Vector2(200, 0)
+text = "Sin carga"
+
+[node name="SelectionInfoList" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
+unique_name_in_owner = true
+visible = false
+autowrap_mode = 3
+custom_minimum_size = Vector2(300, 0)
+text = "—"
+
+[node name="SelectionActionsTitle" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
+unique_name_in_owner = true
+visible = false
+text = "Acciones del lugar"
+theme_override_font_sizes/font_size = 16
+
+[node name="SelectionActionsBox" type="VBoxContainer" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
+unique_name_in_owner = true
+visible = false
+
+[node name="HaulAllButton" type="Button" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
+unique_name_in_owner = true
+visible = false
+autowrap_mode = 3
+custom_minimum_size = Vector2(300, 0)
+text = "Transportar todo lo accesible"
 
 [node name="CancelDirectOrderButton" type="Button" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
 unique_name_in_owner = true
 visible = false
 text = "Cancelar orden directa"
+
+[node name="SelectionNeedsTitle" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
+unique_name_in_owner = true
+visible = false
+text = "Necesidades"
+theme_override_font_sizes/font_size = 16
+
+[node name="SelectionNeedsList" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
+unique_name_in_owner = true
+visible = false
+autowrap_mode = 3
+custom_minimum_size = Vector2(300, 0)
+text = "—"
 
 [node name="SelectionSkillsTitle" type="Label" parent="Root/SelectionPanel/SelectionScroll/SelectionVBox"]
 unique_name_in_owner = true
@@ -299,6 +360,43 @@ size_flags_horizontal = 3
 autowrap_mode = 3
 text = "Todavía no se ha completado ningún trabajo."
 
+[node name="ResourcesPanel" type="Panel" parent="Root"]
+unique_name_in_owner = true
+visible = false
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -460.0
+offset_top = -250.0
+offset_right = 460.0
+offset_bottom = 250.0
+
+[node name="ResourcesVBox" type="VBoxContainer" parent="Root/ResourcesPanel"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
+
+[node name="ResourcesTitle" type="Label" parent="Root/ResourcesPanel/ResourcesVBox"]
+text = "Recursos"
+theme_override_font_sizes/font_size = 20
+
+[node name="ResourcesHint" type="Label" parent="Root/ResourcesPanel/ResourcesVBox"]
+text = "Tipo — total · disponible · reservado · en transporte · almacenado · consumido · perdido. Para transportar, selecciona el lugar y usa «Transportar todo lo accesible»."
+autowrap_mode = 3
+
+[node name="ResourcesScroll" type="ScrollContainer" parent="Root/ResourcesPanel/ResourcesVBox"]
+size_flags_vertical = 3
+
+[node name="ResourcesListLabel" type="Label" parent="Root/ResourcesPanel/ResourcesVBox/ResourcesScroll"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+autowrap_mode = 3
+text = "Sin recursos conocidos."
+
 [node name="ContextMenu" type="PanelContainer" parent="Root"]
 unique_name_in_owner = true
 visible = false
@@ -323,7 +421,7 @@ offset_top = -56.0
 offset_right = 420.0
 offset_bottom = -34.0
 horizontal_alignment = 1
-text = "Clic izq.: seleccionar · Clic der. con persona seleccionada: mover, hacer ahora o designar · Botón central: mover cámara · Rueda: zoom"
+text = "Clic izq.: seleccionar · Clic der. con persona seleccionada: mover, hacer ahora, designar o cambiar política · Botón central: mover cámara · Rueda: zoom"
 
 [node name="PrototypeNoticeLabel" type="Label" parent="Root"]
 anchor_left = 0.5
@@ -336,4 +434,4 @@ offset_right = 420.0
 offset_bottom = -8.0
 horizontal_alignment = 1
 modulate = Color(1, 1, 1, 0.6)
-text = "Prototipo — trabajo y personas, sin necesidades, recursos ni amenazas"
+text = "Prototipo — exploración y subsistencia, sin defensa, amenazas, autonomía ni guardado"

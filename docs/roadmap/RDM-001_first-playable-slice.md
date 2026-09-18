@@ -119,14 +119,28 @@ El roadmap fija estas cinco entregas, en este orden, sin fechas:
    objetivos de trabajo demostradores, tablón con reservas y selector
    determinista, navegación 3D generada en código, ejecución con progreso,
    menú contextual de clic derecho y paneles de prioridades, trabajos y
-   ficha); **aceptación manual pendiente** de que Dennis la ejecute. No
-   incluye necesidades, recursos, exploración funcional, aprendizaje,
-   autonomía, amenazas ni persistencia: siguen en las entregas 3 a 5, que no
-   se han iniciado.
+   ficha). Sus ocho objetivos demostradores fueron retirados por la tercera
+   entrega, que los sustituyó por lugares reales.
 3. **Exploración y subsistencia**: estado de información, edificios,
    recursos, transporte, almacén, descanso, agua y alimento alternativo.
    Dennis podrá explorar el edificio inicial, obtener agua y alimento por al
-   menos dos rutas distintas.
+   menos dos rutas distintas. **Estado:** implementada técnicamente como
+   `IMPLEMENTATION-003` (cinco niveles de información con observar,
+   inspeccionar y registrar; ocho lugares reales en sustitución de los ocho
+   demostradores; diez tipos de recurso con seis estados logísticos;
+   pertenencias de llegada; almacén de 50 y depósito de agua de 12 con
+   transporte en lotes de hasta 5; necesidades de hidratación, alimentación
+   y descanso con acciones automáticas y cadena de supervivencia; alimento
+   por registro, pesca y hongos; agua por acarreo y por conducción de
+   gravedad; deterioro y secado; ejecución de trabajo por fases en el mismo
+   tablón; franja de almacenados, panel «Recursos», acciones por lugar y
+   ficha con necesidades y carga); **aceptación manual pendiente** de que
+   Dennis la ejecute (ver [README.md](../../README.md) y
+   [docs/STATUS.md](../STATUS.md)). No incluye defensa, zombis, ruido,
+   guardia, aprendizaje, autonomía, zonas de territorio ni persistencia:
+   siguen en las entregas 4 y 5, que no se han iniciado. `WLD-002`,
+   `SET-003`, `CHR-001` y `UI-001` siguen siendo `approved`: solo se ha
+   implementado su subconjunto.
 4. **Defensa y vida propia**: cierre de accesos, zombis elementales, ruido,
    guardia, retirada, aprendizaje e iniciativa autónoma acotada. Dennis podrá
    ver zombis amenazando el asentamiento, defenderlo de forma básica y
