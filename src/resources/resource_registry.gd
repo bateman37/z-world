@@ -30,7 +30,7 @@ func create_stack(
 	_stacks[stack.id] = stack
 	return stack
 
-func get_stack(stack_id: String) -> ResourceStack:
+func stack_by_id(stack_id: String) -> ResourceStack:
 	if not _stacks.has(stack_id):
 		return null
 	return _stacks[stack_id]
@@ -107,7 +107,7 @@ func stored_stacks_of_type(type_id: String) -> Array[ResourceStack]:
 # --- Transiciones de estado ----------------------------------------------
 
 func reserve(stack_id: String, person_id: String) -> bool:
-	var stack: ResourceStack = get_stack(stack_id)
+	var stack: ResourceStack = stack_by_id(stack_id)
 	if stack == null or not stack.is_claimable_by(person_id):
 		return false
 	stack.reserved_by_person_id = person_id
@@ -117,7 +117,7 @@ func reserve(stack_id: String, person_id: String) -> bool:
 
 ## Devuelve una pila reservada a su estado anterior sin alterar la cantidad.
 func release(stack_id: String) -> void:
-	var stack: ResourceStack = get_stack(stack_id)
+	var stack: ResourceStack = stack_by_id(stack_id)
 	if stack == null:
 		return
 	stack.reserved_by_person_id = ""
@@ -133,7 +133,7 @@ func release(stack_id: String) -> void:
 			stack.logistics_state = ResourceDefinitions.LOGISTICS_AVAILABLE
 
 func pick_up(stack_id: String, person_id: String) -> bool:
-	var stack: ResourceStack = get_stack(stack_id)
+	var stack: ResourceStack = stack_by_id(stack_id)
 	if stack == null or not stack.is_active():
 		return false
 	if stack.reserved_by_person_id != "" and stack.reserved_by_person_id != person_id:
@@ -145,7 +145,7 @@ func pick_up(stack_id: String, person_id: String) -> bool:
 	return true
 
 func deposit(stack_id: String, location_id: String) -> bool:
-	var stack: ResourceStack = get_stack(stack_id)
+	var stack: ResourceStack = stack_by_id(stack_id)
 	if stack == null or not stack.is_active():
 		return false
 	stack.location_id = location_id
@@ -157,7 +157,7 @@ func deposit(stack_id: String, location_id: String) -> bool:
 ## Deja una pila en el suelo en una posición concreta (por ejemplo al
 ## cancelar un transporte a medio camino). No duplica ni pierde cantidad.
 func drop(stack_id: String, location_id: String, position: Vector3) -> void:
-	var stack: ResourceStack = get_stack(stack_id)
+	var stack: ResourceStack = stack_by_id(stack_id)
 	if stack == null or not stack.is_active():
 		return
 	stack.location_id = location_id
@@ -170,7 +170,7 @@ func drop(stack_id: String, location_id: String, position: Vector3) -> void:
 ## ubicación, condición y estado. La suma de ambas nunca cambia; sirve para
 ## respetar el tamaño máximo de lote sin duplicar ni perder recursos.
 func split(stack_id: String, amount: int) -> ResourceStack:
-	var stack: ResourceStack = get_stack(stack_id)
+	var stack: ResourceStack = stack_by_id(stack_id)
 	if stack == null or amount <= 0 or amount >= stack.amount:
 		return stack
 	_serial += 1
@@ -189,7 +189,7 @@ func split(stack_id: String, amount: int) -> ResourceStack:
 
 ## Consume `amount` unidades de la pila. Devuelve lo realmente consumido.
 func consume(stack_id: String, amount: int) -> int:
-	var stack: ResourceStack = get_stack(stack_id)
+	var stack: ResourceStack = stack_by_id(stack_id)
 	if stack == null or not stack.is_active() or amount <= 0:
 		return 0
 	var taken: int = mini(amount, stack.amount)
@@ -204,7 +204,7 @@ func consume(stack_id: String, amount: int) -> int:
 ## Marca una pila como perdida (no consumida): no vuelve a estar disponible
 ## y no se puede recuperar.
 func lose(stack_id: String) -> void:
-	var stack: ResourceStack = get_stack(stack_id)
+	var stack: ResourceStack = stack_by_id(stack_id)
 	if stack == null:
 		return
 	stack.logistics_state = ResourceDefinitions.LOGISTICS_LOST
@@ -214,7 +214,7 @@ func lose(stack_id: String) -> void:
 ## Cambia el tipo de una pila conservando su cantidad y ubicación. Se usa
 ## cuando el alimento fresco se echa a perder.
 func transform_type(stack_id: String, new_type_id: String) -> void:
-	var stack: ResourceStack = get_stack(stack_id)
+	var stack: ResourceStack = stack_by_id(stack_id)
 	if stack == null or not ResourceDefinitions.TYPES.has(new_type_id):
 		return
 	stack.type_id = new_type_id

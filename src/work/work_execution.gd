@@ -340,7 +340,7 @@ func release_for(job: WorkOrder) -> void:
 	if resources == null:
 		return
 	for stack_id in job.reserved_stack_ids:
-		var stack: ResourceStack = resources.get_stack(String(stack_id))
+		var stack: ResourceStack = resources.stack_by_id(String(stack_id))
 		if stack == null:
 			continue
 		if stack.logistics_state == ResourceDefinitions.LOGISTICS_IN_TRANSPORT:
@@ -445,7 +445,7 @@ func _deliver_carried(job: WorkOrder) -> String:
 	var delivered := 0
 	var left := 0
 	for stack_id in job.reserved_stack_ids:
-		var stack: ResourceStack = resources.get_stack(String(stack_id))
+		var stack: ResourceStack = resources.stack_by_id(String(stack_id))
 		if stack == null or not stack.is_active():
 			continue
 		var destination: String = ResourceDefinitions.storage_location_for(stack.type_id)
@@ -464,7 +464,7 @@ func _deliver_carried(job: WorkOrder) -> String:
 func _consume_reserved(job: WorkOrder) -> int:
 	var consumed := 0
 	for stack_id in job.reserved_stack_ids:
-		var stack: ResourceStack = resources.get_stack(String(stack_id))
+		var stack: ResourceStack = resources.stack_by_id(String(stack_id))
 		if stack == null:
 			continue
 		consumed += resources.consume(stack.id, stack.amount)
