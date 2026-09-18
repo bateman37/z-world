@@ -20,6 +20,8 @@ existencia de comunidades externas en el mundo.
 | ID | Estado | Propósito |
 |---|---|---|
 | [SOC-001](SOC-001_living-community.md) | `approved` | Facciones internas y comunidades externas vivas. |
+| [SOC-002](SOC-002_internal-politics-and-leadership.md) | `approved` | Liderazgos, grupos, facciones, legitimidad y políticas internas. |
+| [SOC-003](SOC-003_external-communities-and-regional-history.md) | `approved` | Crecimiento autónomo de comunidades y relaciones regionales. |
 
 ## Dependencias con otros dominios
 

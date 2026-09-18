@@ -8,8 +8,10 @@ secuencia fija de misiones.
 ## Estado actual
 
 Fase de diseño y arquitectura documental. La especificación funcional del
-primer corte jugable ya está cerrada (`DESIGN-001`), pero **no existe todavía
-un juego ejecutable.** Ver el estado detallado en
+primer corte jugable ya está cerrada (`DESIGN-001`) y el horizonte máximo de
+diseño ya está documentado (`DESIGN-002`, ver
+[VIS-003](docs/10-vision/VIS-003_maximum-design-envelope.md)), pero **no
+existe todavía un juego ejecutable.** Ver el estado detallado en
 [docs/STATUS.md](docs/STATUS.md).
 
 ## Tecnología
@@ -26,7 +28,8 @@ Godot 4 con GDScript.
 
 El alcance del primer corte jugable y la secuencia de entregas de
 implementación están en
-[docs/roadmap/RDM-001_first-playable-slice.md](docs/roadmap/RDM-001_first-playable-slice.md).
+[docs/roadmap/RDM-001_first-playable-slice.md](docs/roadmap/RDM-001_first-playable-slice.md),
+que sigue siendo el alcance inmediato: el horizonte máximo no lo amplía.
 
 Las instrucciones para agentes (Claude Code, Codex y otros) están en
 [AGENTS.md](AGENTS.md).

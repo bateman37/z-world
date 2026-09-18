@@ -20,6 +20,12 @@ Cuando una pregunta se cierre:
 - Catálogo concreto de qué edificios y recursos declaran qué acciones de
   descubrimiento. Ver
   [WLD-002](20-world/WLD-002_local-exploration-and-information.md).
+- Revelado exacto de niebla de guerra y transición entre mapa local y
+  estratégico. Ver
+  [WLD-003](20-world/WLD-003_strategic-world-and-regional-simulation.md).
+- Flujo exacto de expediciones, puestos, colonias y materialización de
+  zonas. Ver
+  [WLD-003](20-world/WLD-003_strategic-world-and-regional-simulation.md).
 
 ## Personajes (`30-characters`)
 
@@ -32,6 +38,10 @@ Cuando una pregunta se cierre:
   [CHR-002](30-characters/CHR-002_knowledge-and-learning.md).
 - Fórmulas exactas de velocidad de aprendizaje y enseñanza. Ver
   [CHR-002](30-characters/CHR-002_knowledge-and-learning.md).
+- Valores y curvas del modelo profundo de personas. Ver
+  [CHR-004](30-characters/CHR-004_life-history-and-personal-arcs.md).
+- Lista final, granularidad, transferencias y técnicas de habilidades. Ver
+  [CHR-005](30-characters/CHR-005_extended-skill-taxonomy.md).
 
 ## Asentamiento (`40-settlement`)
 
@@ -48,13 +58,23 @@ Cuando una pregunta se cierre:
 - Duración de estaciones, número de días por estación, año completo y
   fórmulas de agricultura (no implementadas en la primera versión). Ver
   [ARC-002](90-architecture/ARC-002_procedural-generation-and-persistence.md).
+- Catálogos de producción, mantenimiento, energía, transporte, animales y
+  agricultura. Ver
+  [SET-004](40-settlement/SET-004_technological-transition-and-knowledge-economy.md)
+  y
+  [SET-005](40-settlement/SET-005_production-web-and-infrastructure.md).
 
 ## Sociedad (`50-society`)
 
 - Modelo exacto de formación y disolución de facciones. Ver
-  [SOC-001](50-society/SOC-001_living-community.md).
+  [SOC-001](50-society/SOC-001_living-community.md) y
+  [SOC-002](50-society/SOC-002_internal-politics-and-leadership.md).
 - Ritmo y reglas de evolución de comunidades externas, política, comercio y
   narrativa de gran escala.
+- Política, legitimidad, ciudadanía, castigo y coerción concretos. Ver
+  [SOC-002](50-society/SOC-002_internal-politics-and-leadership.md).
+- Población, territorio, comercio, guerra y absorción externa. Ver
+  [SOC-003](50-society/SOC-003_external-communities-and-regional-history.md).
 
 ## Amenazas (`60-threats`)
 
@@ -64,6 +84,8 @@ Cuando una pregunta se cierre:
 - Alcance, intensidad y fórmulas exactas de ruido, combate e infección. Ver
   [THR-001](60-threats/THR-001_zombie-threat-model.md).
 - Configuración concreta de amenazas al iniciar partida.
+- Opciones y fórmulas de amenazas. Ver
+  [THR-002](60-threats/THR-002_configurable-threat-horizon.md).
 
 ## Narrativa (`70-narrative`)
 
@@ -75,11 +97,15 @@ Cuando una pregunta se cierre:
   [NAR-001](70-narrative/NAR-001_emergent-narrative.md).
 - Formato concreto de los eventos. Ver
   [NAR-001](70-narrative/NAR-001_emergent-narrative.md).
+- Memorias, interpretaciones, diario y director narrativo. Ver
+  [NAR-002](70-narrative/NAR-002_memory-and-causal-world-history.md).
 
 ## Interfaz (`80-interface`)
 
 - Catálogo completo de acciones contextuales disponibles según el objetivo.
   Ver [UI-001](80-interface/UI-001_interaction-and-command-model.md).
+- Flujos visuales de gestión a escala. Ver
+  [UI-002](80-interface/UI-002_management-at-community-scale.md).
 
 ## Arquitectura técnica (`90-architecture`)
 
@@ -90,6 +116,9 @@ Cuando una pregunta se cierre:
 - Formato de guardado, compatibilidad entre versiones y representación de
   datos final. Ver
   [ARC-002](90-architecture/ARC-002_procedural-generation-and-persistence.md).
+- Presupuestos, frecuencias, materialización y rendimiento de la
+  simulación multiescala. Ver
+  [ARC-003](90-architecture/ARC-003_multiscale-simulation-principles.md).
 
 ## Escenario inicial (`scenarios`)
 

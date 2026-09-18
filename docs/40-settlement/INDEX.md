@@ -22,6 +22,8 @@ que sostienen a la comunidad.
 | [SET-001](SET-001_settlement-growth.md) | `approved` | Crecimiento y costes del asentamiento. |
 | [SET-002](SET-002_production-and-solutions.md) | `approved` | Producción y ausencia de ruta tecnológica única. |
 | [SET-003](SET-003_resources-logistics-and-condition.md) | `approved` | Recursos, logística, condición y rutas alternativas iniciales. |
+| [SET-004](SET-004_technological-transition-and-knowledge-economy.md) | `approved` | Del aprovechamiento del mundo anterior a la reconstrucción local. |
+| [SET-005](SET-005_production-web-and-infrastructure.md) | `approved` | Red de soluciones, mantenimiento e infraestructuras. |
 
 ## Dependencias con otros dominios
 

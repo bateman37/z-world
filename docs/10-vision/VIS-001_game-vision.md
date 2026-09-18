@@ -8,6 +8,7 @@ canonical_for:
 depends_on: []
 related:
   - VIS-002
+  - VIS-003
 ---
 
 ## 1. Propósito
@@ -44,6 +45,10 @@ autonomía.
   combate (ver `docs/60-threats/THR-001_zombie-threat-model.md`).
 - El objetivo diferencial es la narrativa procedural emergente, desarrollada
   en `docs/70-narrative/NAR-001_emergent-narrative.md`.
+- La comunidad puede crecer desde un grupo local hasta una sociedad
+  conectada con una región viva, conservando siempre identidad y
+  causalidad; el horizonte completo se documenta en
+  [VIS-003](VIS-003_maximum-design-envelope.md).
 
 ## 5. Interacciones con otros sistemas
 

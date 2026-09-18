@@ -11,6 +11,8 @@ related:
   - CHR-001
   - CHR-002
   - SET-003
+  - SET-004
+  - SET-005
 ---
 
 ## 1. Propósito
@@ -50,6 +52,10 @@ robusta.
   o conducción por gravedad; alimento por búsqueda, pesca, hongos o caza) se
   detallan en
   [SET-003](SET-003_resources-logistics-and-condition.md).
+- El horizonte máximo de transición tecnológica se desarrolla en
+  [SET-004](SET-004_technological-transition-and-knowledge-economy.md) y el
+  de la red de soluciones productivas en
+  [SET-005](SET-005_production-web-and-infrastructure.md).
 
 ## 6. Casos límite o riesgos
 

@@ -13,6 +13,8 @@ depends_on:
 related:
   - UI-001
   - WLD-002
+  - SET-004
+  - SET-005
 ---
 
 ## 1. Propósito
@@ -92,6 +94,10 @@ fuera de la primera versión.
   [WLD-002](../20-world/WLD-002_local-exploration-and-information.md).
 - Las habilidades que habilitan cada ruta se definen en
   [CHR-001](../30-characters/CHR-001_character-model.md).
+- El horizonte máximo de catálogos, mantenimiento y red productiva se
+  desarrolla en
+  [SET-004](SET-004_technological-transition-and-knowledge-economy.md) y
+  [SET-005](SET-005_production-web-and-infrastructure.md).
 
 ## 6. Casos límite o riesgos
 

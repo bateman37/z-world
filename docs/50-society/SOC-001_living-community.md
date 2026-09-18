@@ -11,12 +11,18 @@ related:
   - CHR-001
   - CHR-003
   - NAR-001
+  - SOC-002
+  - SOC-003
 ---
 
 ## 1. Propósito
 
 Definir cómo evoluciona la dinámica social dentro de la comunidad del jugador
-y cómo existen otras comunidades en el mundo.
+y cómo existen otras comunidades en el mundo. Este documento es un resumen y
+puerta de entrada: el detalle de la política interna vive en
+[SOC-002](SOC-002_internal-politics-and-leadership.md) y el de las
+comunidades externas en
+[SOC-003](SOC-003_external-communities-and-regional-history.md).
 
 ## 2. Principios que no deben romperse
 

@@ -16,6 +16,7 @@ related:
   - THR-001
   - ARC-002
   - SCN-001
+  - RDM-002
 ---
 
 ## 1. Propósito
@@ -127,6 +128,10 @@ Este documento consolida el alcance definido en `UI-001`, `CHR-001`,
 `CHR-002`, `CHR-003`, `WLD-002`, `SET-003`, `THR-001` y `ARC-002`. No repite
 sus reglas funcionales; solo fija qué parte de ellas entra en el primer
 corte.
+
+El horizonte máximo de capacidades futuras se organiza en
+[RDM-002](RDM-002_long-term-capability-horizon.md) (`draft`); ese mapa no
+amplía ni reduce el alcance fijado aquí.
 
 ## 6. Casos límite o riesgos
 

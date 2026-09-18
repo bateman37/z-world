@@ -19,6 +19,7 @@ paneles, cámara, información mostrada y flujos de interacción.
 | ID | Estado | Propósito |
 |---|---|---|
 | [UI-001](UI-001_interaction-and-command-model.md) | `approved` | Selección, prioridades, designaciones, zonas, control puntual con ratón e información operativa. |
+| [UI-002](UI-002_management-at-community-scale.md) | `approved` | Gestión legible al crecer población, territorio y sistemas. |
 
 ## Dependencias con otros dominios
 

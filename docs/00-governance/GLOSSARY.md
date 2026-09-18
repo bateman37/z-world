@@ -22,3 +22,25 @@ enlaza a ella.
   Ver `docs/discovery/INDEX.md`.
 - **Decisión**: elección ya adoptada con motivo y consecuencias registrados.
   Ver `docs/decisions/INDEX.md`.
+- **Horizonte máximo**: lo que el juego completo debe poder llegar a
+  representar si el desarrollo avanza por las direcciones ya acordadas; no
+  amplía el alcance de una entrega ni implica implementación. Ver
+  `docs/10-vision/VIS-003_maximum-design-envelope.md`.
+- **Alcance de entrega**: lo que una etapa concreta de desarrollo se
+  compromete a construir, siempre menor o igual al horizonte máximo. Ver
+  `docs/roadmap/RDM-001_first-playable-slice.md`.
+- **Materialización**: proceso por el que una zona, persona o comunidad
+  lejana gana detalle al volverse relevante, respetando su historia
+  resumida previa. Ver
+  `docs/90-architecture/ARC-003_multiscale-simulation-principles.md`.
+- **Simulación distante**: actualización resumida y menos frecuente de
+  zonas, comunidades o entidades lejanas al foco de juego actual. Ver
+  `docs/90-architecture/ARC-003_multiscale-simulation-principles.md`.
+- **Conocimiento comunitario**: saber conservado más allá de una sola
+  persona, mediante enseñanza, libros, planos, archivos, escuelas,
+  bibliotecas y talleres. Ver
+  `docs/30-characters/CHR-002_knowledge-and-learning.md`.
+- **Red de soluciones**: conjunto de formas alternativas de resolver una
+  necesidad material, cada una con sus propios requisitos y consecuencias,
+  sin una cadena tecnológica única. Ver
+  `docs/40-settlement/SET-005_production-web-and-infrastructure.md`.
