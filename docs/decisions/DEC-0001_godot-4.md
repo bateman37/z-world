@@ -1,13 +1,27 @@
 ---
 id: DEC-0001
 title: Godot 4 como motor inicial
-status: approved
+status: deprecated
 canonical_for:
-  - elección de motor
+  - elección de motor del prototipo histórico Godot
 depends_on: []
 related:
   - ARC-001
+  - DEC-0008
 ---
+
+## Estado: sustituida por DEC-0008
+
+`DESIGN-004` reinicia la línea activa de código hacia el laboratorio de
+simulación web aprobado en
+[DEC-0008](DEC-0008_simulation-first-web-architecture.md)
+(Node.js/TypeScript/Next.js/PostgreSQL). Esta decisión queda `deprecated`:
+documenta el prototipo Godot como **prototipo histórico cerrado**, no como
+línea activa. No se borran sus hechos: Godot 4 siguió siendo un motor
+válido para las cuatro entregas de código del prototipo
+(`IMPLEMENTATION-001` a `IMPLEMENTATION-004`), y el código, escenas y
+proyecto Godot se conservan sin modificar como referencia y aprendizaje
+técnico.
 
 ## Contexto
 

@@ -22,6 +22,7 @@ paneles, cámara, información mostrada y flujos de interacción.
 | [UI-002](UI-002_management-at-community-scale.md) | `approved` | Gestión legible al crecer población, territorio y sistemas. |
 | [UI-003](UI-003_work-priority-taxonomy.md) | `approved` | Arquitectura de prioridad, orden y trabajo; nueve bloques, 34 prioridades y escala `Nunca/1–5`. |
 | [UI-004](UI-004_qualitative-capability-presentation.md) | `approved` | Presentación cualitativa de capacidad, dificultad, incertidumbre y bloqueos sin números internos. |
+| [UI-005](UI-005_top-down-simulation-workbench.md) | `approved` | Mapa Canvas 2D cenital, niebla, reloj continuo y control puntual del laboratorio de simulación. |
 
 ## Dependencias con otros dominios
 

@@ -4,34 +4,42 @@ title: Horizonte de capacidades a largo plazo
 status: draft
 canonical_for: []
 depends_on:
-  - RDM-001
+  - RDM-003
 related:
   - VIS-003
   - UI-003
   - WLD-004
   - SET-006
   - DEC-0007
+  - RDM-001
+  - DEC-0008
 ---
 
 ## 1. Propósito
 
 Organizar capacidades acumulativas de largo plazo, sin fechas ni versiones
 prometidas, y sin cambiar el alcance ya cerrado de
-[RDM-001](RDM-001_first-playable-slice.md).
+[RDM-003](RDM-003_simulation-first-playable-roadmap.md), la hoja de ruta
+activa tras `DESIGN-004` (ver
+[DEC-0008](../decisions/DEC-0008_simulation-first-web-architecture.md)).
+[RDM-001](RDM-001_first-playable-slice.md) queda como referencia histórica
+del prototipo Godot, ahora `deprecated`.
 
 ## 2. Principios que no deben romperse
 
 - Este mapa no es un compromiso de fecha ni de versión.
-- No amplía ni sustituye [RDM-001](RDM-001_first-playable-slice.md); ese
-  alcance sigue intacto.
+- No amplía ni sustituye [RDM-003](RDM-003_simulation-first-playable-roadmap.md);
+  ese alcance sigue intacto.
 - No crea prompts de implementación.
 
 ## 3. Modelo funcional
 
 Capacidades acumulativas, en este orden:
 
-1. **Primer corte local**: el alcance ya cerrado en
-   [RDM-001](RDM-001_first-playable-slice.md).
+1. **Primer corte del laboratorio de simulación**: los incrementos ya
+   fijados en [RDM-003](RDM-003_simulation-first-playable-roadmap.md), que
+   sustituyen funcionalmente al alcance histórico de
+   [RDM-001](RDM-001_first-playable-slice.md) sobre el prototipo Godot.
 2. **Asentamiento sostenible**: producción, mantenimiento, aprendizaje,
    estaciones, agricultura y población (ver
    [SET-004](../40-settlement/SET-004_technological-transition-and-knowledge-economy.md)

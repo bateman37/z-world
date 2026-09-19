@@ -4,6 +4,71 @@ Registra entregas documentales y de diseño de Z-World. No atribuye código ni
 funcionalidad implementada salvo que se indique explícitamente como
 `implemented` en la documentación afectada.
 
+## DESIGN-004 — Reinicio centrado en simulación y generador semántico de lugares
+
+Entrega exclusivamente documental que reinicia la línea técnica activa de
+Z-World de un prototipo 3D en Godot a un laboratorio de simulación web
+centrado en mecánicas, y formaliza el generador procedural semántico de
+lugares y edificios:
+
+- **Cambio de arquitectura**: la nueva línea activa es
+  Node.js/TypeScript/Next.js/PostgreSQL, con núcleo de simulación puro,
+  Prisma aislado tras la persistencia, Zod y Vitest
+  ([DEC-0008](docs/decisions/DEC-0008_simulation-first-web-architecture.md),
+  [ARC-004](docs/90-architecture/ARC-004_simulation-core-runtime-and-boundaries.md)).
+  El prototipo Godot se conserva íntegro como prototipo histórico; `DEC-0001`
+  pasa a `deprecated`. `IMPLEMENTATION-004` («Defensa y vida propia») queda
+  registrada como completada técnicamente en su rama y PR #10 de GitHub, sin
+  aceptación manual ni fusión, y sin adoptarse como parte de la línea activa.
+- **Reloj continuo, trabajo por fases y mapa cenital**: se documentan el
+  reloj con pausa y velocidades ×1/×2/×4/×10 y el modelo mínimo de fases
+  visibles de un trabajo
+  ([ARC-004](docs/90-architecture/ARC-004_simulation-core-runtime-and-boundaries.md)),
+  y el mapa Canvas 2D cenital con niebla de guerra y exploración progresiva,
+  distinguiendo visibilidad espacial de estado de información
+  ([UI-005](docs/80-interface/UI-005_top-down-simulation-workbench.md),
+  `WLD-002` actualizado).
+- **Generador procedural semántico**: cadena generativa completa de mundo a
+  edificio, programa de estancias, grafo funcional y coherencia de
+  contenido por ocupante
+  ([WLD-005](docs/20-world/WLD-005_semantic-place-and-building-generation.md));
+  presión histórica de saqueo, correlación local, rutas y bolsas olvidadas
+  ([WLD-006](docs/20-world/WLD-006_historical-looting-pressure-and-routes.md));
+  historia del apocalipsis y narrativa ambiental conectada causalmente al
+  contenido
+  ([WLD-007](docs/20-world/WLD-007_place-history-and-environmental-storytelling.md));
+  cinco capas de aprovechamiento, tres vidas irreversibles del edificio y
+  diferencia entre saqueo, desmontaje, desmantelamiento y demolición
+  ([SET-007](docs/40-settlement/SET-007_building-exploitation-reuse-and-demolition.md));
+  y el modelo conceptual de datos del mundo semántico
+  ([ARC-005](docs/90-architecture/ARC-005_semantic-world-data-model.md)).
+- **Nuevo dominio de catálogos** (`docs/catalogs/`, prefijo `CAT`): catálogo
+  máximo de 22 familias A–V de lugares
+  ([CAT-001](docs/catalogs/CAT-001_maximum-place-catalog.md)), módulos,
+  estancias e instalaciones
+  ([CAT-002](docs/catalogs/CAT-002_rooms-modules-and-building-systems.md)),
+  ocupantes, profesiones, aficiones y rasgos
+  ([CAT-003](docs/catalogs/CAT-003_occupants-professions-hobbies-and-traits.md))
+  y una propuesta `draft` de subconjunto inicial implementable
+  ([CAT-004](docs/catalogs/CAT-004_initial-semantic-place-slice.md)), sin
+  presentar el catálogo completo como alcance inmediato.
+- **Nuevo roadmap activo**:
+  [RDM-003](docs/roadmap/RDM-003_simulation-first-playable-roadmap.md)
+  divide la implementación futura en incrementos pequeños y probables en el
+  navegador; `RDM-001` pasa a `deprecated` como referencia histórica del
+  prototipo Godot.
+- **Trazabilidad completa**: `docs/discovery/DISC-0003` mapea las 86
+  secciones (`0`–`85`) del Anexo A del prompt a su documento canónico de
+  destino o a una pregunta abierta concreta.
+- **Ausencia total de implementación**: no se tocó `src/`, `scenes/`,
+  `tests/`, `game_data/`, `schemas/` ni ningún archivo Godot; no se
+  inicializó Node.js, Next.js, React, Prisma, PostgreSQL, Zod, Vitest ni
+  Canvas; no se creó `package.json` ni ninguna configuración ejecutable del
+  nuevo stack. Ningún documento nuevo se marca `implemented`.
+
+Ver [docs/STATUS.md](docs/STATUS.md) y
+[prompts/DESIGN-004_simulation-first-reboot-and-procedural-places.md](prompts/DESIGN-004_simulation-first-reboot-and-procedural-places.md).
+
 ## DESIGN-003 — Trabajo, recuperación y conocimiento aplicado
 
 Entrega exclusivamente documental que formaliza el horizonte máximo de tres

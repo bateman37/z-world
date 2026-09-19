@@ -1,10 +1,9 @@
 ---
 id: RDM-001
-title: Alcance del primer corte jugable
-status: approved
+title: Alcance del primer corte jugable (prototipo Godot)
+status: deprecated
 canonical_for:
-  - alcance cerrado de la primera versión visual
-  - secuencia de entregas de implementación posteriores
+  - alcance cerrado del prototipo Godot histórico
 depends_on: []
 related:
   - UI-001
@@ -17,15 +16,33 @@ related:
   - ARC-002
   - SCN-001
   - RDM-002
+  - RDM-003
   - UI-003
+  - DEC-0008
 ---
+
+## Estado: sustituida por RDM-003
+
+`DESIGN-004` reinicia la línea activa de código hacia el laboratorio de
+simulación web aprobado en
+[DEC-0008](../decisions/DEC-0008_simulation-first-web-architecture.md). La
+hoja de ruta activa de implementación es ahora
+[RDM-003](RDM-003_simulation-first-playable-roadmap.md). Este documento
+queda `deprecated`: preserva sus hechos históricos como hoja de ruta del
+prototipo Godot, cuyas cuatro entregas de implementación
+(`IMPLEMENTATION-001` a `IMPLEMENTATION-004`) fueron técnicamente
+completadas (`IMPLEMENTATION-001` aceptada manualmente por Dennis el 18 de
+septiembre de 2026; `IMPLEMENTATION-003` con aceptación manual pendiente;
+`IMPLEMENTATION-004` completada técnicamente en su rama y PR, sin
+aceptación manual ni fusión). No se borra ni se reescribe su contenido.
 
 ## 1. Propósito
 
-Fijar el alcance exacto del primer corte jugable visual de Z-World (no el
-juego completo) y la secuencia de entregas de implementación que deben
-seguirlo. Este documento no crea código; solo delimita qué se implementará
-y en qué orden.
+Fijar el alcance exacto del primer corte jugable visual del prototipo
+histórico Godot de Z-World (no el juego completo) y la secuencia de
+entregas de implementación que lo siguieron. Este documento no crea código;
+solo delimita qué se implementó y en qué orden dentro de esa línea de
+código, ya no activa.
 
 ## 2. Principios que no deben romperse
 
@@ -150,10 +167,19 @@ El roadmap fija estas cinco entregas, en este orden, sin fechas:
 4. **Defensa y vida propia**: cierre de accesos, zombis elementales, ruido,
    guardia, retirada, aprendizaje e iniciativa autónoma acotada. Dennis podrá
    ver zombis amenazando el asentamiento, defenderlo de forma básica y
-   observar al menos una decisión autónoma con su razón visible.
+   observar al menos una decisión autónoma con su razón visible. **Estado:**
+   implementada técnicamente como `IMPLEMENTATION-004` («Defensa y vida
+   propia»), en la rama `claude/docs-foundation-setup-94xtnn` y PR #10 de
+   GitHub, sin fusionar en `main`. No fue aceptada manualmente por Dennis ni
+   adoptada como parte de la línea activa antes del cambio de arquitectura
+   de `DESIGN-004`: se conserva como referencia histórica del prototipo
+   Godot, sin continuarse ni fusionarse (ver
+   [DEC-0008](../decisions/DEC-0008_simulation-first-web-architecture.md)).
 5. **Persistencia y prueba integrada**: generación reproducible, guardado,
-   carga y los casos manuales de aceptación. Dennis podrá guardar, cerrar y
-   recargar la partida conservando el estado del asentamiento.
+   carga y los casos manuales de aceptación. No se inició en la línea de
+   código Godot; esta hoja de ruta queda `deprecated` antes de alcanzarla
+   (ver [RDM-003](RDM-003_simulation-first-playable-roadmap.md) para la
+   hoja de ruta activa).
 
 Cada entrega debe indicar qué puede probar Dennis al terminar y qué queda
 deliberadamente fuera. Esta entrega documental no redacta un prompt de

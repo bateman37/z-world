@@ -7,6 +7,8 @@ canonical_for:
 depends_on: []
 related:
   - ARC-001
+  - ARC-005
+  - DEC-0008
 ---
 
 ## Contexto
@@ -35,3 +37,14 @@ separación de carpetas prevista (`docs/`, `game_data/`, `schemas/`, `src/`,
 
 - Formato definitivo de los archivos de datos.
 - Herramientas de validación de contratos.
+
+## Nota de `DESIGN-004`
+
+Este desacoplamiento sigue vigente para la nueva línea de código
+Node.js/TypeScript adoptada en
+[DEC-0008](DEC-0008_simulation-first-web-architecture.md): el modelo
+conceptual de datos del mundo semántico
+([ARC-005](../90-architecture/ARC-005_semantic-world-data-model.md)) usa
+identificadores estables candidatos, validables en el futuro con Zod en
+las fronteras de entrada/salida, sin acoplar el catálogo de contenido al
+código del núcleo de simulación.

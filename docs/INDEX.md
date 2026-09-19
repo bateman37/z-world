@@ -32,7 +32,8 @@ que necesitas y lee solo eso y sus dependencias declaradas.
 | [scenarios](scenarios/INDEX.md) | `SCN` | Condiciones iniciales de partida. |
 | [decisions](decisions/INDEX.md) | `DEC` | Decisiones ya cerradas. |
 | [discovery](discovery/INDEX.md) | `DISC` | Síntesis de ideas todavía no cerradas. |
-| [roadmap](roadmap/INDEX.md) | `RDM` | Alcance del primer corte jugable y secuencia de entregas. |
+| [roadmap](roadmap/INDEX.md) | `RDM` | Hoja de ruta activa de implementación y horizonte de largo plazo. |
+| [catalogs](catalogs/INDEX.md) | `CAT` | Catálogos máximos de contenido (lugares, estancias, ocupantes), distintos de las reglas funcionales y del alcance implementado. |
 
 ## Ruta de lectura recomendada según el cambio
 
@@ -50,7 +51,9 @@ que necesitas y lee solo eso y sus dependencias declaradas.
 - **Cambio de amenazas**: lee `60-threats/`.
 - **Cambio de alcance del primer corte jugable**: lee `roadmap/RDM-001`.
 - **Cambio técnico/arquitectura**: lee `90-architecture/` y las decisiones en
-  `decisions/`.
+  `decisions/` (línea activa: `DEC-0008`).
+- **Cambio de lugares, edificios o saqueo procedural**: lee
+  `20-world/WLD-005` a `WLD-007`, `40-settlement/SET-007` y `catalogs/`.
 - **Cualquier cambio**: revisa `docs/OPEN-QUESTIONS.md` para no resolver en
   silencio una pregunta todavía abierta.
 

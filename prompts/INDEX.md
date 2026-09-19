@@ -11,5 +11,6 @@
 | [IMPLEMENTATION-003_exploration-and-subsistence.md](IMPLEMENTATION-003_exploration-and-subsistence.md) | Tercera entrega de código: exploración y subsistencia (información de lugares, recursos, almacén, transporte, necesidades, agua por dos rutas, alimento alternativo, deterioro y conservación). |
 | [DESIGN-003_work-recovery-and-knowledge.md](DESIGN-003_work-recovery-and-knowledge.md) | Horizonte máximo documental de trabajo, prioridades, recuperación dependiente de la persona y conocimiento individual/comunitario, sin ampliar el primer corte jugable. |
 | [HOTFIX-001_bootstrap-fix-and-git-metadata.md](HOTFIX-001_bootstrap-fix-and-git-metadata.md) | Corrección del error de compilación en `ResourceRegistry.reserve` y normalización de finales de línea (`.gitattributes`) para Godot en Windows. |
+| [DESIGN-004_simulation-first-reboot-and-procedural-places.md](DESIGN-004_simulation-first-reboot-and-procedural-places.md) | Cambio de línea técnica activa a un laboratorio de simulación Node.js/TypeScript/Next.js/PostgreSQL, reloj continuo y trabajo por fases, mapa 2D cenital con niebla, y generador procedural semántico de lugares con catálogo máximo de lugares, estancias, ocupantes y presión histórica de saqueo. |
 
 Ver el protocolo de prompts futuros en [README.md](README.md).

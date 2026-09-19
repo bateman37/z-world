@@ -16,6 +16,8 @@ related:
   - CHR-002
   - SET-006
   - ARC-002
+  - WLD-005
+  - WLD-006
 ---
 
 ## 1. Propósito
@@ -167,6 +169,13 @@ consecuencias persisten.
   rigen por
   [ARC-002](../90-architecture/ARC-002_procedural-generation-and-persistence.md)
   y [DEC-0005](../decisions/DEC-0005_reproducible-lazy-generation.md).
+- La generación semántica que produce ese contenido base por edificio,
+  estancia y ocupante se rige por
+  [WLD-005](WLD-005_semantic-place-and-building-generation.md); la presión
+  y rutas de saqueo que modifican su estado histórico previo se rigen por
+  [WLD-006](WLD-006_historical-looting-pressure-and-routes.md). Ninguna de
+  ellas cambia el principio de esta sección: la persona interpreta, nunca
+  resortea.
 - La prioridad Saqueo y recuperación y otras prioridades de exploración se
   definen en [UI-003](../80-interface/UI-003_work-priority-taxonomy.md).
 - El conocimiento que se obtiene al catalogar o estudiar una fuente

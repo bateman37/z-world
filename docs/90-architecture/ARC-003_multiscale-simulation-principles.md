@@ -12,6 +12,8 @@ depends_on:
 related:
   - WLD-003
   - SOC-003
+  - ARC-004
+  - DEC-0008
 ---
 
 ## 1. Propósito
@@ -24,8 +26,13 @@ regional sin crear mundos incoherentes, ampliando
 ## 2. Principios que no deben romperse
 
 - Materializar no reescribe hechos; abstraer no borra consecuencias.
-- Godot 4 y GDScript siguen aprobados. No se abre migración a Unity,
-  servidor, clases, carpetas o base de datos.
+- La simulación multiescala es independiente de la capa de presentación: es
+  válida tanto para el prototipo histórico Godot como para la línea activa
+  Node.js/TypeScript/Next.js/PostgreSQL de
+  [DEC-0008](../decisions/DEC-0008_simulation-first-web-architecture.md).
+  No se abre todavía una elección de motor visual 3D final, servidor,
+  clases, carpetas o base de datos definitivas más allá de lo ya aprobado
+  en [ARC-004](ARC-004_simulation-core-runtime-and-boundaries.md).
 
 ## 3. Modelo funcional
 

@@ -12,6 +12,8 @@ related:
   - UI-001
   - SET-003
   - WLD-004
+  - WLD-005
+  - UI-005
 ---
 
 ## 1. Propósito
@@ -64,6 +66,31 @@ Son verbos de diseño, no un conjunto de botones que deba aparecer en todos
 los objetos. Los edificios, recursos y elementos de contenido declararán
 cuáles pueden aplicar.
 
+### 3.3 Visibilidad espacial frente a conocimiento del lugar
+
+El mapa local usa niebla de guerra (ver
+[UI-005](../80-interface/UI-005_top-down-simulation-workbench.md)) para
+controlar qué parte del terreno es visible u observable en cada momento.
+Esta **visibilidad espacial** es distinta de los **estados de información**
+de la sección 3.1:
+
+- La visibilidad espacial responde a «¿puede el jugador ver ahora esta
+  zona del mapa?» (oculta, revelada por descubrimiento previo pero sin
+  observación directa actual, u observable en este momento).
+- El estado de información de la sección 3.1 responde a «¿qué sabe la
+  comunidad sobre este lugar u objeto concreto?», con independencia de si
+  la cámara lo muestra ahora mismo.
+
+Un lugar puede estar en zona actualmente sin visión directa y conservar un
+estado de información **Observado** o superior, alcanzado en una visita
+anterior; ver de nuevo la zona no repite el estado ni lo hace retroceder.
+Revelar terreno mediante la niebla no crea recursos, no inspecciona
+interiores y no asegura el lugar por sí solo (ver
+[UI-005](../80-interface/UI-005_top-down-simulation-workbench.md), que
+define el modelo funcional de niebla, revelado y exploración progresiva).
+Este documento no duplica ese modelo: solo fija que ambas nociones no deben
+confundirse ni sustituir en silencio los cinco estados de la sección 3.1.
+
 ## 4. Reglas aprobadas
 
 - «No queda nada» significa que los recursos extraíbles conocidos se
@@ -88,6 +115,13 @@ cuáles pueden aplicar.
   agotamiento por categoría se amplían, sobre estos mismos estados
   generales, en
   [WLD-004](WLD-004_expertise-dependent-recovery.md).
+- La generación semántica del contenido de un edificio, previa a estos
+  estados de información, se rige por
+  [WLD-005](WLD-005_semantic-place-and-building-generation.md).
+- El modelo funcional de niebla de guerra, revelado progresivo y control
+  puntual con ratón sobre el mapa Canvas 2D se rige por
+  [UI-005](../80-interface/UI-005_top-down-simulation-workbench.md), que
+  este documento no repite (ver sección 3.3).
 
 ## 6. Casos límite o riesgos
 

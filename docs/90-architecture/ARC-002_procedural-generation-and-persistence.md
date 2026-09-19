@@ -10,8 +10,11 @@ depends_on:
   - ARC-001
 related:
   - DEC-0005
+  - DEC-0008
   - WLD-002
+  - WLD-005
   - ARC-003
+  - ARC-004
   - WLD-004
 ---
 
@@ -83,19 +86,42 @@ recuerdos o información descubierta.
 
 Un día completo dura 20 minutos a velocidad ×1. El juego tiene pausa y
 velocidades ×1, ×2, ×4 y ×10. Las acciones en curso conservan progreso
-coherente al cambiar de velocidad o pausar.
+coherente al cambiar de velocidad o pausar. El detalle de ticks internos y
+fases visibles de un trabajo para la nueva línea de código vive en
+[ARC-004](ARC-004_simulation-core-runtime-and-boundaries.md), que
+desarrolla este mismo modelo de tiempo sin sustituirlo.
+
+### 3.4 Persistencia sobre PostgreSQL
+
+Desde `DESIGN-004`, la línea activa de código adopta PostgreSQL desde el
+inicio (ver
+[DEC-0008](../decisions/DEC-0008_simulation-first-web-architecture.md)),
+sustituyendo la evaluación pendiente de SQLite del prototipo Godot. Esto no
+significa escribir una fila por fotograma ni una consulta por cada pequeño
+movimiento: el estado activo evoluciona en memoria dentro del proceso de
+simulación y se persiste mediante límites causales, transacciones, eventos
+y snapshots, con una cadencia que se decide y mide al implementar (ver
+[ARC-004](ARC-004_simulation-core-runtime-and-boundaries.md), sección 3.4).
+El acceso a PostgreSQL se realiza mediante Prisma, aislado detrás de la
+capa de persistencia; el núcleo de simulación no importa Prisma
+directamente.
 
 ## 4. Reglas aprobadas
 
-- El formato de archivo, la base de datos y la estrategia exacta de migración
-  quedan abiertos; no se introduce SQLite todavía (ver
-  [ARC-001](ARC-001_technical-direction.md)).
+- La base de datos aprobada para la nueva línea de código es PostgreSQL
+  desde su inicio (ver
+  [DEC-0008](../decisions/DEC-0008_simulation-first-web-architecture.md));
+  el formato exacto de esquema, tablas y estrategia de migración quedan
+  abiertos y no se diseñan en esta entrega.
 - El guardado futuro debe conservar como mínimo: reloj, personas, relaciones
   y recuerdos relevantes, inventarios, recursos, trabajos, reservas,
-  progreso, estado de lugares, semilla, versión de generación y estado
-  aleatorio que no se derive por ID.
+  progreso, estado de lugares (incluidas las entidades semánticas de
+  [ARC-005](ARC-005_semantic-world-data-model.md)), semilla, versión de
+  generación y estado aleatorio que no se derive por ID.
 - No se promete rendimiento sin medir: la materialización debe evitar pausas
   perceptibles al implementarse.
+- No se escribe una fila por fotograma visual ni se ejecuta una consulta
+  por cada pequeño movimiento de cada persona.
 
 ## 5. Interacciones con otros sistemas
 
@@ -109,6 +135,14 @@ coherente al cambiar de velocidad o pausar.
   detalle local y abstracción regional se desarrollan en
   [ARC-003](ARC-003_multiscale-simulation-principles.md), sin cerrar
   todavía el formato de guardado.
+- Las cinco capas técnicas obligatorias y las fronteras que aíslan Prisma
+  del núcleo de simulación se definen en
+  [ARC-004](ARC-004_simulation-core-runtime-and-boundaries.md).
+- La generación semántica de lugares y edificios que produce el contenido
+  base descrito en la sección 3.1 se define en
+  [WLD-005](../20-world/WLD-005_semantic-place-and-building-generation.md);
+  las entidades conceptuales que ese contenido persiste se definen en
+  [ARC-005](ARC-005_semantic-world-data-model.md).
 
 ## 6. Casos límite o riesgos
 
