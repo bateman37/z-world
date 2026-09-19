@@ -16,3 +16,6 @@ builds/
 *.tmp
 *~
 .DS_Store
+
+# Herramientas locales de agentes (worktrees temporales, etc.).
+.claude/
