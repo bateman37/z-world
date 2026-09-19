@@ -21,11 +21,13 @@ convertirse en un calendario obligatorio.
 
 | ID | Estado | Propósito |
 |---|---|---|
-| [RDM-001](RDM-001_first-playable-slice.md) | `approved` | Alcance cerrado del primer corte jugable y secuencia de entregas de implementación, sin fechas. |
+| [RDM-001](RDM-001_first-playable-slice.md) | `deprecated` | Alcance histórico del primer corte jugable del prototipo Godot; sustituida por `RDM-003`. |
 | [RDM-002](RDM-002_long-term-capability-horizon.md) | `draft` | Mapa de capacidades futuras, sin fechas ni compromiso de versión. |
+| [RDM-003](RDM-003_simulation-first-playable-roadmap.md) | `approved` | Hoja de ruta activa de implementación del laboratorio de simulación, en incrementos pequeños y probables. |
 
 ## Dependencias con otros dominios
 
 - `80-interface`, `30-characters`, `20-world`, `40-settlement`, `60-threats`,
-  `90-architecture` y `scenarios` (`RDM-001` consolida el alcance de sus
-  documentos sin repetir sus reglas).
+  `90-architecture`, `catalogs`, `decisions` y `scenarios` (`RDM-003`
+  consolida el alcance activo de sus documentos sin repetir sus reglas;
+  `RDM-001` conserva el consolidado histórico del prototipo Godot).

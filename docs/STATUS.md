@@ -6,14 +6,32 @@ real del proyecto. No sustituye a las fuentes canónicas: para reglas, consulta
 
 ## Fase actual
 
-Tercera implementación de código ejecutable: **exploración y subsistencia**
-(`IMPLEMENTATION-003`), tercera de las cinco entregas fijadas en
-[RDM-001](roadmap/RDM-001_first-playable-slice.md). La primera entrega
-(`IMPLEMENTATION-001`) fue **aceptada manualmente por Dennis el 18 de
-septiembre de 2026**. La aceptación manual de `IMPLEMENTATION-003` sigue
-**pendiente** de que Dennis la ejecute (ver [README.md](../README.md)); esta
-entrega documental (`DESIGN-003`) no la declara superada ni cambia el juego
-ejecutable.
+`DESIGN-004` reinicia la **línea técnica activa** de Z-World: de un
+prototipo 3D en Godot a un laboratorio de simulación web centrado en
+mecánicas (Node.js, TypeScript, Next.js, PostgreSQL; ver
+[DEC-0008](decisions/DEC-0008_simulation-first-web-architecture.md)). Esta
+entrega es **exclusivamente documental**: no existe todavía ninguna
+aplicación Node.js/Next.js inicializada, ni código, ni pruebas ejecutables
+de la nueva línea. La hoja de ruta activa de implementación es
+[RDM-003](roadmap/RDM-003_simulation-first-playable-roadmap.md).
+
+El prototipo histórico Godot queda preservado íntegro, sin más desarrollo
+activo. Su historial de entregas de código:
+
+- `IMPLEMENTATION-001` (vertical slice visual): **aceptada manualmente por
+  Dennis el 18 de septiembre de 2026**.
+- `IMPLEMENTATION-002` (trabajo y personas) e `IMPLEMENTATION-003`
+  (exploración y subsistencia): técnicamente implementadas; la aceptación
+  manual de `IMPLEMENTATION-003` seguía **pendiente** en el momento del
+  reinicio de línea de código y no se declara superada por este cambio de
+  arquitectura.
+- `IMPLEMENTATION-004` («Defensa y vida propia»): **completada técnicamente**
+  en la rama `claude/docs-foundation-setup-94xtnn` y el PR #10 de GitHub
+  («IMPLEMENTATION-004: Defensa y vida propia»), **no fusionada en `main`**
+  y **no aceptada manualmente** por Dennis. No fue adoptada como parte de
+  la línea activa antes del cambio de arquitectura de `DESIGN-004`. Su rama
+  y su PR se conservan como referencia histórica del prototipo Godot, sin
+  continuarse ni fusionarse.
 
 ## Última corrección técnica
 
@@ -33,6 +51,39 @@ informó errores.
 
 ## Última entrega documental completada
 
+`DESIGN-004` — reinicio centrado en simulación y generador semántico de
+lugares: cambia la línea técnica activa de Godot 3D a un laboratorio de
+simulación web (Node.js/TypeScript/Next.js/PostgreSQL,
+[DEC-0008](decisions/DEC-0008_simulation-first-web-architecture.md));
+documenta el reloj continuo, las velocidades y el modelo mínimo de fases
+visibles de un trabajo
+([ARC-004](90-architecture/ARC-004_simulation-core-runtime-and-boundaries.md));
+documenta el mapa local 2D cenital con niebla y exploración progresiva
+([UI-005](80-interface/UI-005_top-down-simulation-workbench.md)); formaliza
+el generador procedural semántico de lugares y edificios, con cinco capas
+de aprovechamiento y tres vidas irreversibles
+([WLD-005](20-world/WLD-005_semantic-place-and-building-generation.md),
+[SET-007](40-settlement/SET-007_building-exploitation-reuse-and-demolition.md));
+formaliza la presión histórica de saqueo, correlación local, rutas y
+bolsas olvidadas
+([WLD-006](20-world/WLD-006_historical-looting-pressure-and-routes.md)) y
+la historia del apocalipsis con narrativa ambiental
+([WLD-007](20-world/WLD-007_place-history-and-environmental-storytelling.md));
+crea el catálogo máximo de 22 familias de lugares, estancias/instalaciones
+y ocupantes/profesiones/aficiones/rasgos como horizonte de referencia
+([CAT-001](catalogs/CAT-001_maximum-place-catalog.md)–[CAT-004](catalogs/CAT-004_initial-semantic-place-slice.md));
+define el modelo conceptual de datos del mundo semántico
+([ARC-005](90-architecture/ARC-005_semantic-world-data-model.md)); y
+sustituye el roadmap activo
+([RDM-003](roadmap/RDM-003_simulation-first-playable-roadmap.md)). No
+inicializa Node.js, Next.js, Prisma ni PostgreSQL, no toca `src/`,
+`scenes/`, `game_data/`, `schemas/` ni `tests/` de Godot, y no marca ningún
+documento nuevo como `implemented`. Ver
+[docs/discovery/DISC-0003](discovery/DISC-0003_procedural-place-generator-traceability.md)
+para la trazabilidad completa del encargo.
+
+## Entrega documental previa
+
 `DESIGN-003` — trabajo, recuperación y conocimiento aplicado: horizonte
 máximo documental de prioridades, órdenes, zonas, políticas, eventos y
 trabajos (nueve bloques y 34 prioridades con escala `Nunca/1–5`,
@@ -51,7 +102,19 @@ no se amplió `RDM-001` y `CHR-005`/`RDM-002` siguen `draft`. Ver
 [SET-006](40-settlement/SET-006_knowledge-assets-and-capability.md) y
 [DEC-0007](decisions/DEC-0007_layered-work-and-priorities.md).
 
-## Última entrega de código
+## Última entrega de código (prototipo histórico Godot)
+
+Estas entregas pertenecen al prototipo Godot, ya no es la línea activa de
+código (ver [DEC-0008](decisions/DEC-0008_simulation-first-web-architecture.md)).
+Se conservan íntegras como referencia histórica.
+
+`IMPLEMENTATION-004` — defensa y vida propia: cierre de accesos, zombis
+elementales, ruido, guardia, retirada, aprendizaje e iniciativa autónoma
+acotada sobre el prototipo Godot. **Completada técnicamente** en la rama
+`claude/docs-foundation-setup-94xtnn` y el PR #10 de GitHub, **sin fusionar
+en `main`** y **sin aceptación manual** de Dennis. No fue adoptada como
+parte de la línea activa antes del cambio de arquitectura de `DESIGN-004`;
+no se continúa ni se fusiona.
 
 `IMPLEMENTATION-003` — exploración y subsistencia: información de lugares
 con los cinco niveles de `WLD-002` y acciones de observar, inspeccionar y
@@ -95,18 +158,36 @@ jugable. Ver
 
 ## Tecnología aprobada
 
-- Motor: Godot 4. Baseline concreto de la primera implementación: **Godot
-  4.7.2-stable, edición estándar**, no .NET (ver
-  [DEC-0001](decisions/DEC-0001_godot-4.md)). Esto no es una promesa de que
-  la versión no podrá actualizarse en entregas futuras.
-- Lenguaje: GDScript, usado exclusivamente en esta primera implementación.
+### Línea activa (laboratorio de simulación, sin inicializar todavía)
+
+Node.js LTS, TypeScript estricto, Next.js + React, núcleo de simulación
+TypeScript puro, PostgreSQL desde el inicio con Prisma aislado detrás de la
+persistencia, Zod para contratos de frontera y Vitest para pruebas
+acotadas del motor (ver
+[DEC-0008](decisions/DEC-0008_simulation-first-web-architecture.md)).
+Ningún archivo de este stack existe todavía en el repositorio.
+
+### Prototipo histórico (Godot, ya no es la línea activa)
+
+- Motor: Godot 4. Baseline concreto de las cuatro entregas del prototipo:
+  **Godot 4.7.2-stable, edición estándar**, no .NET (ver
+  [DEC-0001](decisions/DEC-0001_godot-4.md), `deprecated`, sustituida por
+  [DEC-0008](decisions/DEC-0008_simulation-first-web-architecture.md)).
+- Lenguaje: GDScript, usado exclusivamente en el prototipo.
 - Renderizador: Forward+ (escritorio).
-- Guardado local; sin PostgreSQL ni servicios online. No implementado
-  todavía (ver `RDM-001`, quinta entrega).
+- Guardado local; sin PostgreSQL ni servicios online. No implementado en el
+  prototipo.
 
-Detalle en [ARC-001](90-architecture/ARC-001_technical-direction.md).
+Detalle en [ARC-001](90-architecture/ARC-001_technical-direction.md) y
+[ARC-004](90-architecture/ARC-004_simulation-core-runtime-and-boundaries.md).
 
-## Funcionalidad realmente implementada
+## Funcionalidad realmente implementada en la línea activa (Node.js/TypeScript)
+
+Ninguna. `DESIGN-004` es exclusivamente documental: no existe aplicación
+Next.js, núcleo de simulación TypeScript, esquema PostgreSQL/Prisma, mapa
+Canvas 2D ni prueba Vitest en el repositorio.
+
+## Funcionalidad realmente implementada en el prototipo histórico Godot
 
 - Proyecto Godot 4.7.2 importable desde la raíz (`project.godot`), escena
   principal configurada en `run/main_scene`.
@@ -205,30 +286,41 @@ posteriores de `RDM-001`.
 - **Aprobada (`approved`)**: visión, pilares y horizonte máximo
   (`10-vision`, incluyendo `VIS-003`), escalas, exploración y mundo
   estratégico (`WLD-001`, `WLD-002`, `WLD-003`), recuperación dependiente de
-  la persona (`WLD-004`), modelo de personaje, aprendizaje, autonomía e
-  historia vital (`CHR-001`, `CHR-002`, `CHR-003`, `CHR-004`), crecimiento,
-  producción, recursos, transición tecnológica, red productiva y activos de
-  conocimiento del asentamiento (`SET-001` a `SET-006`), comunidad viva,
-  política interna y comunidades externas (`SOC-001`, `SOC-002`, `SOC-003`),
-  narrativa emergente y memoria causal (`NAR-001`, `NAR-002`), interacción,
-  control, gestión a escala, taxonomía de trabajo y presentación cualitativa
-  de capacidad (`UI-001`, `UI-002`, `UI-003`, `UI-004`), amenaza zombi
-  (`THR-001`), dirección técnica, generación procedural y simulación
-  multiescala (`ARC-001`, `ARC-002`, `ARC-003`), escenario inicial
-  (`SCN-001`), alcance del primer corte jugable (`RDM-001`), decisiones
-  `DEC-0001` a `DEC-0007`, sistema documental (`DOC-001`).
+  la persona (`WLD-004`), generación semántica de lugares, presión histórica
+  de saqueo e historia del apocalipsis (`WLD-005`, `WLD-006`, `WLD-007`),
+  modelo de personaje, aprendizaje, autonomía e historia vital (`CHR-001`,
+  `CHR-002`, `CHR-003`, `CHR-004`), crecimiento, producción, recursos,
+  transición tecnológica, red productiva, activos de conocimiento y
+  explotación/reutilización/demolición de edificios del asentamiento
+  (`SET-001` a `SET-007`), comunidad viva, política interna y comunidades
+  externas (`SOC-001`, `SOC-002`, `SOC-003`), narrativa emergente y memoria
+  causal (`NAR-001`, `NAR-002`), interacción, control, gestión a escala,
+  taxonomía de trabajo, presentación cualitativa de capacidad y laboratorio
+  de simulación cenital (`UI-001`, `UI-002`, `UI-003`, `UI-004`, `UI-005`),
+  amenaza zombi (`THR-001`), dirección técnica, generación procedural,
+  simulación multiescala, núcleo de simulación y modelo conceptual de datos
+  del mundo semántico (`ARC-001` a `ARC-005`), escenario inicial
+  (`SCN-001`), hoja de ruta activa (`RDM-003`), catálogo máximo de lugares,
+  estancias/instalaciones y ocupantes/profesiones/aficiones/rasgos como
+  horizonte de referencia (`CAT-001` a `CAT-003`), decisiones `DEC-0002` a
+  `DEC-0008` (`DEC-0001` es `deprecated`), sistema documental (`DOC-001`).
 - **Borrador (`draft`)**: síntesis de descubrimiento (`DISC-0001`,
-  `DISC-0002`), taxonomía extendida de habilidades (`CHR-005`), horizonte
-  configurable de amenazas (`THR-002`) y horizonte de capacidades a largo
-  plazo (`RDM-002`).
+  `DISC-0002`), trazabilidad del generador procedural de lugares
+  (`DISC-0003`), taxonomía extendida de habilidades (`CHR-005`), horizonte
+  configurable de amenazas (`THR-002`), horizonte de capacidades a largo
+  plazo (`RDM-002`) y propuesta de subconjunto inicial de lugares
+  (`CAT-004`).
+- **Deprecada (`deprecated`)**: motor Godot 4 como línea inicial
+  (`DEC-0001`, sustituida por `DEC-0008`) y alcance del primer corte
+  jugable del prototipo Godot (`RDM-001`, sustituida por `RDM-003`); ambas
+  se conservan como referencia histórica.
 - **Implementado (`implemented`)**: no se usa todavía en ningún documento de
-  dominio. `IMPLEMENTATION-001`, `IMPLEMENTATION-002` e
-  `IMPLEMENTATION-003` son entregas de código, no un cambio de estado
-  documental de `WLD-002`, `SET-003`, `CHR-001`, `UI-001`, `CHR-003`,
-  `SCN-001`, `ARC-002` ni del resto de `RDM-001`, que siguen siendo
-  `approved` a la espera de sus entregas correspondientes: esta entrega
-  implementa solo el subconjunto de exploración y subsistencia descrito en
-  su prompt.
+  dominio. `IMPLEMENTATION-001` a `IMPLEMENTATION-004` son entregas de
+  código del prototipo histórico Godot, no un cambio de estado documental
+  de `WLD-002`, `SET-003`, `CHR-001`, `UI-001`, `CHR-003`, `SCN-001`,
+  `ARC-002` ni del resto de `RDM-001`. `DESIGN-004` no marca ningún
+  documento nuevo como `implemented`: la nueva línea de código
+  Node.js/TypeScript no tiene todavía ninguna entrega.
 
 ## Validaciones automatizadas de `IMPLEMENTATION-003`
 
@@ -264,18 +356,28 @@ Godot en el entorno de implementación (ver sección anterior).
 
 ## Aceptación manual pendiente
 
+Todas estas aceptaciones corresponden al prototipo histórico Godot, ya no
+es la línea activa de código.
+
 `IMPLEMENTATION-001` fue aceptada manualmente por Dennis el 18 de septiembre
 de 2026. La aceptación manual de `IMPLEMENTATION-003` (lista de dieciocho
 pasos en [README.md](../README.md)) está pendiente de que Dennis la
 ejecute. No se declara superada por el agente que implementó la entrega.
 La lista de aceptación de `IMPLEMENTATION-002` queda absorbida por esta: sus
-objetivos demostradores ya no existen.
+objetivos demostradores ya no existen. `IMPLEMENTATION-004` está completada
+técnicamente en su rama y PR #10, pero no está aceptada manualmente ni fue
+adoptada como parte de la línea activa antes del cambio de arquitectura de
+`DESIGN-004`; no se abre ninguna lista de aceptación adicional para ella
+mientras siga sin fusionarse.
 
 ## Próximo candidato de trabajo (no es un compromiso)
 
-La siguiente entrega de implementación candidata es **«Defensa y vida
-propia»**, descrita en
-[RDM-001](roadmap/RDM-001_first-playable-slice.md): cierre de accesos,
-zombis elementales, ruido, guardia, retirada, aprendizaje e iniciativa
-autónoma acotada. No se ha iniciado y requerirá su propio prompt de
-programación.
+Con el reinicio de línea activa de `DESIGN-004`, el siguiente candidato de
+implementación es el primer incremento de
+[RDM-003](roadmap/RDM-003_simulation-first-playable-roadmap.md):
+inicialización técnica del laboratorio de simulación web (proyecto Next.js
+local, núcleo de simulación TypeScript mínimo, conexión a PostgreSQL vía
+Prisma, reloj continuo y un primer estado visible). No se ha iniciado y
+requerirá su propio prompt de programación. «Defensa y vida propia» ya
+existe completada técnicamente para el prototipo Godot en el PR #10, pero
+no se retoma ni se porta automáticamente a la nueva línea de código.

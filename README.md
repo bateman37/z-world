@@ -5,31 +5,49 @@ tras un apocalipsis zombi, con narrativa procedural emergente: cada partida
 genera su propia historia a partir de sistemas conectados, no de una
 secuencia fija de misiones.
 
-## Estado actual
+## Estado actual (`DESIGN-004`)
 
-Tercera entrega de código ejecutable: **exploración y subsistencia**
-(`IMPLEMENTATION-003`). Sobre el sistema de trabajo anterior, el mapa deja de
-tener objetivos demostradores y pasa a tener lugares reales de los que la
-comunidad obtiene información, materiales, agua, alimento y descanso: se
-observa, se inspecciona y se registra, se transporta al almacén, se bebe, se
-come y se descansa, se pesca y se recolectan hongos, se acarrea agua o se
-construye una conducción por gravedad, y el alimento fresco se estropea si no
-se conserva. Sigue **sin** haber defensa, zombis, autonomía, aprendizaje ni
-guardado. Ver el estado detallado en [docs/STATUS.md](docs/STATUS.md) y el
-alcance exacto en
-[docs/roadmap/RDM-001_first-playable-slice.md](docs/roadmap/RDM-001_first-playable-slice.md).
+`DESIGN-004` reinicia la **línea técnica activa** de Z-World: pasa del
+prototipo 3D en Godot a un laboratorio de simulación web centrado en
+mecánicas (Node.js, TypeScript, Next.js, PostgreSQL). Esta entrega es
+**exclusivamente documental**: formaliza arquitectura, reloj continuo,
+trabajo por fases, mapa 2D cenital con niebla, generador procedural
+semántico de lugares y catálogo máximo de contenido. **Todavía no existe
+ninguna aplicación Node.js/Next.js inicializada, ni código, ni pruebas
+ejecutables de esta nueva línea.** Ver el estado detallado en
+[docs/STATUS.md](docs/STATUS.md) y la hoja de ruta activa en
+[docs/roadmap/RDM-003_simulation-first-playable-roadmap.md](docs/roadmap/RDM-003_simulation-first-playable-roadmap.md).
 
-`IMPLEMENTATION-001` fue **aceptada manualmente por Dennis el 18 de
-septiembre de 2026**. La aceptación manual de `IMPLEMENTATION-003` (lista de
-pasos más abajo) está **pendiente** de que Dennis la ejecute.
+El prototipo Godot descrito más abajo (`IMPLEMENTATION-001` a
+`IMPLEMENTATION-004`) queda preservado íntegro como **prototipo histórico y
+aprendizaje técnico**: no se borra, no se mueve y no recibe más desarrollo
+activo. `IMPLEMENTATION-004` («Defensa y vida propia») fue completada
+técnicamente en la rama `claude/docs-foundation-setup-94xtnn` y el PR #10
+de GitHub, pero no fue aceptada manualmente por Dennis ni fusionada a
+`main`; permanece abierta como referencia histórica, sin continuarse.
 
 ## Tecnología
+
+### Línea activa (laboratorio de simulación, todavía sin inicializar)
+
+Node.js LTS, TypeScript estricto, Next.js + React, núcleo de simulación
+TypeScript puro, PostgreSQL con Prisma, Zod y Vitest. Ver
+[DEC-0008](docs/decisions/DEC-0008_simulation-first-web-architecture.md) y
+[ARC-004](docs/90-architecture/ARC-004_simulation-core-runtime-and-boundaries.md).
+Ningún archivo de este stack (`package.json`, configuración de Next.js,
+esquema de Prisma, etc.) existe todavía en el repositorio.
+
+### Prototipo histórico (Godot, ya no es la línea activa)
 
 - Motor: **Godot 4.7.2-stable**, edición estándar (no .NET).
 - Lenguaje: **GDScript** exclusivamente.
 - Renderizador: **Forward+** (escritorio).
 
-## Requisitos e instalación (Windows)
+## Requisitos e instalación del prototipo histórico Godot (Windows)
+
+Estas instrucciones ejecutan el **prototipo histórico**, no la nueva línea
+de código. Se conservan porque el prototipo sigue siendo un artefacto válido
+de referencia y aprendizaje técnico.
 
 1. Descarga **Godot 4.7.2-stable Standard para Windows x86_64** desde
    `https://godotengine.org/download/archive/4.7.2-stable/`. No descargues
@@ -41,7 +59,7 @@ pasos más abajo) está **pendiente** de que Dennis la ejecute.
 4. Pulsa **Ejecutar proyecto** (o F5). La escena principal se abre
    automáticamente; no hace falta elegir ninguna escena manualmente.
 
-## Controles (solo ratón)
+## Controles del prototipo histórico Godot (solo ratón)
 
 - **Botón central + arrastrar**: desplaza la cámara sobre el plano
   horizontal.
@@ -75,7 +93,7 @@ Para un lugar muestra su nivel de información, los indicios conocidos, el
 contenido pendiente, el estado de la fuente o de la conducción y un botón
 por cada acción disponible, con su motivo cuando no es posible.
 
-## Bucle de exploración y subsistencia
+## Bucle de exploración y subsistencia del prototipo histórico Godot
 
 1. Observar, inspeccionar y **registrar** el refugio candidato: eso
    establece el almacén (50) y el depósito de agua (12).
@@ -94,7 +112,9 @@ por cada acción disponible, con su motivo cuando no es posible.
 
 Esta lista **no** se declara superada por el agente que implementó la
 entrega; debe ejecutarla Dennis después de recibirla. La prueba manual de
-`IMPLEMENTATION-001` ya fue superada el 18 de septiembre de 2026.
+`IMPLEMENTATION-001` ya fue superada el 18 de septiembre de 2026. Esta
+prueba corresponde al **prototipo histórico Godot**, no a la nueva línea de
+código, que todavía no existe.
 
 1. Ejecutar el proyecto y confirmar que cámara, selección, reloj,
    velocidades, prioridades y ficha de persona siguen funcionando.
@@ -142,6 +162,12 @@ entrega; debe ejecutarla Dennis después de recibirla. La prueba manual de
     y confirmar que en pausa nada avanza y que no aparecen errores rojos en
     el depurador.
 
+`IMPLEMENTATION-004` («Defensa y vida propia») está completada técnicamente
+en su rama y PR #10, pero no está aceptada manualmente por Dennis ni forma
+parte de esta lista: al no fusionarse ni adoptarse antes del cambio de
+arquitectura, su prueba de aceptación queda igualmente pendiente y sin
+efecto sobre la línea activa.
+
 ## Documentación
 
 - [docs/INDEX.md](docs/INDEX.md) — punto de entrada a toda la documentación.
@@ -150,11 +176,16 @@ entrega; debe ejecutarla Dennis después de recibirla. La prueba manual de
 
 ## Próximo trabajo de implementación
 
-El alcance del primer corte jugable y la secuencia de entregas de
-implementación están en
-[docs/roadmap/RDM-001_first-playable-slice.md](docs/roadmap/RDM-001_first-playable-slice.md).
-La siguiente entrega prevista es **«Defensa y vida propia»**; no se ha
-iniciado.
+La hoja de ruta activa tras `DESIGN-004` es
+[docs/roadmap/RDM-003_simulation-first-playable-roadmap.md](docs/roadmap/RDM-003_simulation-first-playable-roadmap.md):
+inicialización técnica del laboratorio de simulación web, reloj continuo
+con seis personas, mapa cenital con niebla, trabajos y recursos, generador
+semántico inicial, y ampliación progresiva en incrementos pequeños. No se
+ha iniciado ninguna de sus entregas de implementación.
+
+El roadmap histórico del prototipo Godot,
+[docs/roadmap/RDM-001_first-playable-slice.md](docs/roadmap/RDM-001_first-playable-slice.md),
+queda `deprecated` y preservado como referencia.
 
 Las instrucciones para agentes (Claude Code, Codex y otros) están en
 [AGENTS.md](AGENTS.md).

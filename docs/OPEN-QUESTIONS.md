@@ -137,16 +137,60 @@ Cuando una pregunta se cierre:
 
 ## Arquitectura técnica (`90-architecture`)
 
-- Estructura de carpetas definitiva del proyecto Godot. Ver
-  [ARC-001](90-architecture/ARC-001_technical-direction.md).
-- Formato definitivo de datos de contenido. Ver
-  [ARC-001](90-architecture/ARC-001_technical-direction.md).
+- Estructura interna definitiva de carpetas para la nueva línea de código
+  Node.js/TypeScript, que se fijará en su entrega de inicialización
+  técnica. Ver [ARC-001](90-architecture/ARC-001_technical-direction.md).
+- Formato definitivo de datos de contenido y de esquema PostgreSQL/Prisma.
+  Ver [ARC-001](90-architecture/ARC-001_technical-direction.md) y
+  [ARC-002](90-architecture/ARC-002_procedural-generation-and-persistence.md).
 - Formato de guardado, compatibilidad entre versiones y representación de
   datos final. Ver
   [ARC-002](90-architecture/ARC-002_procedural-generation-and-persistence.md).
 - Presupuestos, frecuencias, materialización y rendimiento de la
   simulación multiescala. Ver
   [ARC-003](90-architecture/ARC-003_multiscale-simulation-principles.md).
+- Frecuencia exacta de ticks internos o tamaño del acumulador de tiempo
+  simulado, y cadencia exacta de snapshots/eventos sobre PostgreSQL. Ver
+  [ARC-004](90-architecture/ARC-004_simulation-core-runtime-and-boundaries.md).
+- Forma concreta de persistencia (tablas, documentos, JSON estructurado)
+  para cada entidad conceptual del mundo semántico. Ver
+  [ARC-005](90-architecture/ARC-005_semantic-world-data-model.md).
+
+## Lugares y edificios procedurales (`20-world`, `40-settlement`, `catalogs`)
+
+- Algoritmo exacto de trazado de calles, distritos y parcelas, y fórmulas
+  exactas de probabilidad de arquetipo según contexto. Ver
+  [WLD-005](20-world/WLD-005_semantic-place-and-building-generation.md).
+- Pesos, escalas y unidades exactos del modelo interno de presión de
+  saqueo, y algoritmo exacto de rutas y bolsas olvidadas. Ver
+  [WLD-006](20-world/WLD-006_historical-looting-pressure-and-routes.md).
+- Condiciones exactas de activación y coste de simulación del saqueo
+  dinámico durante la partida. Ver
+  [WLD-006](20-world/WLD-006_historical-looting-pressure-and-routes.md).
+- Catálogo exhaustivo de señales ambientales por historia del apocalipsis.
+  Ver [WLD-007](20-world/WLD-007_place-history-and-environmental-storytelling.md).
+- Tiempos, requisitos exactos y cantidades producidas por cada acción de
+  desmontaje, desmantelamiento y demolición; umbral exacto de pérdida de
+  habitabilidad. Ver
+  [SET-007](40-settlement/SET-007_building-exploitation-reuse-and-demolition.md).
+- Qué localizaciones especiales de la familia V requieren programa de
+  estancias propio frente a ser puramente modificadores; estrategia
+  definitiva de alias entre IDs aparentemente duplicados. Ver
+  [CAT-001](catalogs/CAT-001_maximum-place-catalog.md).
+- Ampliación del catálogo de estancias más allá de la base heredada del
+  Anexo A. Ver [CAT-002](catalogs/CAT-002_rooms-modules-and-building-systems.md).
+- Si Dennis aprueba el subconjunto inicial propuesto en
+  [CAT-004](catalogs/CAT-004_initial-semantic-place-slice.md) o uno
+  distinto.
+
+## Interfaz de laboratorio de simulación (`80-interface`)
+
+- Alcance exacto de visión de una persona o punto de observación (radio,
+  línea de visión, obstáculos) en la niebla del mapa 2D. Ver
+  [UI-005](80-interface/UI-005_top-down-simulation-workbench.md).
+- Representación visual exacta (colores, formas, iconografía) del mapa
+  Canvas 2D; esta entrega no fija arte ni paleta. Ver
+  [UI-005](80-interface/UI-005_top-down-simulation-workbench.md).
 
 ## Escenario inicial (`scenarios`)
 
@@ -160,6 +204,25 @@ Salvo que ya se deduzca lo contrario de
 - La población zombi inicial.
 - La disponibilidad inicial de armas, agua, alimento y electricidad.
 - La existencia y proximidad de otras comunidades.
+
+## Cerradas por `DESIGN-004`
+
+`DESIGN-004` cerró estas decisiones, antes abiertas o no registradas: la
+línea técnica activa de código es Node.js/TypeScript/Next.js/PostgreSQL, no
+Godot (ver [DEC-0008](decisions/DEC-0008_simulation-first-web-architecture.md));
+Godot y `IMPLEMENTATION-004` («Defensa y vida propia», rama
+`claude/docs-foundation-setup-94xtnn`, PR #10) quedan preservados como
+prototipo histórico, completado técnicamente pero sin aceptación manual ni
+fusión; los lugares y edificios se generan semánticamente antes que
+geométricamente, con cinco capas de aprovechamiento y tres vidas
+irreversibles ([WLD-005](20-world/WLD-005_semantic-place-and-building-generation.md),
+[SET-007](40-settlement/SET-007_building-exploitation-reuse-and-demolition.md));
+el saqueo histórico es espacialmente correlacionado, nunca una tirada
+aislada por edificio
+([WLD-006](20-world/WLD-006_historical-looting-pressure-and-routes.md));
+existe un catálogo máximo de 22 familias de lugares como horizonte de
+referencia, distinto del subconjunto inicial `draft`
+([CAT-001](catalogs/CAT-001_maximum-place-catalog.md)–[CAT-004](catalogs/CAT-004_initial-semantic-place-slice.md)).
 
 ## Cerradas por `DESIGN-001`
 

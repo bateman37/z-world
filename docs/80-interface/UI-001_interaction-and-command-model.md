@@ -16,6 +16,7 @@ related:
   - ARC-001
   - UI-002
   - UI-003
+  - UI-005
 ---
 
 ## 1. Propósito
@@ -155,8 +156,12 @@ por expedición:
 
 ### 3.5 Control puntual con ratón
 
-El jugador puede seleccionar una persona y tomar control puntual, con la
-misma cámara estratégica inclinada que la gestión general y solo ratón:
+El jugador puede seleccionar una persona y tomar control puntual, con solo
+ratón, sobre la superficie de mapa vigente en cada línea de código: la
+cámara estratégica inclinada 3D del prototipo histórico Godot, o el mapa
+Canvas 2D cenital del laboratorio de simulación activo (ver
+[UI-005](UI-005_top-down-simulation-workbench.md)). El mecanismo de control
+puntual es el mismo con independencia de la superficie de mapa:
 
 1. Selecciona a la persona.
 2. Hace clic en un destino, objeto, persona o elemento del entorno.
@@ -202,6 +207,11 @@ efectos ya ocurridos.
   trabajos, con nueve bloques y 34 prioridades, se desarrolla en
   [UI-003](UI-003_work-priority-taxonomy.md), sin sustituir las diez
   familias implementadas de la sección 3.2.
+- El mapa Canvas 2D cenital, su niebla y su reloj para el laboratorio de
+  simulación activo se desarrollan en
+  [UI-005](UI-005_top-down-simulation-workbench.md), que adapta la
+  superficie de mapa de la sección 3.5 sin reabrir estas reglas cerradas
+  por `DESIGN-001`.
 
 ## 6. Casos límite o riesgos
 

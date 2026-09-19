@@ -7,6 +7,8 @@ canonical_for:
 depends_on: []
 related:
   - ARC-002
+  - WLD-005
+  - DEC-0008
 ---
 
 ## Contexto
@@ -37,3 +39,12 @@ modelo completo en
 ## Aspectos que siguen abiertos
 
 - Formato de archivo, base de datos y estrategia de migración de guardado.
+
+## Nota de `DESIGN-004`
+
+Este principio sigue vigente sin cambios para la nueva línea de código
+Node.js/TypeScript/PostgreSQL adoptada en
+[DEC-0008](DEC-0008_simulation-first-web-architecture.md): la generación
+semántica de lugares y edificios de
+[WLD-005](../20-world/WLD-005_semantic-place-and-building-generation.md) es
+igualmente determinista por semilla, ID y versión del generador.

@@ -72,6 +72,7 @@ obligar a los agentes a leer todo el repositorio en cada entrega.
 | Decisiones | `DEC` |
 | Descubrimiento | `DISC` |
 | Hoja de ruta | `RDM` |
+| Catálogos de contenido | `CAT` |
 
 Los identificadores no se reutilizan aunque un documento quede obsoleto.
 
@@ -146,6 +147,23 @@ paréntesis solo si aporta claridad.
   consecuencias.
 - Los documentos canónicos por dominio contienen las reglas vigentes.
 - Las conversaciones completas no se copian al repositorio; se sintetizan.
+
+### 3.9 Catálogos de contenido frente a reglas funcionales
+
+`docs/catalogs/` (prefijo `CAT`) conserva catálogos máximos de contenido
+(lugares, estancias, instalaciones, ocupantes, profesiones, aficiones y
+rasgos), distinguidos siempre de:
+
+- las reglas funcionales que gobiernan cómo se genera y se usa ese
+  contenido, que viven en su dominio correspondiente (por ejemplo
+  `20-world` o `40-settlement`);
+- el subconjunto realmente implementado en el juego ejecutable, que se
+  declara en `docs/STATUS.md`.
+
+Un catálogo `CAT` puede marcarse `approved` como **horizonte de referencia
+aprobado**, sin que eso autorice implementarlo en su totalidad de
+inmediato (ver
+[DEC-0006](../decisions/DEC-0006_maximum-envelope-vs-delivery-scope.md)).
 
 ## 4. Reglas aprobadas
 

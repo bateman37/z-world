@@ -16,8 +16,9 @@ trabaje en este repositorio.
   documentos canónicos que ese índice señale como relevantes, y las
   dependencias (`depends_on` / `related`) expresamente citadas en su cabecera.
 - Busca por identificador (`DOC-`, `VIS-`, `WLD-`, `CHR-`, `SET-`, `SOC-`,
-  `THR-`, `NAR-`, `UI-`, `ARC-`, `SCN-`, `DEC-`, `DISC-`) con una herramienta de
-  búsqueda textual antes de ampliar el contexto a otros documentos.
+  `THR-`, `NAR-`, `UI-`, `ARC-`, `SCN-`, `DEC-`, `DISC-`, `RDM-`, `CAT-`) con
+  una herramienta de búsqueda textual antes de ampliar el contexto a otros
+  documentos.
 
 ## Reglas de edición
 

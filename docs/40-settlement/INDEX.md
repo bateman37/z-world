@@ -25,9 +25,12 @@ que sostienen a la comunidad.
 | [SET-004](SET-004_technological-transition-and-knowledge-economy.md) | `approved` | Del aprovechamiento del mundo anterior a la reconstrucción local. |
 | [SET-005](SET-005_production-web-and-infrastructure.md) | `approved` | Red de soluciones, mantenimiento e infraestructuras. |
 | [SET-006](SET-006_knowledge-assets-and-capability.md) | `approved` | Fuentes de conocimiento, estados comunitarios, acceso físico/digital y conversión en capacidad real. |
+| [SET-007](SET-007_building-exploitation-reuse-and-demolition.md) | `approved` | Cinco capas de aprovechamiento, tres vidas del edificio, desmontaje, desmantelamiento y demolición irreversible. |
 
 ## Dependencias con otros dominios
 
-- `20-world` (mapa local como escenario del asentamiento).
+- `20-world` (mapa local como escenario del asentamiento; `WLD-005` a
+  `WLD-007` generan el edificio que `SET-007` explota).
+- `catalogs` (`CAT-002`, catálogo de instalaciones y acabados desmontables).
 - `30-characters` (habilidades y conocimiento que habilitan la producción).
 - `80-interface` (reservas y designaciones sobre recursos).
