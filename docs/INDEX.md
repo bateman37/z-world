@@ -21,7 +21,7 @@ que necesitas y lee solo eso y sus dependencias declaradas.
 |---|---|---|
 | [00-governance](00-governance/INDEX.md) | `DOC` | Cómo se organiza y mantiene la documentación. |
 | [10-vision](10-vision/INDEX.md) | `VIS` | Visión del juego y pilares de diseño. |
-| [20-world](20-world/INDEX.md) | `WLD` | Escalas del mundo (mapa local y estratégico). |
+| [20-world](20-world/INDEX.md) | `WLD` | Escalas del mundo (mapa local y regional), generación espacial y exploración. |
 | [30-characters](30-characters/INDEX.md) | `CHR` | Modelo de personaje, habilidades y conocimiento. |
 | [40-settlement](40-settlement/INDEX.md) | `SET` | Crecimiento del asentamiento y producción. |
 | [50-society](50-society/INDEX.md) | `SOC` | Dinámica social, facciones y comunidades externas. |
@@ -49,7 +49,12 @@ que necesitas y lee solo eso y sus dependencias declaradas.
 - **Cambio de interfaz/control/designaciones**: lee `80-interface/`, revisa
   `30-characters/` (autonomía y habilidades).
 - **Cambio de amenazas**: lee `60-threats/`.
-- **Cambio de alcance del primer corte jugable**: lee `roadmap/RDM-001`.
+- **Cambio de alcance de la implementación activa**: lee `roadmap/RDM-003`,
+  la hoja de ruta vigente. `roadmap/RDM-001` es `deprecated` y conserva el
+  alcance histórico del prototipo Godot; no se usa como fuente activa.
+- **Cambio del mapa local (geografía, representación o interacción)**: lee
+  `20-world/WLD-008`, `80-interface/UI-005` y `80-interface/UI-006`, y
+  revisa `decisions/DEC-0010`.
 - **Cambio técnico/arquitectura**: lee `90-architecture/` y las decisiones en
   `decisions/` (línea activa: `DEC-0008`).
 - **Cambio de lugares, edificios o saqueo procedural**: lee

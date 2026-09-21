@@ -18,6 +18,7 @@ related:
   - WLD-002
   - WLD-004
   - UI-004
+  - UI-006
 ---
 
 ## 1. Propósito
@@ -377,8 +378,8 @@ la tercera columna:
 | P06 | Requisitos duros por método y posibilidades de improvisación. | La suerte no sustituye conocimientos indispensables ([ARC-006](ARC-006_action-and-event-resolution-model.md#32-características-habilidades-y-medias)). |
 | P07 | Condiciones para clasificar una tarea como básica. | Sin porcentaje artificial de fracaso cuando corresponde ejecución directa ([ARC-006](ARC-006_action-and-event-resolution-model.md#33-posibilidad-requisitos-y-acciones-básicas-sin-tirada)). |
 | P08 | Qué fases necesitan comprobación y cómo se delimita un episodio. | No se tira por fotograma ni se resetean intentos ([ARC-006](ARC-006_action-and-event-resolution-model.md#36-base-híbrida-ejecución-directa-d-y-comprobaciones-b)). |
-| P09 | Fórmula de cooperación, capacidad de coordinación y número útil de ayudantes. | Responsable y funciones reales; no garantías por cantidad ([ARC-007](ARC-007_teamwork-orders-modes-and-conditions.md#31-trabajo-en-equipo-con-un-líder)). |
-| P10 | Elección y sustitución del responsable; trabajo supervisado. | Presencia o aportación efectiva, progreso persistente ([ARC-007](ARC-007_teamwork-orders-modes-and-conditions.md#31-trabajo-en-equipo-con-un-líder)). |
+| P09 | **Sigue pendiente:** fórmula de cooperación, capacidad de coordinación, rendimientos decrecientes y número útil de ayudantes por familia de acción. | **Ya cerrado:** el selector local `Auto / 1 / 2 / 3 / 4`, los modos de asignación `Comunidad`/`Equipo seleccionado` y las aportaciones funcionales ([UI-006](../80-interface/UI-006_contextual-place-interaction-and-teams.md#39-equipo-operativo-local-tamaño-y-asignación)). Se conserva además: responsable y funciones reales; no garantías por cantidad ([ARC-007](ARC-007_teamwork-orders-modes-and-conditions.md#31-trabajo-en-equipo-con-un-líder)). |
+| P10 | **Sigue abierto:** elección y sustitución del responsable, supervisión y reasignación automática. | Presencia o aportación efectiva, progreso persistente ([ARC-007](ARC-007_teamwork-orders-modes-and-conditions.md#31-trabajo-en-equipo-con-un-líder)). El cierre del selector de equipo en `UI-006` no resuelve esta cuestión. |
 | P11 | Lista final de modos y denominación por tarea. | Relajado no equivale a exhaustivo/cuidadoso ([ARC-007](ARC-007_teamwork-orders-modes-and-conditions.md#33-modos-de-ejecución-significado-corregido)). |
 | P12 | Efectos y costes de cada modo por familia. | No hay bonos universales ni modo siempre óptimo sin coste ([ARC-007](ARC-007_teamwork-orders-modes-and-conditions.md#33-modos-de-ejecución-significado-corregido)). |
 | P13 | Límites de tiempo, herencia del lugar y prioridad. | Ajustes en la orden del lugar, no globales en el personaje ([ARC-007](ARC-007_teamwork-orders-modes-and-conditions.md#32-órdenes-de-trabajo-vinculadas-al-lugar)). |
@@ -388,7 +389,7 @@ la tercera columna:
 | P17 | Reintento automático y autorización de gasto o riesgo. | Nuevo esfuerzo y persistencia, no lotería gratuita (§3.1). |
 | P18 | Oposición activa frente a pasiva. | Resolución pertinente, sin comprobaciones globales constantes (§3.3). |
 | P19 | Aprendizaje por participación, errores y habilidades combinadas. | No hay habilidad transferida mágicamente ni experiencia duplicada por defecto (§3.4). |
-| P20 | Esquema de eventos, orden causal y agrupación de avisos. | No se duplican consecuencias ni se confunde evento con notificación (§3.2). |
+| P20 | Esquema de eventos, orden causal, agrupación de avisos y política exacta de pausa o elevación automática ante un hecho significativo. | No se duplican consecuencias ni se confunde evento con notificación (§3.2). Los tipos de hecho que pueden interrumpir una rutina se enumeran, sin cerrar la política, en [UI-006](../80-interface/UI-006_contextual-place-interaction-and-teams.md#314-interrupciones). |
 | P21 | Persistencia aleatoria y equivalencia de escalas temporales. | Sin explotación por reinicio, cámara o frecuencia de actualización (§3.5). |
 | P22 | Presentación de probabilidades y explicación al jugador. | Comprensión sin convertir la experiencia en una tabla de fórmulas (§3.6). |
 

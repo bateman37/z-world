@@ -13,7 +13,9 @@ related:
   - SET-003
   - WLD-004
   - WLD-005
+  - WLD-008
   - UI-005
+  - UI-006
 ---
 
 ## 1. Propósito
@@ -65,6 +67,14 @@ actual (ver [UI-001](../80-interface/UI-001_interaction-and-command-model.md)).
 Son verbos de diseño, no un conjunto de botones que deba aparecer en todos
 los objetos. Los edificios, recursos y elementos de contenido declararán
 cuáles pueden aplicar.
+
+Estas familias se amplían, sin contradecirse, en
+[UI-006](../80-interface/UI-006_contextual-place-interaction-and-teams.md),
+sección 3.7, que añade percibir, posicionarse, asegurar y responder,
+utilizar y relacionarse, y fija qué familias corresponden a cada tipo de
+objetivo. La regla de qué acciones se muestran, cuáles aparecen bloqueadas
+con motivo y cuáles no aparecen en absoluto vive también en `UI-006`,
+sección 3.4; este documento no la repite.
 
 ### 3.3 Visibilidad espacial frente a conocimiento del lugar
 
@@ -122,6 +132,13 @@ confundirse ni sustituir en silencio los cinco estados de la sección 3.1.
   puntual con ratón sobre el mapa Canvas 2D se rige por
   [UI-005](../80-interface/UI-005_top-down-simulation-workbench.md), que
   este documento no repite (ver sección 3.3).
+- La ficha contextual de un lugar, la evolución de sus acciones según lo
+  conocido, el reconocimiento exterior y el revelado parcial de interiores
+  se rigen por
+  [UI-006](../80-interface/UI-006_contextual-place-interaction-and-teams.md),
+  que se apoya en los cinco estados de la sección 3.1 sin sustituirlos.
+- La geografía sobre la que existen estos lugares se genera según
+  [WLD-008](WLD-008_local-procedural-map-generation.md).
 
 ## 6. Casos límite o riesgos
 
@@ -130,7 +147,7 @@ confundirse ni sustituir en silencio los cinco estados de la sección 3.1.
 
 ## 7. Preguntas abiertas
 
-- Tamaño, escala, revelado y transición del mapa estratégico. Ver
+- Tamaño, resolución, revelado y transición del mapa regional. Ver
   `docs/OPEN-QUESTIONS.md` y [WLD-001](WLD-001_world-scales.md).
 - Catálogo concreto de qué edificios y recursos declaran qué acciones de la
   sección 3.2.

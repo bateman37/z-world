@@ -16,3 +16,6 @@ builds/
 *.tmp
 *~
 .DS_Store
+
+# Artefactos internos de sesiones de Claude Code (worktrees temporales, etc.).
+.claude/

@@ -18,6 +18,8 @@ related:
   - CHR-003
   - WLD-004
   - SET-006
+  - UI-006
+  - ARC-007
   - DEC-0007
 ---
 
@@ -564,6 +566,13 @@ plantillas se amplía en
 - La decisión transversal que respalda mantener 34 prioridades separadas de
   habilidades y del alcance implementado es
   [DEC-0007](../decisions/DEC-0007_layered-work-and-priorities.md).
+- La interacción contextual con un lugar y la composición del equipo
+  operativo local que ejecuta una orden se definen en
+  [UI-006](UI-006_contextual-place-interaction-and-teams.md). Su selector
+  `Auto / 1 / 2 / 3 / 4` expresa **cuántas personas** participan en una orden
+  local y **no** es la escala de prioridad `Nunca/1–5` de la sección 3.2. La
+  movilización ante un desastre sigue rigiéndose por Emergencias (sección
+  3.6), sin límite de cuatro personas.
 
 ## 6. Casos límite o riesgos
 

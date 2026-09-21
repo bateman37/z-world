@@ -14,6 +14,7 @@ related:
   - CHR-001
   - CHR-003
   - UI-003
+  - UI-006
 ---
 
 ## 1. Propósito
@@ -66,6 +67,23 @@ social vive en el catálogo de
 cargos obligatorios (uno técnico y otro organizativo); el responsable puede
 integrar ambas funciones, y su formalización sigue abierta.
 
+**Interfaz de tamaño y asignación del equipo (cerrada en `UI-006`).** La
+forma en que quien juega expresa cuántas personas participan en una orden
+local y quién las elige está cerrada en
+[UI-006](../80-interface/UI-006_contextual-place-interaction-and-teams.md),
+sección 3.9: selector `Auto / 1 / 2 / 3 / 4` con asignación `Comunidad` o
+`Equipo seleccionado`, y responsable automático o elegido. Ese cierre es de
+**interfaz**, no de motor: la fórmula de cooperación, la capacidad de
+coordinación, los rendimientos decrecientes y el número útil de ayudantes
+siguen pendientes (`P09`), igual que la sustitución del responsable y el
+trabajo supervisado (`P10`). Este documento permanece `draft` por esa razón.
+
+`4` es el tamaño habitual de un equipo operativo local, **no un límite del
+motor**: una operación mayor se descompone en trabajos o equipos
+relacionados (ver
+[UI-006](../80-interface/UI-006_contextual-place-interaction-and-teams.md),
+sección 3.12).
+
 **Límites de la cooperación.** No se permite:
 
 - bonificación remota solo por figurar como responsable;
@@ -110,7 +128,7 @@ orígenes de trabajo vive en
 |---|---|---|
 | Lugar y objetivo | Identifica dónde y sobre qué se actúa. | Esencial |
 | Resultado buscado o método | Distingue, por ejemplo, recuperar materiales de despejar un acceso. | BASE PROPUESTA |
-| Responsable y equipo | Organiza la cooperación (§3.1). | Principio acordado; asignación concreta pendiente |
+| Responsable y equipo | Organiza la cooperación (§3.1). | Interfaz de tamaño y asignación cerrada en [UI-006](../80-interface/UI-006_contextual-place-interaction-and-teams.md) §3.9; fórmula de cooperación pendiente (`P09`) |
 | Modo de ejecución | Expresa la intención con la que se aborda el trabajo (§3.3). | Configuración en la orden, acordada |
 | Dedicación o límite temporal | Permite fijar esfuerzo o momento de terminar/interrumpir. | Idea planteada; opciones pendientes |
 | Prioridad | Ordena la atención frente a otros trabajos, según la taxonomía de UI-003. | Conexión con prioridades existentes |
@@ -282,6 +300,11 @@ extrema) siguen pendientes (PENDIENTE).
   [CHR-003](../30-characters/CHR-003_autonomy-intentions-and-behavior.md).
 - El vocabulario de trabajo, campos, prioridad y orígenes de trabajo es
   propiedad de [UI-003](../80-interface/UI-003_work-priority-taxonomy.md).
+- La interfaz de interacción contextual con un lugar, el selector
+  `Auto / 1 / 2 / 3 / 4` y los modos de asignación son propiedad de
+  [UI-006](../80-interface/UI-006_contextual-place-interaction-and-teams.md);
+  este documento conserva la cooperación, el responsable, los modos y las
+  condiciones del motor.
 - Continúa en
   [ARC-008](ARC-008_outcomes-knowledge-events-and-validation.md) para
   resultados, incidencias y eventos derivados de estas condiciones.

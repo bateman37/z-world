@@ -18,6 +18,17 @@ ejecutables de esta nueva línea.** Ver el estado detallado en
 [docs/STATUS.md](docs/STATUS.md) y la hoja de ruta activa en
 [docs/roadmap/RDM-003_simulation-first-playable-roadmap.md](docs/roadmap/RDM-003_simulation-first-playable-roadmap.md).
 
+`DESIGN-005`, también exclusivamente documental, consolida sobre esa línea
+las dos escalas espaciales: el mapa local es **2D cenital sobre Canvas**,
+visualmente continuo y generado de forma procedural dentro de un perfil de
+pueblo pequeño de montaña ficticio
+([WLD-008](docs/20-world/WLD-008_local-procedural-map-generation.md)), con
+interacción contextual por lugar y equipos locales
+([UI-006](docs/80-interface/UI-006_contextual-place-interaction-and-teams.md));
+el mapa regional queda documentado como horizonte futuro, fuera del roadmap
+activo
+([DEC-0010](docs/decisions/DEC-0010_procedural-local-and-regional-map-direction.md)).
+
 El prototipo Godot descrito más abajo (`IMPLEMENTATION-001` a
 `IMPLEMENTATION-004`) queda preservado íntegro como **prototipo histórico y
 aprendizaje técnico**: no se borra, no se mueve y no recibe más desarrollo

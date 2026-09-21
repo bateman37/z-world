@@ -12,9 +12,12 @@ depends_on:
   - UI-001
 related:
   - WLD-002
+  - WLD-008
   - ARC-004
   - DEC-0008
+  - DEC-0010
   - UI-003
+  - UI-006
 ---
 
 ## 1. Propósito
@@ -45,14 +48,35 @@ prioridades, zonas y control puntual ya cerrado en
 - El mapa es una herramienta de juego y observación, no una maqueta
   decorativa; convive con paneles de personas, trabajos, recursos y
   sucesos, sin sustituirlos.
+- El mapa se presenta **visualmente continuo y orgánico**, no como una
+  cuadrícula rígida. La estructura espacial interna que lo sostiene es
+  técnica e invisible (ver
+  [WLD-008](../20-world/WLD-008_local-procedural-map-generation.md), sección
+  3.6) y solo puede mostrarse en herramientas de depuración o capas
+  funcionales justificadas.
+- No se introduce perspectiva isométrica, 2.5D, primera persona, WASD ni
+  puntería manual. La referencia estética funcional es la claridad de un
+  plano vivo cenital, no la copia visual de RimWorld ni un juego isométrico.
 
 ## 3. Modelo funcional
 
 ### 3.1 Representación del mapa
 
-- Canvas 2D del navegador.
-- Terreno plano, caminos, agua y vegetación mediante colores o formas
-  simples.
+- Canvas 2D del navegador, cenital o completamente visto desde arriba.
+- Terreno, caminos, agua y vegetación mediante colores o formas simples,
+  deliberadamente funcionales y sin arte final en esta etapa.
+- El mapa debe poder representar carreteras y caminos curvos o irregulares;
+  ríos, arroyos, estanques y relieve legible; parcelas de formas diferentes;
+  edificios con tamaños y orientaciones coherentes con calles y terreno;
+  bosques, campos, claros y masas de vegetación no cuadradas; personas,
+  amenazas y trayectorias; tejados e interiores por capas; zonas y
+  designaciones dibujadas con ratón; y niebla de guerra y estados de
+  conocimiento.
+- La geografía que se dibuja se genera según
+  [WLD-008](../20-world/WLD-008_local-procedural-map-generation.md); el
+  Canvas la representa y **nunca es su fuente de verdad**.
+- El modelo es compatible conceptualmente con una futura capa visual más
+  avanzada, sin depender de ella.
 - Edificios como huellas o bloques coherentes con su modelo semántico (ver
   [WLD-005](../20-world/WLD-005_semantic-place-and-building-generation.md));
   la huella 2D es una representación del edificio lógico, no su fuente de
@@ -137,8 +161,11 @@ con el mapa sin duplicar su información innecesariamente.
 ## 4. Reglas aprobadas
 
 - El mapa local del laboratorio de simulación es 2D cenital sobre Canvas
-  del navegador; no se introduce 3D, primera persona, WASD ni puntería
-  manual.
+  del navegador; no se introduce 3D, isométrico, 2.5D, primera persona,
+  WASD ni puntería manual (ver
+  [DEC-0010](../decisions/DEC-0010_procedural-local-and-regional-map-direction.md)).
+- El mapa se dibuja continuo y orgánico; la cuadrícula o estructura interna
+  no es su estética y no se impone al jugador.
 - No se introduce Phaser, PixiJS ni otro motor 2D hasta que una necesidad
   medida lo justifique.
 - El primer mapa nunca revela todo el escenario: la niebla y el
@@ -169,6 +196,12 @@ con el mapa sin duplicar su información innecesariamente.
   [WLD-005](../20-world/WLD-005_semantic-place-and-building-generation.md).
 - La matriz de prioridades y trabajos que puede convivir con este mapa se
   rige por [UI-003](UI-003_work-priority-taxonomy.md), sin repetirse aquí.
+- La geografía representada, el perfil procedural del escenario y la
+  estructura espacial técnica invisible se rigen por
+  [WLD-008](../20-world/WLD-008_local-procedural-map-generation.md).
+- La ficha contextual que aparece al seleccionar un lugar de este mapa, las
+  acciones disponibles y el selector de equipo local se rigen por
+  [UI-006](UI-006_contextual-place-interaction-and-teams.md).
 
 ## 6. Casos límite o riesgos
 
