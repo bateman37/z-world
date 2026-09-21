@@ -335,8 +335,8 @@ sustituye a disponer de materiales y medios (ver
 
 **Preguntas abiertas propias de este ámbito**: cantidades exactas
 recuperadas de cada objeto; probabilidades, fórmulas o tiempos concretos de
-desmontaje (ver P04–P05 del motor en
-[ARC-008](../90-architecture/ARC-008_outcomes-knowledge-events-and-validation.md#4-preguntas-abiertas));
+desmontaje, que parametrizan sobre el modelo B/D ya cerrado en
+[ARC-006 §§3.9–3.10](../90-architecture/ARC-006_action-and-event-resolution-model.md#39-modelo-b-margen-azar-acotado-y-bandas-cierra-p04);
 tratamiento exacto de materiales peligrosos; detalle de residuos y
 escombros; interfaz definitiva de desmontaje; estructura técnica de datos;
 alcance exacto de la primera versión jugable para este sistema (todavía no

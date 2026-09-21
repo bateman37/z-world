@@ -29,6 +29,7 @@ documento canónico de dominio correspondiente.
 | [DEC-0008](DEC-0008_simulation-first-web-architecture.md) | `approved` | Reinicio de la línea activa de código a Node.js/TypeScript/Next.js/PostgreSQL; Godot preservado como prototipo histórico. |
 | [DEC-0009](DEC-0009_character-catalog-and-resolution-engine-domain.md) | `approved` | Cerrar el catálogo de nueve características/34 habilidades y crear el dominio del motor de resolución en `90-architecture`. |
 | [DEC-0010](DEC-0010_procedural-local-and-regional-map-direction.md) | `approved` | Mapa local 2D cenital continuo con estructura técnica invisible, mapa regional futuro geográfico, geografía procedural ficticia y ausencia de mapa local automático por punto regional. |
+| [DEC-0011](DEC-0011_hybrid-resolution-engine-and-capability-presentation.md) | `approved` | Cierre transversal del motor híbrido de resolución (directo/D/B), escala real `0–10`, cooperación, modos en dos dimensiones y presentación de nivel actual/potencial oculto; cierra `P01`–`P22`. |
 
 ## Dependencias con otros dominios
 

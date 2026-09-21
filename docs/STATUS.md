@@ -51,6 +51,75 @@ informó errores.
 
 ## Última entrega documental completada
 
+`DESIGN-006` — **cierre del motor de simulación, resolución y presentación
+de capacidades** (21 de septiembre de 2026). Entrega **exclusivamente
+documental**: no se ha implementado código, no se ha inicializado la
+aplicación web, y no se ha tocado `src/`, `scenes/`, `tests/` ni
+`project.godot`. Convierte en decisiones canónicas las veintidós
+cuestiones `P01`–`P22` de `ARC-008`, incorporando las correcciones finales
+de Dennis: escala real `0–10` con media humana `4` y `0` como valor real
+distinto de dato desconocido; tres perfiles cerrados de ponderación entre
+característica y habilidad (70/30, 50/50, 30/70); modelo híbrido de
+ejecución directa, progreso continuo `D` (variación de hasta `±8 %`) y
+comprobaciones significativas `B` (margen, variación acotada `[-4,+4]` y
+cinco bandas internas); umbral de **tres puntos**, no dos, para tarea
+básica; cooperación por funciones reales con rendimientos decrecientes
+(`100 %/60 %/35 %/20 %`), responsable/ejecutor/supervisor y sustitución;
+dos dimensiones combinables de modo (ritmo y atención); resultados
+multidimensionales, conocimiento imperfecto, reintentos, oposición
+activa, aprendizaje y eventos con niveles de atención y pausa crítica;
+persistencia determinista del azar con equivalencia entre velocidades de
+simulación; y nivel actual numérico `0–10` visible en la ficha del
+personaje, con potencial real, calibre oculto y máximo numérico siempre
+ocultos, comunicados mediante un catálogo cerrado de frases cualitativas.
+
+Documento nuevo:
+[DEC-0011](decisions/DEC-0011_hybrid-resolution-engine-and-capability-presentation.md)
+(`approved`, decisión transversal que respalda el cierre) y
+[DISC-0005](discovery/DISC-0005_resolution-engine-closure-traceability.md)
+(`draft`, trazabilidad completa de `P01`–`P22`).
+
+Documentos modificados a `approved`:
+[ARC-006](90-architecture/ARC-006_action-and-event-resolution-model.md),
+[ARC-007](90-architecture/ARC-007_teamwork-orders-modes-and-conditions.md) y
+[ARC-008](90-architecture/ARC-008_outcomes-knowledge-events-and-validation.md)
+(antes `draft`), que dejan de presentar `P01`–`P22` como abiertas.
+[CHR-006](30-characters/CHR-006_characteristics-and-skill-catalog.md) se
+actualiza sin cambiar de estado (`approved`) a la escala real `0–10`, la
+media humana `4` y el nivel actual visible.
+[UI-004](80-interface/UI-004_qualitative-capability-presentation.md) se
+actualiza sin cambiar de estado (`approved`) para corregir su prohibición
+absoluta de cifras de capacidad: el nivel actual `0–10` de la ficha es
+visible; las cifras internas de una acción concreta siguen ocultas.
+[CHR-007](30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md)
+**permanece `draft`**: incorpora el catálogo de frases de potencial y la
+visibilidad del nivel actual, pero conserva abiertas la distribución de
+estrellas del calibre, los campos de potencial, la adaptación al
+apocalipsis, los dominios de habilidad y el catálogo de rasgos.
+
+**Contradicciones corregidas.** Referencias activas a la escala `1–10` en
+`CHR-006` se corrigen a `0–10`; el umbral de tarea básica se fija en `+3`,
+no `+2`; los cuatro modos de trabajo se formalizan como dos dimensiones
+combinables (ritmo y atención), no como categorías mutuamente excluyentes;
+la fórmula antigua `(característica + 2 × habilidad) / 3` y la función
+logística candidata de B quedan descartadas como universales, sustituidas
+por los tres perfiles de ponderación y el margen con bandas internas; la
+prohibición absoluta de cifras de `UI-004` se corrige para permitir el
+nivel actual visible sin abrir umbrales de acción.
+
+**Estados.** `ARC-006`, `ARC-007` y `ARC-008` pasan de `draft` a
+`approved`. `CHR-006` y `UI-004` permanecen `approved`. `CHR-007` permanece
+`draft` por las razones anteriores. `DISC-0005` permanece `draft`.
+**Ningún documento pasa a `implemented`.** El motor de resolución sigue sin
+existir en código: la nueva línea Node.js/TypeScript continúa sin
+inicializar y el prototipo histórico Godot conserva su propia lógica ya
+descrita en las entregas de código previas.
+
+Ver la trazabilidad completa en
+[DISC-0005](discovery/DISC-0005_resolution-engine-closure-traceability.md).
+
+## Entrega documental previa
+
 `DESIGN-005` — **mapas local y regional, generación procedural, equipos e
 interacción contextual** (21 de septiembre de 2026). Entrega
 **exclusivamente documental**: no se ha implementado código, no se ha
@@ -103,7 +172,7 @@ selector `Auto / 1 / 2 / 3 / 4` no es la escala `Nunca/1–5`.
 **El mapa regional no entra en el roadmap activo**: `RDM-003` gana una
 sección 3.3 que lo declara horizonte futuro sin fecha.
 
-## Entrega documental previa
+## Entrega documental anterior
 
 Consolidación documental del **motor de acciones/trabajos/eventos**, el
 **catálogo de horizonte máximo de personaje** (nueve características, 34
@@ -171,7 +240,7 @@ estos catálogos de horizonte máximo queda pendiente, sin fecha, igual que
 la ya reconocida entre las diez familias de prioridad y las 34 de
 `UI-003`.
 
-## Entrega documental anterior
+## Entrega documental precedente
 
 `DESIGN-004` — reinicio centrado en simulación y generador semántico de
 lugares: cambia la línea técnica activa de Godot 3D a un laboratorio de
@@ -204,7 +273,7 @@ documento nuevo como `implemented`. Ver
 [docs/discovery/DISC-0003](discovery/DISC-0003_procedural-place-generator-traceability.md)
 para la trazabilidad completa del encargo.
 
-## Entrega documental precedente
+## Entregas documentales previas a `DESIGN-004`
 
 `DESIGN-003` — trabajo, recuperación y conocimiento aplicado: horizonte
 máximo documental de prioridades, órdenes, zonas, políticas, eventos y
@@ -424,21 +493,24 @@ posteriores de `RDM-001`.
   de simulación cenital e interacción contextual con lugares y equipos
   locales (`UI-001` a `UI-006`),
   amenaza zombi (`THR-001`), dirección técnica, generación procedural,
-  simulación multiescala, núcleo de simulación y modelo conceptual de datos
-  del mundo semántico (`ARC-001` a `ARC-005`), escenario inicial
+  simulación multiescala, núcleo de simulación, modelo conceptual de datos
+  del mundo semántico y motor de resolución de acciones, trabajos y
+  eventos (`ARC-001` a `ARC-008`), escenario inicial
   (`SCN-001`), hoja de ruta activa (`RDM-003`), catálogo máximo de lugares,
   estancias/instalaciones y ocupantes/profesiones/aficiones/rasgos como
   horizonte de referencia (`CAT-001` a `CAT-003`), decisiones `DEC-0002` a
-  `DEC-0010` (`DEC-0001` es `deprecated`), sistema documental (`DOC-001`).
+  `DEC-0011` (`DEC-0001` es `deprecated`), sistema documental (`DOC-001`).
 - **Borrador (`draft`)**: síntesis de descubrimiento (`DISC-0001`,
   `DISC-0002`), trazabilidad del generador procedural de lugares
   (`DISC-0003`), trazabilidad de mapas local y regional e interacción
-  contextual (`DISC-0004`), horizonte configurable de amenazas (`THR-002`), horizonte
-  de capacidades a largo plazo (`RDM-002`), propuesta de subconjunto
-  inicial de lugares (`CAT-004`), motor de resolución de acciones, trabajos
-  y eventos (`ARC-006`, `ARC-007`, `ARC-008`), potencial oculto, calibre
-  oculto y adaptación al apocalipsis (`CHR-007`), y modelo de objeto,
-  familias logísticas y desmontaje de objetos (`SET-008`, `SET-009`).
+  contextual (`DISC-0004`), trazabilidad del cierre del motor de
+  resolución y capacidades (`DISC-0005`), horizonte configurable de
+  amenazas (`THR-002`), horizonte de capacidades a largo plazo
+  (`RDM-002`), propuesta de subconjunto inicial de lugares (`CAT-004`),
+  potencial oculto, calibre oculto y adaptación al apocalipsis (`CHR-007`,
+  con el catálogo de frases de potencial y el nivel actual visible ya
+  cerrados), y modelo de objeto, familias logísticas y desmontaje de
+  objetos (`SET-008`, `SET-009`).
 - **Sustituido (`deprecated`)**: motor Godot 4 como línea inicial
   (`DEC-0001`, sustituida por `DEC-0008`), alcance del primer corte
   jugable del prototipo Godot (`RDM-001`, sustituida por `RDM-003`) y
@@ -451,13 +523,15 @@ posteriores de `RDM-001`.
   `ARC-002` ni del resto de `RDM-001`. `DESIGN-004` no marca ningún
   documento nuevo como `implemented`: la nueva línea de código
   Node.js/TypeScript no tiene todavía ninguna entrega. El motor de
-  resolución documentado en `ARC-006`–`ARC-008` tampoco está implementado:
-  el prototipo Godot histórico resolvía trabajos con su propia lógica ya
-  descrita en las entregas de código de la sección anterior, y la nueva
-  línea activa todavía no implementa ningún motor de resolución. `DESIGN-005`
-  tampoco marca nada como `implemented`: ni el generador espacial de
-  `WLD-008`, ni la ficha contextual y el selector de equipo de `UI-006`
-  existen en código.
+  resolución ahora cerrado y `approved` en `ARC-006`–`ARC-008` tampoco está
+  implementado: el prototipo Godot histórico resolvía trabajos con su
+  propia lógica ya descrita en las entregas de código de la sección
+  anterior, y la nueva línea activa todavía no implementa ningún motor de
+  resolución. `DESIGN-005` y `DESIGN-006` tampoco marcan nada como
+  `implemented`: ni el generador espacial de `WLD-008`, ni la ficha
+  contextual y el selector de equipo de `UI-006`, ni la escala `0–10`, los
+  perfiles de ponderación, los modelos B/D, la cooperación, los modos ni
+  la presentación de potencial de `DESIGN-006` existen en código.
 
 ## Validaciones automatizadas de `IMPLEMENTATION-003`
 
@@ -485,6 +559,35 @@ ocho demostradores desaparecidos) y añade seis:
 
 Las validaciones de `IMPLEMENTATION-001` e `IMPLEMENTATION-002` quedaron en
 su momento como **NOT RUN** por la misma razón.
+
+## Validaciones documentales de `DESIGN-006`
+
+Entrega documental: no hay suite ejecutable aplicable y no se instalaron
+herramientas. Se ejecutaron comprobaciones acotadas:
+
+- revisión, una por una, de las 22 decisiones `P01`–`P22` para confirmar
+  que ninguna permanece abierta o contradictoria en `ARC-006`, `ARC-007` o
+  `ARC-008`;
+- búsqueda de referencias activas a la escala `1–10`, «media humana 5»,
+  umbral `+2`, la fórmula antigua de ponderación `(característica + 2 ×
+  habilidad) / 3`, los cuatro modos como categorías excluyentes y la
+  prohibición total de mostrar el nivel actual;
+- comprobación de que `0` no se usa como sinónimo de `null`, dato
+  desconocido o falta de conocimiento en `CHR-006` y `ARC-006`;
+- revisión de enlaces y cabeceras `depends_on`/`related` de los documentos
+  tocados, incluidos los nuevos anclajes de sección entre `CHR-006`,
+  `CHR-007`, `ARC-006`, `ARC-007`, `ARC-008` y `UI-004`;
+- comprobación de que los índices de dominio incluyen `DEC-0011` y
+  `DISC-0005` con ID, estado y propósito correctos, y que `ARC-006` a
+  `ARC-008` figuran como `approved`;
+- comprobación de que `docs/OPEN-QUESTIONS.md` conserva solo preguntas
+  realmente abiertas de otros sistemas (campos de potencial, distribución
+  de estrellas, adaptación al apocalipsis, dominios de habilidad,
+  fórmulas de idoneidad por familia, umbrales exactos de dificultad);
+- comprobación de que ningún documento pasa a `implemented`;
+- comprobación de que no se ha modificado código ni configuración
+  ejecutable (`src/`, `scenes/`, `tests/`, `project.godot` intactos);
+- `git diff --check`, sin errores.
 
 ## Validaciones documentales de `DESIGN-005`
 

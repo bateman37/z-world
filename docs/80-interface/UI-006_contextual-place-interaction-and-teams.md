@@ -400,8 +400,11 @@ fija aquí**: su calibración pertenece a `P14` y `P20` de
 - La cooperación con responsable, los modos y las condiciones siguen siendo
   propiedad de
   [ARC-007](../90-architecture/ARC-007_teamwork-orders-modes-and-conditions.md)
-  (`draft`); las fórmulas y calibraciones pendientes viven en
-  [ARC-008](../90-architecture/ARC-008_outcomes-knowledge-events-and-validation.md).
+  (`approved` desde `DESIGN-006`, con la fórmula de cooperación y
+  rendimientos decrecientes ya cerrados); los resultados, el conocimiento
+  imperfecto y los eventos viven en
+  [ARC-008](../90-architecture/ARC-008_outcomes-knowledge-events-and-validation.md)
+  (`approved`).
 - La decisión de dirección que respalda este documento es
   [DEC-0010](../decisions/DEC-0010_procedural-local-and-regional-map-direction.md).
 
@@ -420,14 +423,19 @@ fija aquí**: su calibración pertenece a `P14` y `P20` de
 
 ## 7. Preguntas abiertas
 
+**Cerrado por `DESIGN-006`:** la fórmula de cooperación con rendimientos
+decrecientes (`P09`), la sustitución del responsable y la supervisión
+(`P10`), los dos ejes de modo y sus costes conceptuales (`P11`, `P12`), y
+la cadena de eventos y niveles de atención (`P20`) viven ahora en
+[ARC-007](../90-architecture/ARC-007_teamwork-orders-modes-and-conditions.md)
+y
+[ARC-008](../90-architecture/ARC-008_outcomes-knowledge-events-and-validation.md).
+Siguen abiertas, como parametrización de contenido:
+
 - Duración exacta de cada acción contextual.
-- Fórmulas de idoneidad, cooperación y coordinación; rendimientos
-  decrecientes (ver `P09` en
-  [ARC-008](../90-architecture/ARC-008_outcomes-knowledge-events-and-validation.md#4-preguntas-abiertas)).
 - Mínimo, recomendado y máximo útil concretos por familia de acción.
-- Reglas exactas de sustitución del responsable y trabajo supervisado (`P10`).
-- Política final de pausas e interrupciones (`P14`, `P20`).
-- Todos los costes y efectos de los modos por familia (`P11`, `P12`).
+- Política exacta de pausas e interrupciones por familia concreta (marco
+  general ya cerrado en `ARC-007 §3.11` y `ARC-008 §3.12`).
 - Diseño gráfico, iconografía y disposición final de la ficha y del selector.
 - Interfaz exacta para edificios de varias plantas.
 

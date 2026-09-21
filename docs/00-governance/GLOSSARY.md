@@ -68,16 +68,34 @@ enlaza a ella.
   `docs/40-settlement/SET-005_production-web-and-infrastructure.md`.
 - **Capacidad efectiva**: valor de una característica o de una habilidad
   que alimenta una resolución, igual al valor único requerido o a la media
-  aritmética cuando el método requiere dos del mismo grupo. Ver
+  aritmética cuando el método requiere dos del mismo grupo; el peso entre
+  el grupo de características y el de habilidades se resuelve mediante uno
+  de tres perfiles cerrados (instintivo/físico, equilibrado, técnico/
+  aprendido). Ver
   `docs/90-architecture/ARC-006_action-and-event-resolution-model.md`.
-- **Modelo B**: resolución porcentual de una incertidumbre pertinente
-  dentro de una acción o fase. Ver
+- **Escala real `0–10`**: escala numérica de características y habilidades,
+  con `4` como referencia humana media de una característica y `0` como
+  valor real de competencia nula, distinto de dato desconocido o de falta
+  de conocimiento. El nivel actual es visible en la ficha del personaje;
+  el potencial, el calibre y el máximo numérico permanecen ocultos. Ver
+  `docs/30-characters/CHR-006_characteristics-and-skill-catalog.md`.
+- **Modelo B**: resolución de una incertidumbre pertinente dentro de una
+  acción o fase mediante un margen entre capacidad efectiva y dificultad
+  efectiva, una variación aleatoria acotada y persistente, y cinco bandas
+  internas de resultado. Ver
   `docs/90-architecture/ARC-006_action-and-event-resolution-model.md`.
 - **Modelo D**: progreso continuo de un trabajo prolongado en función del
-  tiempo trabajado y el rendimiento pertinente. Ver
+  tiempo trabajado y el rendimiento pertinente, con una variación acotada
+  de hasta `±8 %` por fase o sesión significativa. Ver
   `docs/90-architecture/ARC-006_action-and-event-resolution-model.md`.
 - **Potencial oculto**: margen real de desarrollo de una característica o
   de un campo de habilidad, nunca mostrado como cifra al jugador. Ver
+  `docs/30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md`.
+- **Potencial estimado**: opinión cualitativa que la comunidad construye
+  sobre el potencial oculto de una persona, comunicada mediante un
+  catálogo cerrado de frases moduladas por confianza (por ejemplo, «parece
+  estar cerca de su máximo en este ámbito»), nunca mediante cifras,
+  fracciones o rangos. Ver
   `docs/30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md`.
 - **Calibre oculto**: tipo de superviviente de 1 a 5 estrellas, generado
   antes que el resto del personaje, que condiciona la distribución de

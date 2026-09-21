@@ -1,24 +1,28 @@
 ---
 id: ARC-008
 title: Resultados, conocimiento imperfecto, eventos y validación del motor
-status: draft
+status: approved
 canonical_for:
   - separación entre error, fallo, incidencia, peligro y gravedad
   - cuatro capas de existencia, percepción, comprensión y aprovechamiento
   - familias de eventos y su relación con el mundo persistente
   - casos de validación documental del motor
-  - decisiones pendientes P01–P22 del motor de resolución
+  - cierre de las decisiones P01–P22 del motor de resolución
+  - persistencia aleatoria y equivalencia entre velocidades de simulación
+  - presentación visible del nivel actual y del potencial oculto
 depends_on:
   - ARC-006
   - ARC-007
 related:
   - CHR-006
+  - CHR-007
   - SET-008
   - SET-009
   - WLD-002
   - WLD-004
   - UI-004
   - UI-006
+  - DEC-0011
 ---
 
 ## 1. Propósito
@@ -29,9 +33,15 @@ Cerrar el motor de acciones, trabajos y eventos ([ARC-006](ARC-006_action-and-ev
 imperfecto, cómo se resuelven eventos y consecuencias sistémicas, cómo se
 aplica el procedimiento a las distintas familias de acciones del juego, qué
 invariantes de persistencia y rendimiento conceptual deben respetarse, y qué
-debe mostrarse a quien juega. Cierra también con los 19 casos de validación
-documental y la lista completa de decisiones pendientes de calibración
-(`P01`–`P22`).
+debe mostrarse a quien juega. Mediante `DESIGN-006`, este documento cierra
+las últimas ocho decisiones de calibración del motor (`P15`–`P22`:
+resultados multidimensionales y críticos, conocimiento imperfecto,
+reintentos, oposición, aprendizaje, eventos, persistencia aleatoria y
+presentación visible), completando junto con
+[ARC-006](ARC-006_action-and-event-resolution-model.md) y
+[ARC-007](ARC-007_teamwork-orders-modes-and-conditions.md) el cierre
+íntegro de las 22 decisiones `P01`–`P22`, y amplía los casos de validación
+documental de 19 a 24 o más.
 
 ## 2. Principios que no deben romperse
 
@@ -84,9 +94,12 @@ plausible; en recuperación, material conservado / deteriorado / inaccesible
 en trabajo rutinario, avance y resultado esperado, sin dramatización
 obligatoria.
 
-**Críticos y pifias (PENDIENTE, P15).** Interesa que mayor competencia eleve
-resultados excepcionales y reduzca fallos graves. Como ejemplo ilustrativo,
-no aprobado, dividir una probabilidad de éxito `p`:
+**Críticos y pifias (cierra P15, cierre completo en §3.7).** Interesa que
+mayor competencia eleve resultados excepcionales y reduzca fallos graves.
+El mecanismo cerrado es el margen y las cinco bandas del modelo B de
+[ARC-006 §3.9](ARC-006_action-and-event-resolution-model.md#39-modelo-b-margen-azar-acotado-y-bandas-cierra-p04),
+no el reparto porcentual siguiente, que queda como ejemplo ilustrativo
+descartado, no aprobado, de dividir una probabilidad de éxito `p`:
 
 > `Excepcional = 0,10 × p` · `Éxito normal = 0,90 × p` ·
 > `Fallo normal = 0,90 × (1 − p)` · `Fallo grave = 0,10 × (1 − p)`
@@ -132,7 +145,7 @@ puede comprenderlo. El modelo permite esa variación sin cambiar
 retrospectivamente la verdad, sin hacer incompetente al personaje y sin
 resolverlo mediante intentos gratuitos.
 
-**Información y confianza (BASE PROPUESTA).** Se distinguen observaciones,
+**Información y confianza (cierra P16, desarrollo completo en §3.8).** Se distinguen observaciones,
 hipótesis, grado de confianza y autoría de la interpretación: la interfaz
 puede decir «cree que la avería está en este componente; falta comprobarlo»
 en lugar de afirmar como verdad omnisciente un diagnóstico que después
@@ -160,7 +173,7 @@ persistencia no significa congelar al inicio todo el resultado de un
 trabajo de varios días. Si una pieza se deterioró, rehacer o reparar es
 otro trabajo real; si solo falta terminar una inspección, continuar no
 exige volver a empezar. Las políticas concretas de reintento automático,
-consumo máximo y petición de ayuda siguen pendientes (P17).
+consumo máximo y petición de ayuda quedan cerradas en §3.9 (cierra P17).
 
 ### 3.2 Eventos y consecuencias sistémicas
 
@@ -207,8 +220,8 @@ conexiones.
 varias veces por recibir repetidamente la misma notificación; no se inician
 bucles de «cambia el estado → repite la comprobación → vuelve a cambiar el
 estado» sin avance ni tiempo. No se convierte cada evento interno en un
-mensaje a quien juega; la frecuencia narrativa, la agrupación de avisos y la
-gestión de grandes cadenas quedan pendientes (P20).
+mensaje a quien juega; la cadena causal, los niveles de atención y la
+agrupación de avisos quedan cerrados en §3.12 (cierra P20).
 
 ### 3.3 Aplicación a las familias de acciones
 
@@ -227,13 +240,12 @@ procedimiento común debe servir sin forzar la misma fórmula:
 | Investigación y aprendizaje | Trabajo de estudio, evidencias y comprensión. | Capacidades, materiales de conocimiento y mentores (ver [CHR-002](../30-characters/CHR-002_knowledge-and-learning.md)). | No desbloquea tecnología solo por acumular progreso. |
 | Interacción social | Respuestas plausibles, acuerdos, información o cambios limitados. | Capacidades pertinentes, contexto, relaciones y preparación. | No controla mentalmente a otro personaje mediante una puntuación alta. |
 
-**Oposición activa y pasiva (PENDIENTE, P18).** Para sigilo frente a
-observación, ataque frente a defensa o engaño frente a lectura de
-intenciones, puede existir oposición; no se ha elegido entre dos
-comprobaciones, defensa pasiva, diferencia de capacidades o márgenes
-relativos, y ninguna es una sustitución matemática neutra. La resolución
-respeta oportunidades significativas: no se compara a cada personaje con
-todos los demás en cada paso del mapa.
+**Oposición activa y pasiva (cierra P18, desarrollo completo en §3.10).**
+Para sigilo frente a observación, ataque frente a defensa o engaño frente a
+lectura de intenciones, existe oposición activa resuelta mediante una única
+comprobación de margen relativo, no dos comprobaciones independientes. La
+resolución respeta oportunidades significativas: no se compara a cada
+personaje con todos los demás en cada paso del mapa.
 
 **Caza y pesca no generan existencias retrospectivas.** Se distingue
 localizar una oportunidad, acceder, ejecutar y recuperar lo obtenido: una
@@ -244,13 +256,12 @@ independiente de premiar la habilidad con existencias inventadas.
 
 ### 3.4 Aprendizaje y conexión con otros módulos
 
-**BASE PROPUESTA.** Se aprende por participación real: un aprendiz que
-ayuda de forma pertinente puede progresar; estar cerca sin intervenir no
-equivale a practicar todos los conocimientos del especialista (ver
-[CHR-002](../30-characters/CHR-002_knowledge-and-learning.md)). Quedan
-pendientes la cantidad de aprendizaje, el reparto entre dos habilidades, la
-supervisión, el aprendizaje por fallos y el rendimiento de repetir rutinas
-(P19). No se duplica automáticamente la experiencia porque una acción use
+**Cierra P19 (fórmula conceptual completa en §3.11).** Se aprende por
+participación real: un aprendiz que ayuda de forma pertinente puede
+progresar; estar cerca sin intervenir no equivale a practicar todos los
+conocimientos del especialista (ver
+[CHR-002](../30-characters/CHR-002_knowledge-and-learning.md)). No se
+duplica automáticamente la experiencia porque una acción use
 dos habilidades, ni se aplica la media de ejecución como regla de reparto de
 experiencia sin haberlo decidido. Se distingue información compartida de
 habilidad práctica transferida: leer un manual puede habilitar estudio o un
@@ -330,8 +341,8 @@ los tres problemas a la vez (ver
 [DEC-0005](../decisions/DEC-0005_reproducible-lazy-generation.md)). Se
 conserva el episodio y lo ya resuelto cuando corresponde, a la vez que
 heridas, herramientas o condiciones posteriores pueden cambiar
-legítimamente lo que aún no se ha resuelto. La política técnica exacta
-queda pendiente (P21).
+legítimamente lo que aún no se ha resuelto. El comportamiento exigido
+queda cerrado en §3.13 (cierra P21).
 
 ### 3.6 Experiencia del jugador e información visible
 
@@ -350,8 +361,9 @@ No se muestra «100 % de éxito» como garantía global si existen partes
 desconocidas, ni se revelan objetos ocultos mediante indicadores exactos de
 cobertura total sin fundamento en el conocimiento disponible. Los detalles
 de medias y modificadores pueden estar disponibles en explicaciones
-opcionales; si se presenta un porcentaje exacto, una banda orientativa o
-solo una valoración cualitativa sigue pendiente (P22, ver también
+opcionales; la presentación **cierra en §3.14 (cierra P22)** como
+valoración cualitativa, nunca como porcentaje exacto o banda orientativa
+numérica (ver también
 [UI-004](../80-interface/UI-004_qualitative-capability-presentation.md), que
 ya cierra los cinco estados cualitativos de capacidad para la matriz de
 prioridades). No se producen avisos por cada cálculo; las notificaciones se
@@ -361,79 +373,410 @@ estable aunque sus efectos dependan de la tarea: «relajado» no aparece unas
 veces como descanso, otras como búsqueda exhaustiva y otras como inmunidad
 al peligro.
 
+### 3.7 Resultados multidimensionales, críticos e incidencias (cierra P15)
+
+Un resultado puede afectar, cuando corresponda, a: cumplimiento del
+objetivo, progreso, calidad, conservación, duración, consumo, ruido,
+desgaste, fatiga, información, exposición, daño, relaciones o memoria. Las
+dimensiones deben derivarse de una causa coherente y pueden quedar
+vinculadas por una única resolución; no se realizan tiradas independientes
+para cada eje salvo que representen incertidumbres realmente diferentes.
+
+El mecanismo cerrado es el margen y las cinco bandas de
+[ARC-006 §3.9](ARC-006_action-and-event-resolution-model.md#39-modelo-b-margen-azar-acotado-y-bandas-cierra-p04),
+no un reparto porcentual de «crítico»/«pifia» como capa universal
+generadora de sucesos. Reglas de cierre:
+
+- un resultado excepcional permanece dentro de los límites del mundo (R01);
+- un resultado técnico deficiente no lesiona automáticamente; una lesión
+  necesita un peligro capaz de causarla (R17);
+- protección puede reducir consecuencias sin mejorar la calidad técnica;
+- una buena planificación conserva la reducción de riesgo obtenida: el
+  motor no inventa otra amenaza para compensarla;
+- la exposición se acumula según tiempo y condiciones, nunca mediante una
+  probabilidad fija por fotograma (§3.5);
+- un peligro puede programar una oportunidad causal de incidencia dentro
+  del episodio; el momento y el resultado quedan sujetos a la persistencia
+  aleatoria de §3.13 (P21);
+- **una banda grave de B se traduce al peor resultado coherente que esa
+  acción permita, no a una catástrofe universal**: la traducción de banda a
+  lenguaje causal es responsabilidad de cada familia de acción (§3.3).
+
+### 3.8 Conocimiento imperfecto y comunicación (cierra P16)
+
+Se conservan cuatro capas: realidad existente, percepción, interpretación o
+creencia, y capacidad de aprovechamiento (R02, §3.1). Una interpretación
+puede registrar conceptualmente: autor; evidencia usada; conclusión o
+hipótesis; confianza cualitativa; fecha; método; personas a quienes se
+comunicó; revisiones posteriores.
+
+Intensidad cerrada:
+
+- incertidumbre frecuente cuando faltan pruebas;
+- errores plausibles ocasionales;
+- errores firmes poco habituales en especialistas, salvo evidencia pobre,
+  estado adverso o casos extraordinarios;
+- nada de producir continuamente información falsa por drama;
+- una nueva revisión puede confirmar, matizar o corregir una interpretación
+  anterior sin reescribir lo que la comunidad creyó antes de esa evidencia
+  (ver
+  [NAR-002](../70-narrative/NAR-002_memory-and-causal-world-history.md));
+- dos personas pueden discrepar legítimamente;
+- el conocimiento no se teletransporta a toda la comunidad (ver
+  [CHR-002](../30-characters/CHR-002_knowledge-and-learning.md) y
+  [SET-006](../40-settlement/SET-006_knowledge-assets-and-capability.md));
+- una actuación aislada no revela el techo de una persona (ver
+  [CHR-007 §3.4](../30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md#34-descubrimiento-progresivo-del-personaje));
+- el fallo de un experto puede ser propio (R05) y no necesita justificarse
+  siempre mediante un peligro externo.
+
+La interfaz debe poder expresar autoría y confianza: «Marta cree que…»,
+«faltan comprobaciones», «la última revisión fue…» (ver también §3.14).
+
+### 3.9 Reintentos y presupuestos de autonomía (cierra P17)
+
+Un intento idéntico no genera otra resolución gratuita (§3.1). Puede
+existir un nuevo intento por: nuevo trabajo o mayor profundidad; método
+diferente; otra persona; herramienta distinta; nueva evidencia; descanso o
+cambio real de estado; aceptación de mayor consumo, daño o riesgo;
+reparación o repetición física de una parte deteriorada.
+
+Cada orden puede definir: tiempo máximo; presupuesto de materiales; riesgo
+máximo; repeticiones automáticas; cuándo solicitar ayuda; cuándo cambiar de
+método; cuándo detenerse; si admite improvisación (ver la clasificación de
+métodos de
+[ARC-006 §3.11](ARC-006_action-and-event-resolution-model.md#311-requisitos-duros-e-improvisación-por-método-cierra-p06)).
+
+El motor puede repetir automáticamente tareas seguras dentro del
+presupuesto. Debe detenerse o elevar una decisión al jugador antes de
+cruzar un coste irreversible no autorizado, un riesgo superior al
+autorizado o un cambio de método.
+
+Cancelar, reasignar, guardar/cargar o alternar modos no restaura
+materiales, no elimina daños ni vuelve a sortear el mismo episodio (ver
+persistencia en §3.13).
+
+### 3.10 Oposición activa y pasiva (cierra P18)
+
+- **Pasiva:** dificultad del entorno, objeto o condición sin voluntad
+  propia.
+- **Activa:** capacidad pertinente de un actor comparada con la de un
+  oponente.
+
+La oposición activa utiliza **una única resolución relativa de margen**,
+reutilizando el modelo B de
+[ARC-006 §3.9](ARC-006_action-and-event-resolution-model.md#39-modelo-b-margen-azar-acotado-y-bandas-cierra-p04)
+con `capacidad_efectiva` y `dificultad_efectiva` sustituidas por las
+capacidades comparadas de ambos actores; no se usan dos tiradas
+independientes que dupliquen la variabilidad sin causa.
+
+Aplicaciones: sigilo frente a percepción, engaño frente a lectura social,
+ataque frente a defensa, inmovilización frente a resistencia, persecución
+frente a huida.
+
+Las situaciones prolongadas se dividen en oportunidades significativas:
+contacto, aproximación, maniobra, cambio de cobertura, pérdida de visión,
+nueva evidencia o retirada (coherente con la delimitación de episodios de
+[ARC-006 §3.12](ARC-006_action-and-event-resolution-model.md#312-umbral-de-tarea-básica-y-episodios-comprobables-cierra-p07–p08)).
+No se compara a todos los agentes entre sí a cada paso ni se hace una
+comprobación global constante.
+
+El sistema de combate podrá añadir reglas propias en su entrega futura,
+pero deberá respetar este marco y no reemplazarlo silenciosamente.
+
+### 3.11 Aprendizaje por participación (cierra P19)
+
+Fórmula conceptual:
+
+```text
+aprendizaje = práctica significativa
+            × desafío pertinente
+            × participación real
+            × retroalimentación
+            × mentoría
+            × facilidad personal
+```
+
+Reglas de cierre:
+
+- una rutina trivial ya dominada aporta muy poco;
+- el aprendizaje máximo aparece cerca del límite actual cuando la persona
+  puede comprender y practicar;
+- una tarea totalmente incomprensible aporta poco sin guía;
+- estar presente no equivale a practicar;
+- transportar herramientas no enseña Mecánica; puede enseñar logística,
+  carga o el trabajo realmente realizado;
+- un aprendiz debe ejecutar pasos pertinentes para desarrollar una
+  habilidad práctica;
+- un error enseña si se identifica, comprende, revisa o recibe explicación;
+  un error mal interpretado puede no enseñar o consolidar una mala
+  práctica;
+- si intervienen dos habilidades, el aprendizaje se reparte según
+  participación y fases; no se otorga el total a ambas;
+- la media usada para ejecutar (§3.7 de
+  [ARC-006](ARC-006_action-and-event-resolution-model.md#37-perfiles-de-ponderación-entre-característica-y-habilidad-cierra-p03))
+  no es automáticamente el reparto de experiencia;
+- las características cambian mucho más lentamente mediante exposición
+  sostenida, no XP puntual;
+- el potencial condiciona desarrollo futuro y velocidad, nunca mejora la
+  acción actual (ver
+  [CHR-007 §3.1](../30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md#31-potencial-oculto-y-desarrollo));
+- mentores y equipos aceleran aprendizaje y conocimiento del potencial solo
+  con interacción real (ver
+  [CHR-007 §3.5](../30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md#35-aprendizaje-práctica-y-mentoría)).
+
+Esta fórmula conceptual se reconcilia con
+[CHR-002](../30-characters/CHR-002_knowledge-and-learning.md) y
+[CHR-007](../30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md)
+sin cerrar aquí las curvas completas de potencial, la distribución de
+calibre ni el catálogo de dominios, que siguen perteneciendo a sus propios
+documentos.
+
+### 3.12 Eventos, causalidad, avisos y pausa (cierra P20)
+
+Cadena cerrada:
+
+1. ocurre una causa real;
+2. se registra el evento de dominio;
+3. se aplican cambios persistentes;
+4. se generan consecuencias derivadas sin duplicar la causa;
+5. cada persona percibe lo que pueda percibir;
+6. se actualiza su conocimiento;
+7. se agrupan notificaciones relacionadas;
+8. se aplica la política de atención.
+
+Cada evento debe poder identificar conceptualmente: momento simulado,
+lugar, actores, causa, efectos, visibilidad, gravedad, cadena causal y
+necesidad de reacción. Esto no diseña un esquema de base de datos.
+
+**Niveles de atención:**
+
+| Nivel | Tratamiento |
+|---|---|
+| Registro | Persiste en historial; no interrumpe. |
+| Aviso | Notificación agrupada. |
+| Importante | Aviso destacado y posibilidad de reducir automáticamente a `×1`. |
+| Crítico | Pausa automática porque existe peligro inmediato o una decisión necesaria. |
+
+**Valores predeterminados de pausa crítica:** persona incapacitada o en
+peligro inmediato; incendio, derrumbe o amenaza no controlada; primer
+contacto humano relevante; decisión moral o social que requiere respuesta;
+pérdida de un medio indispensable que bloquea una cadena relevante;
+situación donde continuar unos segundos puede causar una pérdida grave.
+Coherente con la lista de hechos que pueden interrumpir una rutina de
+[UI-006 §3.14](../80-interface/UI-006_contextual-place-interaction-and-teams.md#314-interrupciones)
+y con la respuesta ante amenazas de
+[ARC-007 §3.11](ARC-007_teamwork-orders-modes-and-conditions.md#311-respuesta-ante-cambios-pérdida-de-medios-y-amenazas-cierra-p14).
+
+Las categorías son configurables por el jugador sin eliminar valores
+predeterminados razonables. Las notificaciones repetidas por la misma causa
+se agrupan. **Un evento y su notificación no son la misma entidad**: veinte
+personas que perciben el mismo incendio generan un único evento de dominio
+y, como mucho, avisos agrupados, no veinte pausas independientes.
+
+### 3.13 Persistencia aleatoria y equivalencia temporal (cierra P21)
+
+Invariante fuerte:
+
+> **Misma semilla + mismo estado + mismas órdenes = mismos resultados
+> relevantes, con independencia de cámara, FPS, pausa, guardado/carga o
+> velocidad `×1/×2/×4/×10`.**
+
+Cada oportunidad incierta debe poder derivarse conceptualmente de: semilla
+del mundo; identificador estable del episodio (§3.12 de
+[ARC-006](ARC-006_action-and-event-resolution-model.md#312-umbral-de-tarea-básica-y-episodios-comprobables-cierra-p07–p08));
+entidad o acción; propósito de la resolución; ordinal estable de la
+oportunidad.
+
+Reglas de cierre:
+
+- el resultado se genera una vez y se conserva;
+- guardar/cargar no lo rerrollea;
+- el tiempo de simulación, no los fotogramas, determina exposición, plazos
+  y eventos;
+- dividir o agrupar intervalos no multiplica peligros ni consumos;
+- la simulación fuera de pantalla conserva causas, gastos, riesgos,
+  aprendizaje y consecuencias relevantes;
+- cambiar legítimamente el estado, método u orden puede cambiar lo que aún
+  no se ha resuelto, nunca lo ya ocurrido;
+- la semilla por sí sola no sustituye el identificador persistente del
+  episodio.
+
+Esta sección cierra el comportamiento exigido; no diseña la API del
+generador aleatorio ni el formato final de persistencia, que siguen
+correspondiendo a una futura entrega técnica sobre
+[ARC-002](ARC-002_procedural-generation-and-persistence.md).
+
+### 3.14 Presentación visible y potencial oculto (cierra P22)
+
+**Nivel actual visible.** La ficha del personaje muestra el nivel actual
+numérico `0–10` de características y habilidades, cerrado en
+[CHR-006 §3.6](../30-characters/CHR-006_characteristics-and-skill-catalog.md#36-escala-real-0–10-y-calibración-canónica).
+Este valor expresa lo que la persona puede hacer hoy. Se corrige la
+contradicción histórica con `UI-004`:
+
+- la prohibición de cifras se mantiene para umbrales de trabajo,
+  dificultad, fórmula, modificadores y probabilidades (ver
+  [UI-004 §3.5](../80-interface/UI-004_qualitative-capability-presentation.md#35-descriptores-en-lugar-de-cifras));
+- no se aplica al nivel actual de características y habilidades dentro de
+  la ficha del personaje;
+- una evaluación operativa no muestra «requiere Electricidad 6», «43 % de
+  éxito» ni el margen matemático de §3.9 de
+  [ARC-006](ARC-006_action-and-event-resolution-model.md#39-modelo-b-margen-azar-acotado-y-bandas-cierra-p04);
+- una herramienta de depuración puede mostrar cálculos internos, pero queda
+  fuera de la experiencia normal.
+
+**Capas de potencial**, coherentes con
+[CHR-007](../30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md):
+
+1. **Nivel actual:** visible como `0–10`.
+2. **Potencial real:** máximo interno oculto; nunca se muestra como número,
+   fracción, rango o barra exacta.
+3. **Potencial estimado:** opinión cualitativa basada en evidencias.
+4. **Confianza de la estimación:** cuánto fundamento tiene la comunidad.
+5. **Velocidad de aprendizaje:** variable distinta del potencial restante.
+6. **Calibre oculto `1–5` estrellas:** nunca visible y nunca bonificador
+   directo.
+7. **Adaptación al apocalipsis:** sistema separado de calibre y potencial.
+
+Quedan expresamente prohibidos: `Conducción 3/8`; `potencial 177`;
+`potencial 8–10`; estrellas visibles; porcentaje de potencial consumido;
+barra que revele el techo real; frases que se presenten como certeza
+cuando falta evidencia. El catálogo canónico de frases de potencial, su
+modulación por confianza y sus reglas de actualización viven en
+[CHR-007 §3.1](../30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md#31-potencial-oculto-y-desarrollo)
+y
+[CHR-007 §3.9](../30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md#39-catálogo-y-actualización-de-frases-de-potencial-cierra-parte-de-p22),
+sin repetirse aquí.
+
+**Presentación de acciones y resultados.** En la orden o acción no se
+muestra: porcentaje de éxito; tirada; dificultad numérica; modificadores
+internos; umbral requerido; probabilidad de crítico; contenido o peligro
+que la comunidad todavía desconoce. Se muestra: posible o bloqueado;
+adecuación cualitativa; dificultad relativa conocida; riesgos conocidos;
+confianza; causas principales; qué falta o qué podría mejorar el método;
+fase, progreso, consumo y motivo de interrupción; resultado causal y estado
+persistente final. Ejemplos válidos:
+
+> «Luis parece adecuado para la reparación. Conoce el tipo de instalación,
+> pero carece de una herramienta específica. El trabajo sería lento y
+> existe riesgo de deteriorar componentes.»
+
+> «La reparación ha quedado provisional. Luis identificó correctamente la
+> avería, pero el aislamiento disponible no permite una solución
+> permanente.»
+
+Se conservan en `UI-004` los estados cualitativos `Gris`, `Advertencia`,
+`Adecuada`, `Familiar` e `Incierta` para prioridades y evaluación
+operativa; no se sustituyen por el número visible de la ficha (ver la
+reconciliación completa en
+[UI-004 §3.8](../80-interface/UI-004_qualitative-capability-presentation.md#38-nivel-actual-visible-en-la-ficha-reconciliado-con-p22)).
+
 ## 4. Preguntas abiertas
 
-Lista completa de decisiones pendientes de calibración del motor de
-resolución (identificadores locales `P01`–`P22`, sin numeración oficial de
-entregas). Lo que ya debe preservarse mientras se decide queda indicado en
-la tercera columna:
+**Las veintidós decisiones `P01`–`P22` quedan cerradas por `DESIGN-006`.**
+Ya no son preguntas abiertas del motor de resolución: cada una tiene una
+decisión canónica y un documento de destino. Esta tabla se conserva como
+registro histórico de cierre y trazabilidad, no como lista de pendientes;
+el mismo mapeo se repite, con más detalle, en
+[DISC-0005](../discovery/DISC-0005_resolution-engine-closure-traceability.md).
 
-| ID | Decisión pendiente | Lo que ya debe preservarse |
+| ID | Decisión cerrada | Documento canónico y sección |
 |---|---|---|
-| P01 | Escala y catálogo definitivo de características y habilidades. | **Cerrado por [CHR-006](../30-characters/CHR-006_characteristics-and-skill-catalog.md):** nueve características y 34 habilidades base (ver reconciliación en CHR-006 §7). Sigue pendiente la calibración exacta de la escala 1–10. |
-| P02 | Representación del desconocimiento, valores ausentes y redondeo. | No se ignoran capacidades requeridas ni se inventan datos ([ARC-006](ARC-006_action-and-event-resolution-model.md#32-características-habilidades-y-medias)). |
-| P03 | Peso entre característica efectiva y habilidad efectiva. | La media dentro de cada pareja no decide el peso entre grupos ([ARC-006](ARC-006_action-and-event-resolution-model.md#32-características-habilidades-y-medias)). |
-| P04 | Tabla o función de B y distribución de grados. | Competencia relevante, solapamiento razonable, límites reales ([ARC-006](ARC-006_action-and-event-resolution-model.md#34-modelo-b-resolución-porcentual)). |
-| P05 | Tamaño y persistencia de la variación de D. | Progreso continuo; el ruido mínimo no permite cualquier inversión ([ARC-006](ARC-006_action-and-event-resolution-model.md#35-modelo-d-trabajo-continuo)). |
-| P06 | Requisitos duros por método y posibilidades de improvisación. | La suerte no sustituye conocimientos indispensables ([ARC-006](ARC-006_action-and-event-resolution-model.md#32-características-habilidades-y-medias)). |
-| P07 | Condiciones para clasificar una tarea como básica. | Sin porcentaje artificial de fracaso cuando corresponde ejecución directa ([ARC-006](ARC-006_action-and-event-resolution-model.md#33-posibilidad-requisitos-y-acciones-básicas-sin-tirada)). |
-| P08 | Qué fases necesitan comprobación y cómo se delimita un episodio. | No se tira por fotograma ni se resetean intentos ([ARC-006](ARC-006_action-and-event-resolution-model.md#36-base-híbrida-ejecución-directa-d-y-comprobaciones-b)). |
-| P09 | **Sigue pendiente:** fórmula de cooperación, capacidad de coordinación, rendimientos decrecientes y número útil de ayudantes por familia de acción. | **Ya cerrado:** el selector local `Auto / 1 / 2 / 3 / 4`, los modos de asignación `Comunidad`/`Equipo seleccionado` y las aportaciones funcionales ([UI-006](../80-interface/UI-006_contextual-place-interaction-and-teams.md#39-equipo-operativo-local-tamaño-y-asignación)). Se conserva además: responsable y funciones reales; no garantías por cantidad ([ARC-007](ARC-007_teamwork-orders-modes-and-conditions.md#31-trabajo-en-equipo-con-un-líder)). |
-| P10 | **Sigue abierto:** elección y sustitución del responsable, supervisión y reasignación automática. | Presencia o aportación efectiva, progreso persistente ([ARC-007](ARC-007_teamwork-orders-modes-and-conditions.md#31-trabajo-en-equipo-con-un-líder)). El cierre del selector de equipo en `UI-006` no resuelve esta cuestión. |
-| P11 | Lista final de modos y denominación por tarea. | Relajado no equivale a exhaustivo/cuidadoso ([ARC-007](ARC-007_teamwork-orders-modes-and-conditions.md#33-modos-de-ejecución-significado-corregido)). |
-| P12 | Efectos y costes de cada modo por familia. | No hay bonos universales ni modo siempre óptimo sin coste ([ARC-007](ARC-007_teamwork-orders-modes-and-conditions.md#33-modos-de-ejecución-significado-corregido)). |
-| P13 | Límites de tiempo, herencia del lugar y prioridad. | Ajustes en la orden del lugar, no globales en el personaje ([ARC-007](ARC-007_teamwork-orders-modes-and-conditions.md#32-órdenes-de-trabajo-vinculadas-al-lugar)). |
-| P14 | Respuesta ante amenazas, pérdida de medios o cambio de condiciones. | No se vuelve seguro el mundo por seleccionar relajado ([ARC-007](ARC-007_teamwork-orders-modes-and-conditions.md#33-modos-de-ejecución-significado-corregido)). |
-| P15 | Críticos, errores, incidencias y exposición acumulada. | Fallo de calidad no equivale a lesión; no dramatización constante (§3.1). |
-| P16 | Distribución y comunicación de conocimiento imperfecto. | Verdad y creencia separadas, revisión posible (§3.1). |
-| P17 | Reintento automático y autorización de gasto o riesgo. | Nuevo esfuerzo y persistencia, no lotería gratuita (§3.1). |
-| P18 | Oposición activa frente a pasiva. | Resolución pertinente, sin comprobaciones globales constantes (§3.3). |
-| P19 | Aprendizaje por participación, errores y habilidades combinadas. | No hay habilidad transferida mágicamente ni experiencia duplicada por defecto (§3.4). |
-| P20 | Esquema de eventos, orden causal, agrupación de avisos y política exacta de pausa o elevación automática ante un hecho significativo. | No se duplican consecuencias ni se confunde evento con notificación (§3.2). Los tipos de hecho que pueden interrumpir una rutina se enumeran, sin cerrar la política, en [UI-006](../80-interface/UI-006_contextual-place-interaction-and-teams.md#314-interrupciones). |
-| P21 | Persistencia aleatoria y equivalencia de escalas temporales. | Sin explotación por reinicio, cámara o frecuencia de actualización (§3.5). |
-| P22 | Presentación de probabilidades y explicación al jugador. | Comprensión sin convertir la experiencia en una tabla de fórmulas (§3.6). |
+| P01 | Escala real `0–10`, calibración de nivel y media humana `4`. | [CHR-006 §3.6](../30-characters/CHR-006_characteristics-and-skill-catalog.md#36-escala-real-0–10-y-calibración-canónica) |
+| P02 | Representación del desconocimiento: `0` es un valor real, distinto de dato ausente; precisión interna sin redondeo intermedio. | [ARC-006 §3.8](ARC-006_action-and-event-resolution-model.md#38-cero-dato-desconocido-y-precisión-cierra-p02) |
+| P03 | Tres perfiles cerrados de ponderación entre característica y habilidad efectivas (70/30, 50/50, 30/70). | [ARC-006 §3.7](ARC-006_action-and-event-resolution-model.md#37-perfiles-de-ponderación-entre-característica-y-habilidad-cierra-p03) |
+| P04 | Modelo B: margen, variación acotada `[-4,+4]` y cinco bandas internas. | [ARC-006 §3.9](ARC-006_action-and-event-resolution-model.md#39-modelo-b-margen-azar-acotado-y-bandas-cierra-p04) |
+| P05 | Modelo D: variación acotada de hasta `±8 %` por fase o sesión. | [ARC-006 §3.10](ARC-006_action-and-event-resolution-model.md#310-modelo-d-tamaño-y-persistencia-de-la-variación-cierra-p05) |
+| P06 | Requisitos duros por método: clasificación abierto/improvisable/guiado/restringido. | [ARC-006 §3.11](ARC-006_action-and-event-resolution-model.md#311-requisitos-duros-e-improvisación-por-método-cierra-p06) |
+| P07 | Umbral de tarea básica: `+3` puntos de capacidad efectiva sobre dificultad efectiva, no `+2`. | [ARC-006 §3.12](ARC-006_action-and-event-resolution-model.md#312-umbral-de-tarea-básica-y-episodios-comprobables-cierra-p07–p08) |
+| P08 | Delimitación de episodios y fases comprobables. | [ARC-006 §3.12](ARC-006_action-and-event-resolution-model.md#312-umbral-de-tarea-básica-y-episodios-comprobables-cierra-p07–p08) |
+| P09 | Fórmula de cooperación con rendimientos decrecientes (100 %/60 %/35 %/20 %) y funciones reales en B. | [ARC-007 §3.6](ARC-007_teamwork-orders-modes-and-conditions.md#36-cooperación-por-funciones-y-rendimientos-decrecientes-cierra-p09) |
+| P10 | Responsable, ejecutor, supervisor y reglas de sustitución. | [ARC-007 §3.7](ARC-007_teamwork-orders-modes-and-conditions.md#37-responsable-ejecutor-supervisor-y-sustitución-cierra-p10) |
+| P11 | Dos dimensiones combinables de modo: ritmo y atención, no cuatro modos excluyentes. | [ARC-007 §3.8](ARC-007_teamwork-orders-modes-and-conditions.md#38-modos-en-dos-dimensiones-combinables-cierra-p11) |
+| P12 | Rangos conceptuales de efectos y costes de ritmo y atención. | [ARC-007 §3.9](ARC-007_teamwork-orders-modes-and-conditions.md#39-efectos-y-costes-de-ritmo-y-atención-cierra-p12) |
+| P13 | Límites temporales, herencia de política del lugar y prioridad. | [ARC-007 §3.10](ARC-007_teamwork-orders-modes-and-conditions.md#310-límites-temporales-prioridad-e-herencia-cierra-p13) |
+| P14 | Cuatro políticas cualitativas de respuesta ante cambios y amenazas. | [ARC-007 §3.11](ARC-007_teamwork-orders-modes-and-conditions.md#311-respuesta-ante-cambios-pérdida-de-medios-y-amenazas-cierra-p14) |
+| P15 | Resultados multidimensionales, críticos e incidencias mediante el margen de B. | §3.7 de este documento |
+| P16 | Distribución y comunicación de conocimiento imperfecto en cuatro capas. | §3.8 de este documento |
+| P17 | Reintentos y presupuestos de autonomía de la orden. | §3.9 de este documento |
+| P18 | Oposición activa mediante una única resolución de margen relativo. | §3.10 de este documento |
+| P19 | Aprendizaje por participación, fórmula conceptual y reparto entre habilidades. | §3.11 de este documento |
+| P20 | Cadena de eventos, niveles de atención y pausa crítica predeterminada. | §3.12 de este documento |
+| P21 | Persistencia aleatoria y equivalencia entre velocidades de simulación. | §3.13 de este documento |
+| P22 | Nivel actual visible y potencial oculto comunicado mediante frases cualitativas. | §3.14 de este documento; [CHR-007 §3.9](../30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md#39-catálogo-y-actualización-de-frases-de-potencial-cierra-parte-de-p22); [UI-004 §3.8](../80-interface/UI-004_qualitative-capability-presentation.md#38-nivel-actual-visible-en-la-ficha-reconciliado-con-p22) |
+
+Cualquier calibración futura de valores concretos por acción, objeto,
+familia de contenido o dominio (por ejemplo, la dificultad efectiva exacta
+de una acción concreta, o el catálogo completo de dominios de habilidad)
+es **parametrización de contenido**, no una reapertura de este modelo base.
+Las preguntas de otros sistemas que siguen realmente abiertas —campos de
+potencial, distribución de estrellas del calibre, adaptación al
+apocalipsis, dominios de habilidad, catálogos de combate, umbrales exactos
+de dificultad por familia— se conservan en `docs/OPEN-QUESTIONS.md` y en
+sus documentos canónicos.
 
 ## 5. Ejemplos no normativos
 
-### 5.1 Lo único aprobado como fórmula
+### 5.1 Fórmulas aprobadas del motor cerrado
 
-La media aritmética dentro de una pareja de habilidades requeridas y dentro
-de una pareja de características requeridas (ver
-[ARC-006](ARC-006_action-and-event-resolution-model.md#32-características-habilidades-y-medias)).
-Ninguna otra fórmula de este anexo queda aprobada por su aparición aquí.
+Quedan aprobadas, con esta entrega, cinco fórmulas conceptuales: la media
+aritmética dentro de una pareja de características o de habilidades
+requeridas (ver
+[ARC-006 §3.2](ARC-006_action-and-event-resolution-model.md#32-características-habilidades-y-medias));
+los tres perfiles de ponderación entre grupos
+([ARC-006 §3.7](ARC-006_action-and-event-resolution-model.md#37-perfiles-de-ponderación-entre-característica-y-habilidad-cierra-p03));
+el margen y la variación acotada del modelo B
+([ARC-006 §3.9](ARC-006_action-and-event-resolution-model.md#39-modelo-b-margen-azar-acotado-y-bandas-cierra-p04));
+la variación acotada de hasta `±8 %` del modelo D
+([ARC-006 §3.10](ARC-006_action-and-event-resolution-model.md#310-modelo-d-tamaño-y-persistencia-de-la-variación-cierra-p05));
+y la fórmula conceptual de aprendizaje por participación (§3.11 de este
+documento). Ninguna otra fórmula de este anexo queda aprobada por su
+aparición aquí.
 
-### 5.2 Ponderación general antigua (no aprobada)
+### 5.2 Ponderación general antigua (descartada)
 
 `Capacidad base = (característica efectiva + 2 × habilidad efectiva) / 3`
 
-Punto de partida ilustrativo de una conversación anterior; el peso 2 para
-habilidad y la forma final de combinación no están fijados.
+Punto de partida ilustrativo de una conversación anterior, conservado como
+antecedente histórico. Queda descartada como fórmula universal: el peso
+entre característica y habilidad efectivas se resuelve mediante los tres
+perfiles cerrados de
+[ARC-006 §3.7](ARC-006_action-and-event-resolution-model.md#37-perfiles-de-ponderación-entre-característica-y-habilidad-cierra-p03),
+nunca mediante un peso fijo `2` aplicado a toda acción.
 
-### 5.3 Probabilidad del candidato B (no elegida)
+### 5.3 Probabilidad del candidato B (descartada)
 
 `p = 1 / (1 + exp(−(Capacidad − Dificultad) / s))`
 
-`s` controla la sensibilidad de la probabilidad a la diferencia. También se
-consideró una tabla calibrada como alternativa; ninguna opción está
-seleccionada. Esta forma no llega exactamente al 100 % con valores finitos,
-por lo que no debe sustituir la resolución directa de tareas básicas: los
-requisitos se comprueban antes, no mediante las colas de la función.
+`s` controla la sensibilidad de la probabilidad a la diferencia. Esta forma
+logística y la tabla calibrada que se barajó como alternativa quedan
+descartadas: el modelo B cerrado usa margen, variación acotada `[-4, +4]` y
+cinco bandas internas (§3.9 de
+[ARC-006](ARC-006_action-and-event-resolution-model.md#39-modelo-b-margen-azar-acotado-y-bandas-cierra-p04)),
+que sí alcanza límites reales y no depende de las colas de una función
+continua.
 
-### 5.4 Progreso del candidato D (no fijado)
+### 5.4 Progreso del candidato D (cerrado)
 
 La idea matemática es acumular el ritmo efectivo a lo largo del tiempo
-trabajado, con una variación acotada por episodio como ejemplo (ver
-[ARC-006](ARC-006_action-and-event-resolution-model.md#35-modelo-d-trabajo-continuo)).
-No se han fijado tamaño de variación, duración del episodio ni necesidad de
-variación aleatoria en cada rutina; no se resamplea arbitrariamente por
-fotograma, porque cambiaría el comportamiento al cambiar la frecuencia de
-actualización.
+trabajado, con una variación acotada **de hasta `±8 %` por fase o sesión
+significativa**, cerrada en
+[ARC-006 §3.10](ARC-006_action-and-event-resolution-model.md#310-modelo-d-tamaño-y-persistencia-de-la-variación-cierra-p05).
+No se resamplea por fotograma ni por tick, porque cambiaría el
+comportamiento al cambiar la frecuencia de actualización (P21, §3.13).
 
-### 5.5 Críticos e incidencias (no fijado)
+### 5.5 Críticos e incidencias (cerrado mediante bandas de B)
 
-Las bandas `0,10p` y `0,10(1 − p)` de §3.1 ilustran la intuición de diseño
-sobre maestría y resultados extremos; no son tasas universales. La tasa
-constante de incidencia por exposición (§3.5) tampoco está elegida.
+Las bandas `0,10p` y `0,10(1 − p)` que aparecían en versiones anteriores de
+este documento quedan descartadas como reparto porcentual universal: el
+mecanismo cerrado son las cinco bandas internas del modelo B (§3.9 de
+[ARC-006](ARC-006_action-and-event-resolution-model.md#39-modelo-b-margen-azar-acotado-y-bandas-cierra-p04)),
+traducidas por cada familia de acción a su propio lenguaje causal (§3.7 de
+este documento). La tasa constante de incidencia por exposición del
+antiguo §3.5 sigue sin elegirse como fórmula numérica de contenido; solo
+queda cerrado que la exposición se acumula por tiempo y condiciones, nunca
+por una probabilidad fija por fotograma.
 
 ### 5.6 Candidatos de resolución descartados como antecedentes
 
@@ -445,13 +788,19 @@ híbrido B+D. La separación conceptual entre efecto y peligro puede
 utilizarse sin importar toda la matemática o frecuencia de complicaciones de
 esas alternativas.
 
-### 5.7 Diecinueve casos de validación documental
+### 5.7 Treinta y un casos de validación documental
 
 Ejemplos de la especificación, no pruebas ejecutadas ni programadas. Para
 cada caso se identifica realidad existente, objetivo, método, capacidades,
 medias posibles, requisitos, equipo, modo, resolución, resultado,
-persistencia, información visible y decisiones aún pendientes; no se
-inventan números salvo que se marquen como ilustrativos.
+persistencia e información visible; no se inventan números salvo que se
+marquen como ilustrativos. Los diecinueve primeros casos son la
+consolidación original del motor; los casos 20 a 31 se añaden con
+`DESIGN-006` para cubrir de forma explícita escala y potencial,
+cooperación, oposición, eventos, aprendizaje, protección, exposición y
+presupuesto de reintentos, y responden además a los 24 casos de validación
+exigidos por el prompt de cierre (ver
+[DISC-0005](../discovery/DISC-0005_resolution-engine-closure-traceability.md)).
 
 1. **Buscar en una vivienda.** Existe un objeto oculto en una zona
    concreta. Comparar registro habitual, relajado y exhaustivo sin alterar
@@ -503,8 +852,8 @@ inventan números salvo que se marquen como ilustrativos.
     de «más lento» ([ARC-007](ARC-007_teamwork-orders-modes-and-conditions.md#33-modos-de-ejecución-significado-corregido)).
 12. **Amenaza durante un trabajo relajado.** Cambian las condiciones; el
     equipo solo reacciona a lo que puede conocer; se conserva el trabajo y
-    se identifica como pendiente la política exacta de cambio de modo o
-    retirada (§3.2, P14).
+    se aplica una de las cuatro políticas cualitativas cerradas de
+    [ARC-007 §3.11](ARC-007_teamwork-orders-modes-and-conditions.md#311-respuesta-ante-cambios-pérdida-de-medios-y-amenazas-cierra-p14).
 13. **Límite de dedicación.** Una orden autoriza treinta minutos y no
     termina; quedan avance e inspección persistentes, sin fracaso ficticio
     ni éxito gratuito ([ARC-007](ARC-007_teamwork-orders-modes-and-conditions.md#34-tiempo-dedicación-método-y-prioridad)).
@@ -531,3 +880,53 @@ inventan números salvo que se marquen como ilustrativos.
     pero no obliga a otro personaje a actuar contra cualquier interés o
     límite; se separa respuesta, conocimiento y memoria social (§3.3,
     interacción social).
+20. **Referencia humana media.** Una persona con Fuerza `4` representa la
+    referencia humana media de esa característica; no implica nivel `4` en
+    ninguna habilidad especializada ([CHR-006 §3.6](../30-characters/CHR-006_characteristics-and-skill-catalog.md#36-escala-real-0–10-y-calibración-canónica)).
+21. **Cero real frente a dato desconocido.** Una persona con Electricidad
+    `0` carece de competencia práctica, pero puede tener potencial y
+    aprender lo básico; Electricidad `0` no significa «dato desconocido»
+    (§3.8 de este documento; [CHR-006 §3.6](../30-characters/CHR-006_characteristics-and-skill-catalog.md#36-escala-real-0–10-y-calibración-canónica)).
+22. **Nivel alto cerca del máximo oculto.** Una persona con Mecánica `8`
+    puede estar cerca de su máximo oculto; la ficha muestra `8` y una frase
+    de potencial estimado, nunca `8/9` (§3.14 de este documento;
+    [CHR-007 §3.9](../30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md#39-catálogo-y-actualización-de-frases-de-potencial-cierra-parte-de-p22)).
+23. **Potencial bajo nivel actual mínimo.** Una persona con Conducción `1`
+    puede tener un potencial enorme; ese potencial no mejora cómo conduce
+    hoy, solo su desarrollo futuro ([CHR-007 §3.1](../30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md#31-potencial-oculto-y-desarrollo)).
+24. **Umbral de tarea básica frente a diferencia menor.** Una capacidad
+    efectiva `3` puntos sobre la dificultad efectiva y sin incertidumbre
+    pertinente se ejecuta directamente; una diferencia de solo dos puntos
+    no activa por sí sola esa regla ([ARC-006 §3.12](ARC-006_action-and-event-resolution-model.md#312-umbral-de-tarea-básica-y-episodios-comprobables-cierra-p07–p08)).
+25. **Cooperación con rendimientos decrecientes.** Añadir tres ayudantes a
+    un trabajo compartido no transfiere sus habilidades al ejecutor
+    principal ni multiplica automáticamente la velocidad por cuatro: la
+    contribución sigue la referencia `100 %/60 %/35 %/20 %`
+    ([ARC-007 §3.6](ARC-007_teamwork-orders-modes-and-conditions.md#36-cooperación-por-funciones-y-rendimientos-decrecientes-cierra-p09)).
+26. **Solapamiento ocasional en oposición activa.** Un experto suele
+    superar a un principiante en sigilo frente a percepción, resuelto
+    mediante la única comprobación de margen relativo de
+    [ARC-008 §3.10](ARC-008_outcomes-knowledge-events-and-validation.md#310-oposición-activa-y-pasiva-cierra-p18);
+    existe solapamiento ocasional en acciones realmente accesibles (R04).
+27. **Protección sin mejorar la calidad técnica.** Un equipo de protección
+    puede reducir la gravedad de una consecuencia sin mejorar el resultado
+    técnico de la acción; ambos efectos se resuelven por separado
+    (§3.7 de este documento).
+28. **Evento agrupado frente a pausas independientes.** Veinte personas que
+    detectan el mismo incendio generan un único evento de dominio y, como
+    mucho, avisos agrupados y una sola pausa crítica, no veinte pausas
+    independientes (§3.12 de este documento).
+29. **Presupuesto de reintentos agotado.** Una orden con presupuesto de
+    materiales y riesgo máximo definidos detiene la repetición automática y
+    eleva una decisión al jugador antes de cruzar un coste irreversible no
+    autorizado; cancelar o recargar no restaura el presupuesto ya
+    consumido (§3.9 de este documento).
+30. **Aprendiz que solo transporta.** Un aprendiz que únicamente transporta
+    herramientas para un mecánico no obtiene Mecánica: el aprendizaje exige
+    participación real en pasos pertinentes (§3.11 de este documento;
+    [CHR-002 §3.1](../30-characters/CHR-002_knowledge-and-learning.md#31-vías-aprobadas-de-adquisición)).
+31. **Exposición acumulada, no probabilidad por fotograma.** Un trabajo
+    prolongado junto a una amenaza acumula exposición según el tiempo de
+    simulación real, nunca mediante una probabilidad fija evaluada cada
+    fotograma; ejecutar a `×10`, mirar otra zona o recargar la partida no
+    cambia el resultado ya generado del episodio (§3.13 de este documento).

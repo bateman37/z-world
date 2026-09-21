@@ -7,6 +7,7 @@ canonical_for:
   - estados cualitativos de capacidad
   - prohibición de umbrales numéricos internos en la UX normal
   - explicación causal de dificultad, riesgo y bloqueo físico
+  - reconciliación entre nivel actual visible y prohibición de cifras internas
 depends_on:
   - UI-003
 related:
@@ -14,6 +15,10 @@ related:
   - UI-002
   - CHR-001
   - CHR-002
+  - CHR-006
+  - CHR-007
+  - ARC-008
+  - DEC-0011
 ---
 
 ## 1. Propósito
@@ -34,7 +39,12 @@ prioridades.
   antes de aprenderla, para expresar una intención futura. No se generan
   trabajos imposibles por ello.
 - La interfaz normal nunca muestra umbrales numéricos internos de
-  habilidad, dificultad o probabilidad como experiencia final.
+  dificultad, fórmula, modificadores o probabilidad como experiencia final
+  de una acción concreta. Esta prohibición **no** se extiende al nivel
+  actual numérico `0–10` de características y habilidades en la ficha del
+  personaje, que es visible según
+  [CHR-006 §3.6](../30-characters/CHR-006_characteristics-and-skill-catalog.md#36-escala-real-0–10-y-calibración-canónica)
+  (`DESIGN-006`, cierra P22; ver reconciliación completa en §3.8).
 
 ## 3. Modelo funcional
 
@@ -96,9 +106,14 @@ lenguaje del mundo, no mostrar solo el umbral numérico.
 
 ### 3.5 Descriptores en lugar de cifras
 
-La interfaz normal no muestra, por ejemplo, «Mecánica 5/10», «Requiere
-Electricidad 6», «43 % de comprender» ni límites personales secretos como
-cifras absolutas. Muestra descriptores y causas comprensibles, por ejemplo:
+La interfaz normal no muestra, por ejemplo, «Requiere Electricidad 6», «43 %
+de comprender», el margen matemático del modelo B (ver
+[ARC-006 §3.9](../90-architecture/ARC-006_action-and-event-resolution-model.md#39-modelo-b-margen-azar-acotado-y-bandas-cierra-p04))
+ni límites personales secretos como cifras absolutas. Esto incluye
+«Mecánica 5/10» **como umbral de una acción concreta**: la evaluación
+operativa de un trabajo no expresa el requisito de la acción como cifra
+(ver el ejemplo corregido en §3.8). Muestra descriptores y causas
+comprensibles, por ejemplo:
 
 - «No sabemos si Marta podría hacerlo».
 - «Muy por encima de su experiencia conocida».
@@ -130,12 +145,47 @@ enseñanza, de forma consistente con
 resultado desfavorable puntual no revela un límite definitivo ni se
 presenta como tal.
 
+### 3.8 Nivel actual visible en la ficha (reconciliado con P22)
+
+**Decisión cerrada (`DESIGN-006`).** La ficha del personaje muestra el
+nivel actual numérico `0–10` de características y habilidades, cerrado en
+[CHR-006 §3.6](../30-characters/CHR-006_characteristics-and-skill-catalog.md#36-escala-real-0–10-y-calibración-canónica)
+y en
+[ARC-008 §3.14](../90-architecture/ARC-008_outcomes-knowledge-events-and-validation.md#314-presentación-visible-y-potencial-oculto-cierra-p22).
+Esto corrige la lectura anterior de este documento, que parecía prohibir
+absolutamente cualquier cifra de capacidad («Mecánica 5/10»).
+
+La reconciliación exacta:
+
+- la prohibición de cifras de §3.5 se mantiene para umbrales de trabajo,
+  dificultad, fórmula, modificadores y probabilidades de una **acción
+  concreta**;
+- **no** se aplica al nivel actual de una característica o habilidad
+  mostrado en la **ficha del personaje**, fuera del contexto de una orden;
+- una evaluación operativa de una orden o trabajo sigue sin mostrar
+  «requiere Electricidad 6», «43 % de éxito» ni el margen matemático de B;
+  muestra los descriptores cualitativos de §3.2 y §3.5;
+- una herramienta de depuración puede mostrar cálculos internos completos,
+  pero queda fuera de la experiencia normal (§3.6);
+- el potencial real, el calibre oculto y el máximo numérico de desarrollo
+  siguen absolutamente ocultos, comunicados solo mediante las frases
+  cualitativas de
+  [CHR-007 §3.9](../30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md#39-catálogo-y-actualización-de-frases-de-potencial-cierra-parte-de-p22).
+
+**Ejemplo corregido.** La ficha de Luis puede mostrar «Electricidad `6`»
+como nivel actual; el panel de la orden «Reparar cuadro eléctrico» no
+muestra ese `6` como umbral requerido: muestra «Adecuada para Luis» o
+«Difícil; podría provocar un cortocircuito», según corresponda (§3.2,
+§3.5).
+
 ## 4. Reglas aprobadas
 
 - Prioridad y capacidad se muestran y editan como dos dimensiones separadas
   en toda celda de la matriz de [UI-003](UI-003_work-priority-taxonomy.md).
-- No se muestran umbrales numéricos de habilidad en la experiencia de
-  jugador normal.
+- No se muestran umbrales numéricos internos (dificultad, fórmula,
+  modificadores, probabilidad) de una acción concreta en la experiencia de
+  jugador normal; el nivel actual `0–10` de la ficha del personaje es la
+  única excepción cerrada (§3.8).
 - Toda explicación cualitativa debe acompañarse de una causa comprensible,
   no solo de un color o icono aislado.
 - Los requisitos duros se comunican como dependencia física real, nunca
@@ -155,6 +205,16 @@ presenta como tal.
 - El aprendizaje y la enseñanza que cambian el estado cualitativo de una
   persona se rigen por
   [CHR-002](../30-characters/CHR-002_knowledge-and-learning.md).
+- La escala real `0–10` y la visibilidad del nivel actual en la ficha se
+  rigen por
+  [CHR-006 §3.6](../30-characters/CHR-006_characteristics-and-skill-catalog.md#36-escala-real-0–10-y-calibración-canónica);
+  el potencial oculto y su comunicación cualitativa se rigen por
+  [CHR-007](../30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md).
+- El margen, la variación acotada y las bandas internas del modelo B, que
+  nunca se muestran al jugador, se rigen por
+  [ARC-006 §3.9](../90-architecture/ARC-006_action-and-event-resolution-model.md#39-modelo-b-margen-azar-acotado-y-bandas-cierra-p04)
+  y
+  [ARC-008 §3.14](../90-architecture/ARC-008_outcomes-knowledge-events-and-validation.md#314-presentación-visible-y-potencial-oculto-cierra-p22).
 
 ## 6. Casos límite o riesgos
 
@@ -165,8 +225,13 @@ presenta como tal.
 
 ## 7. Preguntas abiertas
 
-- Fórmulas numéricas exactas de idoneidad, dificultad, riesgo y confianza
-  que alimentan estos estados cualitativos. Ver `docs/OPEN-QUESTIONS.md`.
+**Cerrado por `DESIGN-006`:** la contradicción con el nivel actual visible
+de la ficha (§3.8) y el mecanismo interno de B que estos estados resumen
+([ARC-006 §3.9](../90-architecture/ARC-006_action-and-event-resolution-model.md#39-modelo-b-margen-azar-acotado-y-bandas-cierra-p04)).
+Siguen abiertas, como parametrización de contenido: las fórmulas numéricas
+exactas de idoneidad, dificultad, riesgo y confianza que alimentan estos
+estados cualitativos para cada familia de acción concreta. Ver
+`docs/OPEN-QUESTIONS.md`.
 - Color, iconografía y disposición visual final de los estados de la
   sección 3.2.
 

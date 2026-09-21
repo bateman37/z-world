@@ -1,12 +1,15 @@
 ---
 id: ARC-006
 title: Modelo de resolución de acciones, capacidades y ejecución directa/D/B
-status: draft
+status: approved
 canonical_for:
   - procedimiento común de resolución de un trabajo
   - medias de características y habilidades efectivas
   - acciones básicas sin tirada
   - modelo B (resolución porcentual) y modelo D (trabajo continuo)
+  - perfiles de ponderación entre característica y habilidad
+  - representación de cero, dato desconocido y precisión interna
+  - requisitos duros y clasificación de tareas básicas
 depends_on:
   - CHR-006
   - UI-003
@@ -20,6 +23,7 @@ related:
   - WLD-002
   - WLD-004
   - DEC-0007
+  - DEC-0011
 ---
 
 ## 1. Propósito
@@ -145,10 +149,10 @@ La media es aritmética y de igual peso dentro de cada pareja. No se
 sustituye silenciosamente por suma, máximo, mínimo, media geométrica ni
 ponderación desigual. Primero se forma el grupo de características y el
 grupo de habilidades por separado; **el peso entre ambos grupos para
-obtener una capacidad final sigue sin fijarse** (ver P03 en
-[ARC-008](ARC-008_outcomes-knowledge-events-and-validation.md#4-preguntas-abiertas)).
-La fórmula antigua `(característica efectiva + 2 × habilidad efectiva) / 3`
-no queda aprobada por este documento (ver anexo de fórmulas no aprobadas en
+obtener una capacidad final queda cerrado mediante tres perfiles de
+ponderación** (`DESIGN-006`, cierra P03; ver §3.7). La fórmula antigua
+`(característica efectiva + 2 × habilidad efectiva) / 3` queda descartada
+como fórmula universal (ver anexo de fórmulas no aprobadas en
 [ARC-008](ARC-008_outcomes-knowledge-events-and-validation.md#5-ejemplos-no-normativos)).
 
 **EJEMPLO, no catálogo definitivo.** Una fase de diagnóstico de una
@@ -184,17 +188,18 @@ conocimiento concreto, se comprueba antes, y una Mecánica alta no autoriza
 por sí sola un procedimiento eléctrico desconocido porque la media resulte
 aceptable. Al mismo tiempo, no toda habilidad baja bloquea: existen tareas
 improvisables, básicas y aprendibles mediante práctica; los requisitos
-duros deben justificarse por método (ver PENDIENTE en
-[ARC-008](ARC-008_outcomes-knowledge-events-and-validation.md#4-preguntas-abiertas),
-P06).
+duros se justifican por método, clasificado según §3.11 (cierra P06).
 
-**Valores ausentes y precisión (PENDIENTE).** No está decidido cómo se
-representa no tener una habilidad (cero, ausencia u otra categoría), si se
-puede intentar un método sin entrenamiento, cómo se muestran y conservan
-medias fraccionarias, ni cómo se aplican modificadores sin duplicar una
-causa. No se ignora una habilidad requerida por falta de dato, no se
-interpreta ausencia como un valor inventado y no se redondea dos veces
-generando ventajas por orden de cálculo.
+**Valores ausentes y precisión (cierra P02, ver §3.8).** No tener
+experiencia práctica en una habilidad se representa con el valor real `0`
+de la escala `0–10` de
+[CHR-006 §3.6](../30-characters/CHR-006_characteristics-and-skill-catalog.md#36-escala-real-0–10-y-calibración-canónica),
+nunca con un dato ausente ni con `null`. Un método puede seguir siendo
+intentable sin entrenamiento cuando su clasificación lo permita (§3.11). No
+se ignora una habilidad requerida por falta de dato, no se interpreta
+ausencia como un valor inventado y no se redondea dos veces generando
+ventajas por orden de cálculo; las medias y modificadores conservan
+precisión interna y solo se redondean al presentarse.
 
 **La media individual no es la fórmula de cooperación.** Esta regla
 promedia capacidades de **una persona**. No decide cómo combinar personas:
@@ -204,11 +209,14 @@ puntuaciones a un superpersonaje colectivo (ver
 
 ### 3.3 Posibilidad, requisitos y acciones básicas sin tirada
 
-**ACORDADO.** Para acciones sencillas o básicas, si la persona tiene
-capacidad y posibilidad real de hacerlas, las realiza sin conservar
-artificialmente un porcentaje mínimo de fracaso. La clasificación depende de
-persona, tarea, método y contexto: algo rutinario para un especialista puede
-no serlo para alguien sin formación.
+**ACORDADO (cierra P07, condiciones exactas en §3.12).** Para acciones
+sencillas o básicas, si la persona tiene capacidad y posibilidad real de
+hacerlas, las realiza sin conservar artificialmente un porcentaje mínimo de
+fracaso. La clasificación depende de persona, tarea, método y contexto:
+algo rutinario para un especialista puede no serlo para alguien sin
+formación. El umbral numérico de superioridad de capacidad que activa esta
+regla es **tres puntos o más** sobre la dificultad efectiva, no dos (§3.12);
+una diferencia de solo dos puntos no basta por sí sola.
 
 | Situación | Tratamiento conceptual |
 |---|---|
@@ -235,11 +243,13 @@ una señal, interpretar una avería, conservar una pieza delicada o realizar
 una maniobra. No equivale a un juego por turnos: la comprobación puede
 ocurrir durante una acción continua sin mostrarse como dado.
 
-**PENDIENTE.** La forma matemática exacta (función logística, tabla
-calibrada u otra) no está elegida; debe permitir calibrar el peso de la
-competencia, la dificultad y el solapamiento entre perfiles sin una fórmula
-artesanal por objeto (ver P04 en
-[ARC-008](ARC-008_outcomes-knowledge-events-and-validation.md#4-preguntas-abiertas)).
+**Cerrado (`DESIGN-006`, cierra P04; forma matemática completa en §3.9).**
+B se resuelve mediante un margen entre capacidad efectiva y dificultad
+efectiva, modulado por una variación aleatoria acotada y persistente, y
+traducido a cinco bandas internas de resultado (§3.9). Esta forma sustituye
+tanto la función logística como la tabla calibrada que se barajaron como
+candidatas sin elegirse (ver antecedentes descartados en
+[ARC-008 §5.3](ARC-008_outcomes-knowledge-events-and-validation.md#53-probabilidad-del-candidato-b-descartada)).
 
 **EJEMPLO EXPLICATIVO, NO BALANCE.** Un panel contiene diez tablas
 potencialmente reutilizables; la parte incierta es cuántas conserva intactas
@@ -277,11 +287,12 @@ de criterio detrás de porcentajes con muchos decimales.
 
 **Qué aporta.** D responde: «¿cómo avanza este trabajo con las personas, los
 medios y las condiciones actuales?». El progreso depende del tiempo
-realmente trabajado y del rendimiento pertinente, y puede incluir una
-variación acotada de ejecución cuyo tamaño no está fijado. Las fases
-delicadas y las incidencias no se confunden con el avance rutinario: no se
-sortea cada golpe ni se decide al final, retrospectivamente, que todo el
-trabajo correcto desaparece.
+realmente trabajado y del rendimiento pertinente, y **incluye una variación
+acotada de ejecución de hasta `±8 %`** respecto al ritmo calculado (`DESIGN-006`,
+cierra P05; tamaño y persistencia exactos en §3.10). Las fases delicadas y
+las incidencias no se confunden con el avance rutinario: no se sortea cada
+golpe ni se decide al final, retrospectivamente, que todo el trabajo
+correcto desaparece.
 
 **EJEMPLO EXPLICATIVO, NO BALANCE NI DURACIONES DEFINITIVAS.** Un trabajo
 requiere 120 unidades internas de esfuerzo (no necesariamente visibles):
@@ -361,17 +372,300 @@ destino de una semana de trabajo. No se aplican a la vez un fracaso B y una
 penalización D independientes para castigar dos veces la misma ejecución sin
 justificación causal explícita.
 
+### 3.7 Perfiles de ponderación entre característica y habilidad (cierra P03)
+
+Tras obtener la característica efectiva y la habilidad efectiva (§3.2), la
+fase o el método elige uno de estos tres perfiles cerrados de ponderación:
+
+| Perfil | Característica | Habilidad | Uso conceptual |
+|---|---:|---:|---|
+| Instintivo o físico | 70 % | 30 % | Predominio corporal, sensorial o inmediato. |
+| Equilibrado | 50 % | 50 % | La aptitud general y la experiencia importan de forma similar. |
+| Técnico o aprendido | 30 % | 70 % | Predominio del dominio adquirido y el procedimiento. |
+
+Fórmula conceptual:
+
+```text
+capacidad = característica_efectiva × peso_característica
+          + habilidad_efectiva × peso_habilidad
+```
+
+El perfil pertenece a la fase o al método, nunca a la persona: la misma
+persona puede resolver una fase instintiva y, después, una fase técnica de
+la misma acción compuesta con perfiles distintos. No se crean porcentajes
+artesanales adicionales por objeto o por familia de contenido; toda
+ponderación debe encajar en uno de estos tres perfiles.
+
+Casos permitidos y excepcionales, sin que ninguno invente un cuarto perfil:
+
+- una acción cotidiana puede no necesitar habilidad y depender solo de
+  característica;
+- una fase puramente aprendida puede depender solo de habilidad efectiva y
+  de los requisitos de conocimiento del método (§3.11);
+- la media dentro de una pareja de características o de habilidades (§3.2)
+  se calcula primero; el perfil de esta sección solo pondera después entre
+  los dos grupos ya agrupados;
+- la media de una persona nunca es una fórmula de cooperación entre varias
+  personas (ver
+  [ARC-007 §3.1](ARC-007_teamwork-orders-modes-and-conditions.md#31-trabajo-en-equipo-con-un-líder)).
+
+**EJEMPLO, ilustrativo, no catálogo exhaustivo.** Trepar un muro liso bajo
+presión usa un perfil instintivo o físico (Fuerza y Agilidad dominan sobre
+Escalada); reparar un cuadro eléctrico complejo usa un perfil técnico o
+aprendido (Electricidad domina sobre Técnica); negociar un intercambio con
+otra comunidad usa un perfil equilibrado (Carisma/Empatía e Influencia
+pesan de forma similar). Estos tres ejemplos no fijan el perfil definitivo
+de ninguna acción de contenido futura.
+
+### 3.8 Cero, dato desconocido y precisión (cierra P02)
+
+Se documentan como cuatro capas separadas, sin fusionarlas:
+
+1. **Nivel real actual:** el número `0–10` de característica o habilidad de
+   [CHR-006 §3.6](../30-characters/CHR-006_characteristics-and-skill-catalog.md#36-escala-real-0–10-y-calibración-canónica).
+2. **Conocimiento o técnica:** información o procedimiento concreto que
+   puede estar presente o ausente (ver
+   [CHR-002](../30-characters/CHR-002_knowledge-and-learning.md) y
+   [SET-006](../40-settlement/SET-006_knowledge-assets-and-capability.md)).
+3. **Información de la comunidad:** lo que se sabe sobre la persona, el
+   método o el mundo (ver §3.13 de
+   [ARC-008](ARC-008_outcomes-knowledge-events-and-validation.md#38-conocimiento-imperfecto-y-comunicación-cierra-p16)).
+4. **Confianza:** solidez de esa información.
+
+Reglas de cierre:
+
+- No conocer un procedimiento eléctrico concreto no equivale
+  automáticamente a Electricidad `0`; una persona puede tener Electricidad
+  alta y desconocer un procedimiento específico, o Electricidad baja y
+  conocerlo de memoria por una experiencia puntual.
+- Electricidad `0` no significa que el dato sea desconocido: es un nivel
+  real de competencia práctica nula, coherente con
+  [CHR-006 §3.6](../30-characters/CHR-006_characteristics-and-skill-catalog.md#36-escala-real-0–10-y-calibración-canónica).
+- Un valor desconocido (por ejemplo, una habilidad que la comunidad nunca
+  ha observado en una persona) no se sustituye silenciosamente por `4`, no
+  se elimina de una media y no se inventa; se representa como incertidumbre
+  de la comunidad (capa 3), nunca como el nivel real de la persona.
+- La ausencia de un conocimiento indispensable puede bloquear un método
+  aunque la habilidad general de la persona sea alta (§3.11).
+- La falta de práctica puede permitir métodos básicos o guiados cuando el
+  método lo declare (§3.11), incluso con habilidad `0`.
+- Las medias y modificadores se conservan con precisión interna; no se
+  redondea en cada paso intermedio, solo al presentar el resultado final.
+- No se aplica dos veces una misma causa: por ejemplo, el cansancio no se
+  aplica sobre cada capacidad agrupada y de nuevo sobre el resultado global
+  sin una decisión expresa de la familia de acción (ver también
+  [ARC-007 §3.5](ARC-007_teamwork-orders-modes-and-conditions.md#35-estado-herramientas-y-entorno)).
+
+El nivel actual numérico de la ficha es visible según P22 (ver
+[ARC-008 §3.14](ARC-008_outcomes-knowledge-events-and-validation.md#314-presentación-visible-y-potencial-oculto-cierra-p22)
+y
+[CHR-006 §3.6](../30-characters/CHR-006_characteristics-and-skill-catalog.md#36-escala-real-0–10-y-calibración-canónica)).
+La incertidumbre sobre potencial, resultados y conocimiento del mundo
+permanece separada de ese nivel actual.
+
+### 3.9 Modelo B: margen, azar acotado y bandas (cierra P04)
+
+**Función conceptual aprobada.** Para una incertidumbre significativa y
+accesible (§3.8 de este documento identifica cuándo procede una
+comprobación; ver también
+[ARC-008 §3.1](ARC-008_outcomes-knowledge-events-and-validation.md#31-resultados-incidencias-conocimiento-y-reintentos)):
+
+```text
+margen_previo = capacidad_efectiva - dificultad_efectiva
+margen_final = margen_previo + variación_B
+```
+
+`capacidad_efectiva` es el resultado del perfil de ponderación de §3.7.
+`dificultad_efectiva` incorpora método y condiciones pertinentes (entorno,
+herramienta, estado; ver
+[ARC-007 §3.5](ARC-007_teamwork-orders-modes-and-conditions.md#35-estado-herramientas-y-entorno))
+sin contabilizar dos veces una misma causa.
+
+**Distribución del azar.** `variación_B`:
+
+- está centrada en `0`;
+- usa una distribución de campana, no uniforme (documentalmente, una normal
+  truncada);
+- tiene desviación orientativa `1,15`;
+- queda limitada al intervalo `[-4, +4]`;
+- hace habituales las variaciones pequeñas y muy raras las extremas;
+- se genera de forma determinista y persistente según
+  [ARC-008 §3.13](ARC-008_outcomes-knowledge-events-and-validation.md#313-persistencia-aleatoria-y-equivalencia-temporal-cierra-p21).
+
+Esta especificación es conceptual; no elige una librería ni un algoritmo de
+muestreo concreto.
+
+**Cinco bandas internas.**
+
+| Margen final | Banda interna | Interpretación |
+|---:|---|---|
+| `>= 3` | Excepcional | Resultado especialmente favorable dentro de lo físicamente posible. |
+| `>= 1` y `< 3` | Favorable | Se alcanza bien el resultado buscado. |
+| `>= -1` y `< 1` | Parcial o incierto | Avance, resultado mixto, provisional o información incompleta según la acción. |
+| `> -3` y `< -1` | Deficiente recuperable | No se alcanza plenamente; persisten consecuencias, costes o trabajo aprovechable. |
+| `<= -3` | Grave potencial | Solo produce gravedad si la acción contenía un peligro o una consecuencia grave plausible. |
+
+Las bandas son internas y nunca se muestran al jugador (ver
+[ARC-008 §3.14](ARC-008_outcomes-knowledge-events-and-validation.md#314-presentación-visible-y-potencial-oculto-cierra-p22)).
+Cada familia de acción traduce el resultado a lenguaje causal propio: una
+reparación puede quedar provisional; una inspección, incompleta; una pieza,
+dañada; una negociación, estancada (ver la aplicación por familia en
+[ARC-008 §3.3](ARC-008_outcomes-knowledge-events-and-validation.md#33-aplicación-a-las-familias-de-acciones)).
+
+Reglas de cierre:
+
+- Una banda grave no crea una lesión si la acción no contenía un peligro
+  capaz de causarla (ver R17 y
+  [ARC-008 §3.7](ARC-008_outcomes-knowledge-events-and-validation.md#37-resultados-multidimensionales-críticos-e-incidencias-cierra-p15)).
+- Una banda excepcional no crea recursos ni evidencia inexistentes (R01).
+- Los requisitos imposibles se bloquean antes de B, no mediante una
+  probabilidad diminuta (§3.11).
+- B no se usa en toda rutina: solo ante una oportunidad significativa
+  (§3.6, y
+  [ARC-008 §3.1](ARC-008_outcomes-knowledge-events-and-validation.md#31-resultados-incidencias-conocimiento-y-reintentos)).
+- Una resolución coherente puede producir varios efectos relacionados; no
+  se sortean diez consecuencias independientes sin necesidad causal.
+- El jugador no ve el margen, la variación, los umbrales ni un porcentaje
+  exacto (§3.14 de
+  [ARC-008](ARC-008_outcomes-knowledge-events-and-validation.md#314-presentación-visible-y-potencial-oculto-cierra-p22)).
+
+Esta forma sustituye definitivamente a la función logística y a la tabla
+calibrada barajadas sin elegirse (ver antecedentes en
+[ARC-008 §5.3](ARC-008_outcomes-knowledge-events-and-validation.md#53-probabilidad-del-candidato-b-descartada)).
+
+### 3.10 Modelo D: tamaño y persistencia de la variación (cierra P05)
+
+El progreso `D` representa trabajo prolongado y conocido. Decisiones de
+cierre:
+
+- La variación aleatoria de rendimiento es pequeña: **hasta `±8 %`**
+  respecto al ritmo calculado a partir de la capacidad efectiva (§3.7) y de
+  las condiciones pertinentes.
+- Se genera **por fase o sesión significativa**, no por tick ni por
+  segundo, con la misma persistencia determinista de
+  [ARC-008 §3.13](ARC-008_outcomes-knowledge-events-and-validation.md#313-persistencia-aleatoria-y-equivalencia-temporal-cierra-p21).
+- Se mantiene estable al pausar, guardar, cargar o cambiar de velocidad de
+  simulación.
+- Una interrupción que reanuda la misma fase conserva la variación ya
+  fijada; no se resamplea al continuar.
+- Un cambio real de persona, método, herramienta, estado o fase puede
+  recalcular el rendimiento **futuro**, nunca el progreso ya realizado.
+- Fatiga, heridas, entorno, herramienta y coordinación son causas distintas
+  y pueden tener efectos mayores que el `±8 %`; no forman parte del ruido
+  aleatorio de D, sino de los moduladores causales de
+  [ARC-007 §3.5](ARC-007_teamwork-orders-modes-and-conditions.md#35-estado-herramientas-y-entorno).
+- D no necesita permitir que un principiante supere en velocidad a un
+  experto: las sorpresas pertinentes de R04 viven en B (§3.9), no en la
+  variación de D.
+- No existe una tirada final que pueda borrar horas de trabajo correcto.
+
+### 3.11 Requisitos duros e improvisación por método (cierra P06)
+
+Los requisitos pertenecen al **método**, no al objetivo abstracto. Un
+objetivo puede admitir métodos diferentes: reparación profesional,
+sustitución, arreglo provisional, adaptación improvisada, desmontaje o
+abandono (ver
+[SET-009](../40-settlement/SET-009_disassembly-and-world-transformation.md)
+para el caso del desmontaje).
+
+Cada método puede declarar: conocimientos o técnicas indispensables;
+herramientas; materiales; energía o infraestructura; acceso físico; número
+mínimo de personas; funciones necesarias (ver
+[ARC-007 §3.1](ARC-007_teamwork-orders-modes-and-conditions.md#31-trabajo-en-equipo-con-un-líder));
+estado mínimo de la persona; condiciones ambientales; riesgos y
+consecuencias posibles.
+
+**Clasificación cerrada de un método:**
+
+| Clase | Significado |
+|---|---|
+| Abierto | Cualquiera físicamente capaz puede intentarlo. |
+| Improvisable | Admite una alternativa real más lenta, costosa, frágil o arriesgada. |
+| Guiado o supervisado | Una persona sin dominio completo puede ejecutar pasos permitidos con manual, instrucciones o supervisión efectiva (ver [ARC-007 §3.1](ARC-007_teamwork-orders-modes-and-conditions.md#31-trabajo-en-equipo-con-un-líder)). |
+| Restringido | Sin el conocimiento, medio o condición indispensable, ese método no puede intentarse. |
+
+La improvisación debe ser un método descrito y causal, no una probabilidad
+residual de realizar lo imposible mediante una tirada de B con capacidad
+insuficiente. Bloquear un método no bloquea otros métodos posibles ni otras
+interacciones con el objetivo: no saber desmontar correctamente una
+instalación no elimina el resto de interacciones posibles con el edificio
+(§3.1).
+
+### 3.12 Umbral de tarea básica y episodios comprobables (cierra P07–P08)
+
+**Clasificación dinámica de tareas básicas (cierra P07).** Una tarea es
+básica **para una persona, un método y una situación concretos**, nunca
+universalmente. Se ejecuta directamente (§3.3) cuando se cumplen a la vez:
+
+1. cumple todos los requisitos duros del método (§3.11);
+2. el método es conocido o suficientemente familiar;
+3. la capacidad efectiva supera la dificultad efectiva en **tres puntos o
+   más** (`+3`, no `+2`);
+4. las condiciones son estables;
+5. no existe oposición activa (ver
+   [ARC-008 §3.10](ARC-008_outcomes-knowledge-events-and-validation.md#310-oposición-activa-y-pasiva-cierra-p18));
+6. no queda una incertidumbre significativa de descubrimiento, diagnóstico,
+   persuasión o resultado;
+7. un pequeño error no puede producir una consecuencia grave pertinente.
+
+Cualquier propuesta anterior que use una diferencia de dos puntos queda
+corregida: el umbral acordado es `+3`. Ejecución directa no significa
+instantánea, gratuita o inmune a interrupciones: puede consumir tiempo,
+materiales, esfuerzo, herramienta y energía; dos personas pueden completar
+directamente el mismo trabajo a ritmos distintos gobernados por D (§3.10).
+
+**Fases comprobables y episodio persistente (cierra P08).** Una
+comprobación B (§3.9) solo aparece ante una oportunidad significativa, por
+ejemplo: descubrir o interpretar información; comprometer material
+irreversible; manipular un elemento delicado; entrar en oposición con otro
+agente; exponerse a un peligro; verificar un resultado genuinamente
+incierto; cambiar de método de forma significativa.
+
+Un episodio queda definido conceptualmente por:
+
+```text
+objetivo + método + blanco + participantes + condiciones relevantes + esfuerzo comprometido
+```
+
+Reglas de cierre:
+
+- No se comprueba por fotograma, animación, golpe, paso ni unidad
+  transportada.
+- Interrumpir y continuar el **mismo** episodio no genera otra oportunidad
+  aleatoria.
+- Guardar/cargar no genera otra oportunidad (ver
+  [ARC-008 §3.13](ARC-008_outcomes-knowledge-events-and-validation.md#313-persistencia-aleatoria-y-equivalencia-temporal-cierra-p21)).
+- Cambiar solo el nombre de la orden o alternar un modo sin trabajo real no
+  genera otra oportunidad.
+- Otra persona, nueva evidencia, descanso, herramienta diferente, método
+  distinto, mayor profundidad o cambio real de condiciones pueden
+  justificar un nuevo episodio o una nueva fase.
+- Una semana de trabajo no puede quedar resumida arbitrariamente en una
+  única tirada final si contiene fases físicamente separables.
+
 ## 4. Reglas aprobadas
 
 - Las medias aritméticas de igual peso dentro de una pareja de
   características requeridas, y dentro de una pareja de habilidades
   requeridas, son la única regla de combinación aprobada (§3.2).
+- Tras agrupar por pareja, la capacidad final pondera característica y
+  habilidad efectivas mediante uno de los tres perfiles cerrados de §3.7:
+  instintivo/físico (70/30), equilibrado (50/50) o técnico/aprendido
+  (30/70).
 - Las acciones básicas viables se ejecutan sin tirada si la persona tiene
-  capacidad y medios reales (§3.3, R07).
+  capacidad y medios reales, con un umbral de superioridad de capacidad de
+  `+3` puntos sobre la dificultad efectiva cuando ese umbral sea pertinente
+  para la clasificación (§3.3, §3.12, R07).
 - El azar nunca crea objetos, recursos, pistas o capacidades imposibles
-  (R01); nunca sustituye un conocimiento o medio indispensable (§3.2).
-- B y D son modelos complementarios, no alternativos: D resuelve avance;
-  B resuelve incertidumbre pertinente (§3.4–§3.6).
+  (R01); nunca sustituye un conocimiento o medio indispensable (§3.2,
+  §3.11).
+- `0` es un valor real de nivel actual, distinto de dato desconocido o de
+  falta de conocimiento; las medias y modificadores conservan precisión
+  interna y solo redondean al presentarse (§3.8).
+- B y D son modelos complementarios, no alternativos: D resuelve avance con
+  una variación acotada de hasta `±8 %` por fase o sesión (§3.10); B
+  resuelve incertidumbre pertinente mediante margen, variación acotada
+  `[-4, +4]` y cinco bandas internas (§3.9).
 - Ningún resultado se resuelve dos veces: el progreso, el gasto, el daño,
   la inspección y el conocimiento persisten (R15).
 
@@ -400,6 +694,11 @@ justificación causal explícita.
   definidos en
   [WLD-004](../20-world/WLD-004_expertise-dependent-recovery.md) usan este
   procedimiento como mecanismo de resolución subyacente.
+- La decisión transversal que respalda el cierre de este documento junto
+  con `ARC-007` y `ARC-008` es
+  [DEC-0011](../decisions/DEC-0011_hybrid-resolution-engine-and-capability-presentation.md);
+  la trazabilidad completa del cierre vive en
+  [DISC-0005](../discovery/DISC-0005_resolution-engine-closure-traceability.md).
 
 ## 6. Casos límite o riesgos
 
@@ -416,18 +715,32 @@ durante la consolidación de este diseño:
 | «Un experto solo falla si el mundo le provoca un incidente externo.» | También puede cometer errores propios en acciones inciertas (R05). |
 | «Un crítico genera un objeto mejor o más recursos de los que existían.» | Solo cambia descubrimiento o aprovechamiento dentro de existencias y transformaciones válidas (R01). |
 | «Por haber estudiado muchos sistemas ya existe un motor validado.» | Hay una dirección de diseño; falta calibración y validación (R20). |
+| «El umbral de tarea básica es una diferencia de dos puntos.» | El umbral cerrado es `+3` (§3.12, P07). |
+| «No tener una habilidad es un dato ausente, como `null`.» | `0` es un valor real de nivel actual, distinto de dato desconocido (§3.8, P02). |
 
 ## 7. Preguntas abiertas
 
-La lista completa de decisiones pendientes de calibración (`P01`–`P22`) vive
-en
-[ARC-008](ARC-008_outcomes-knowledge-events-and-validation.md#4-preguntas-abiertas)
-para no duplicarla. Las que afectan directamente a este documento son
-`P01`–`P08` (escala y catálogo de características/habilidades remitido a
-CHR-006; representación del desconocimiento; peso entre característica y
-habilidad efectivas; tabla o función de B; tamaño y persistencia de la
-variación de D; requisitos duros por método; condiciones para clasificar una
-tarea como básica; delimitación de episodios y fases).
+**`P01`–`P08` quedan cerradas por `DESIGN-006`** y ya no figuran como
+decisiones pendientes: escala y catálogo de características/habilidades
+(cerrados en
+[CHR-006](../30-characters/CHR-006_characteristics-and-skill-catalog.md));
+representación de cero, dato desconocido y precisión (§3.8); peso entre
+característica y habilidad efectivas mediante tres perfiles (§3.7); modelo
+B con margen, variación acotada y cinco bandas (§3.9); tamaño y
+persistencia de la variación de D (§3.10); requisitos duros y clasificación
+de métodos (§3.11); umbral `+3` de tarea básica y delimitación de episodios
+y fases (§3.12). La lista completa de decisiones de calibración del motor
+(`P09`–`P22`), que pertenecen a
+[ARC-007](ARC-007_teamwork-orders-modes-and-conditions.md) y
+[ARC-008](ARC-008_outcomes-knowledge-events-and-validation.md), también
+queda cerrada; el estado y la trazabilidad final viven en
+[ARC-008 §4](ARC-008_outcomes-knowledge-events-and-validation.md#4-preguntas-abiertas)
+y en
+[DISC-0005](../discovery/DISC-0005_resolution-engine-closure-traceability.md).
+Cualquier calibración futura de valores concretos por acción, objeto o
+familia de contenido (por ejemplo, la dificultad efectiva exacta de una
+reparación concreta) es parametrización de contenido, no una reapertura del
+modelo base cerrado en este documento.
 
 ## 8. Ejemplos no normativos
 

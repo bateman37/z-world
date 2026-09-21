@@ -25,10 +25,11 @@ cerradas. No es una fuente canónica de reglas.
 | [DISC-0002](DISC-0002_design-references.md) | `draft` | Referentes de diseño para el modelo funcional cerrado, sin reglas canónicas. |
 | [DISC-0003](DISC-0003_procedural-place-generator-traceability.md) | `draft` | Matriz de trazabilidad de las 86 secciones del Anexo A de `DESIGN-004` a su documento canónico. |
 | [DISC-0004](DISC-0004_local-regional-maps-and-contextual-actions-traceability.md) | `draft` | Trazabilidad de `DESIGN-005`: decisiones cerradas, aclaraciones, opciones descartadas, ejemplos no normativos, preguntas abiertas y contradicciones corregidas. |
+| [DISC-0005](DISC-0005_resolution-engine-closure-traceability.md) | `draft` | Trazabilidad de `DESIGN-006`: cierre de `P01`–`P22`, acuerdos previos preservados, correcciones, fórmulas descartadas, ejemplos no normativos y preguntas de otros sistemas que siguen abiertas. |
 
 ## Dependencias con otros dominios
 
 - `10-vision`, `scenarios`, `80-interface`, `30-characters`.
 - `20-world`, `40-settlement`, `90-architecture`, `catalogs`, `roadmap`,
-  `decisions` (`DISC-0003` y `DISC-0004` trazan contenido hacia estos
-  dominios).
+  `decisions` (`DISC-0003`, `DISC-0004` y `DISC-0005` trazan contenido
+  hacia estos dominios).
