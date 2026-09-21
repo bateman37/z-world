@@ -10,7 +10,10 @@ related:
   - SET-001
   - NAR-001
   - RDM-001
+  - RDM-003
   - WLD-003
+  - WLD-008
+  - UI-005
 ---
 
 ## 1. Propósito
@@ -42,16 +45,31 @@ ser una casa grande, una pequeña nave, una granja o un local equivalente
 según la semilla de partida; no es una construcción vacía creada por el
 jugador.
 
-El mapa local es un espacio 3D de gestión con edificios existentes, terreno,
+El mapa local es un espacio de gestión con edificios existentes, terreno,
 caminos, recursos naturales, puntos de agua y zonas peligrosas. Su
-distribución varía entre partidas de forma coherente: puede haber más
-bosque, viviendas, campo, un arroyo, un lago, talleres u otros elementos. El
-primer escenario mantiene el tema de pueblo de montaña; otros biomas,
-tamaños de grupo y tipos de inicio son extensiones futuras. El alcance
-exacto de la primera versión jugable de este escenario está fijado en
-[RDM-001](../roadmap/RDM-001_first-playable-slice.md). Futuros escenarios
-podrán variar población, lugar, relaciones, pertenencias y condiciones
-(ver
+representación activa es 2D cenital sobre Canvas (ver
+[UI-005](../80-interface/UI-005_top-down-simulation-workbench.md)); las
+descripciones históricas de este escenario como «espacio 3D» corresponden al
+prototipo Godot (ver
+[DEC-0008](../decisions/DEC-0008_simulation-first-web-architecture.md) y
+[DEC-0010](../decisions/DEC-0010_procedural-local-and-regional-map-direction.md)).
+
+La geografía es **procedural y ficticia**: un pueblo de montaña generado
+dentro del perfil controlado de
+[WLD-008](../20-world/WLD-008_local-procedural-map-generation.md), nunca la
+reproducción literal de un municipio real. Su distribución varía entre
+partidas de forma coherente: puede haber más bosque, viviendas, campo, un
+arroyo, un lago, talleres u otros elementos, sin que una semilla pueda
+producir una gran ciudad ni los arquetipos excluidos en `WLD-008`, sección
+3.5. El primer escenario mantiene el tema de pueblo de montaña; otros
+biomas, tamaños de grupo y tipos de inicio son extensiones futuras.
+
+El alcance de implementación vigente se consulta en la hoja de ruta activa
+[RDM-003](../roadmap/RDM-003_simulation-first-playable-roadmap.md); el
+alcance histórico del prototipo Godot se conserva en
+[RDM-001](../roadmap/RDM-001_first-playable-slice.md) (`deprecated`).
+Futuros escenarios podrán variar población, lugar, relaciones, pertenencias
+y condiciones (ver
 [WLD-003](../20-world/WLD-003_strategic-world-and-regional-simulation.md),
 sección 3.4), sin diseñarse en esta entrega.
 
@@ -85,6 +103,10 @@ exploración. **No constituye un calendario de hitos obligatorio.**
   [NAR-001](../70-narrative/NAR-001_emergent-narrative.md).
 - El crecimiento del refugio se rige por
   [SET-001](../40-settlement/SET-001_settlement-growth.md).
+- La geografía procedural del mapa local de este escenario se rige por
+  [WLD-008](../20-world/WLD-008_local-procedural-map-generation.md); su
+  representación, por
+  [UI-005](../80-interface/UI-005_top-down-simulation-workbench.md).
 
 ## 6. Casos límite o riesgos
 
@@ -97,7 +119,9 @@ Salvo que ya se deduzca lo contrario de este documento, quedan abiertas:
 - La estación exacta de llegada.
 - Los seis personajes concretos y sus relaciones iniciales.
 - El edificio inicial y el grado de elección disponible.
-- La geografía y tamaño exactos del mapa local.
+- Las dimensiones y cantidades exactas del mapa local; su carácter
+  procedural y ficticio de pueblo de montaña ya está cerrado en
+  [WLD-008](../20-world/WLD-008_local-procedural-map-generation.md).
 - La población zombi inicial.
 - La disponibilidad inicial de armas, agua, alimento y electricidad.
 - La existencia y proximidad de otras comunidades.

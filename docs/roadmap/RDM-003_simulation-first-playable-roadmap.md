@@ -11,8 +11,12 @@ related:
   - RDM-002
   - ARC-004
   - UI-005
+  - UI-006
   - WLD-005
+  - WLD-008
+  - WLD-003
   - CAT-004
+  - DEC-0010
 ---
 
 ## 1. Propósito
@@ -84,6 +88,14 @@ el navegador, sin fechas ni compromiso de versión.
    y evaluación futura, no comprometida, de un motor visual 3D sobre el
    modelo semántico ya validado.
 
+Los incrementos 3 a 5 trabajan sobre el **mapa local**: su geografía
+procedural (ver
+[WLD-008](../20-world/WLD-008_local-procedural-map-generation.md)), su
+representación Canvas 2D cenital (ver
+[UI-005](../80-interface/UI-005_top-down-simulation-workbench.md)) y su
+interacción contextual con lugares y equipos (ver
+[UI-006](../80-interface/UI-006_contextual-place-interaction-and-teams.md)).
+
 ### 3.2 Relación con el prototipo Godot
 
 Este roadmap no reabre ni continúa las entregas de implementación del
@@ -95,8 +107,22 @@ prioridades, trabajo por fases, exploración e información de lugares)
 sirven de referencia funcional para los incrementos 2 a 4 de la sección
 3.1, sin que el código se porte automáticamente.
 
+### 3.3 El mapa regional no está en este roadmap
+
+El mapa regional documentado en
+[WLD-003](../20-world/WLD-003_strategic-world-and-regional-simulation.md) es
+un **horizonte futuro coherente**, no un incremento de esta secuencia. La
+atención de las próximas entregas sigue en el mapa local y el laboratorio de
+simulación. Su implementación —expediciones, niebla regional, red creciente
+de puntos de interés, viaje y eventos— requerirá su propia secuencia, su
+propia decisión de alcance y sus propios prompts, sin fecha comprometida
+(ver
+[DEC-0010](../decisions/DEC-0010_procedural-local-and-regional-map-direction.md)).
+
 ## 4. Reglas aprobadas
 
+- El mapa regional no se incorpora como incremento de este roadmap mientras
+  no exista una decisión expresa que lo abra (sección 3.3).
 - La secuencia de la sección 3.1 es el orden aprobado de incrementos; una
   entrega futura puede dividir un incremento en varias entregas más
   pequeñas, nunca fusionar varios incrementos en una sola entrega
@@ -118,7 +144,14 @@ sirven de referencia funcional para los incrementos 2 a 4 de la sección
   4 se definen en
   [ARC-004](../90-architecture/ARC-004_simulation-core-runtime-and-boundaries.md).
 - El mapa Canvas 2D del incremento 3 se define en
-  [UI-005](../80-interface/UI-005_top-down-simulation-workbench.md).
+  [UI-005](../80-interface/UI-005_top-down-simulation-workbench.md); su
+  geografía procedural, en
+  [WLD-008](../20-world/WLD-008_local-procedural-map-generation.md).
+- La interacción contextual y los equipos locales de los incrementos 4 y 5
+  se definen en
+  [UI-006](../80-interface/UI-006_contextual-place-interaction-and-teams.md).
+- El mapa regional, fuera de esta secuencia, se documenta en
+  [WLD-003](../20-world/WLD-003_strategic-world-and-regional-simulation.md).
 - El generador semántico del incremento 5 se define en
   [WLD-005](../20-world/WLD-005_semantic-place-and-building-generation.md),
   [WLD-006](../20-world/WLD-006_historical-looting-pressure-and-routes.md),

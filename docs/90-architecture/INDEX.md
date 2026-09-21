@@ -52,4 +52,8 @@ simulación, datos y presentación, y persistencia.
 - `40-settlement` (modelo de objeto, familias logísticas y desmontaje que
   consume el motor de resolución).
 - `80-interface` (taxonomía de trabajo y prioridades que consume el motor
-  de resolución).
+  de resolución; `UI-006` cierra la interfaz de tamaño y asignación de un
+  equipo local, mientras `ARC-007`/`ARC-008` conservan las fórmulas de
+  cooperación todavía pendientes).
+- `20-world` (`WLD-008` define la generación espacial del mapa local que
+  `ARC-002` deriva y persiste).

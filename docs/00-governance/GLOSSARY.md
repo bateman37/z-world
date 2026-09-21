@@ -9,10 +9,28 @@ enlaza a ella.
   `docs/40-settlement/INDEX.md`.
 - **Comunidad**: el conjunto de personas que habitan el asentamiento del
   jugador. Ver `docs/50-society/INDEX.md`.
-- **Mapa local**: escala 3D detallada donde se gestiona el asentamiento. Ver
+- **Mapa local**: escala detallada donde se gestiona el asentamiento. Su
+  representación activa es un mapa 2D cenital sobre Canvas
+  (`docs/80-interface/UI-005_top-down-simulation-workbench.md`); las
+  menciones a un «mapa local 3D» describen el prototipo histórico Godot. Ver
   `docs/20-world/WLD-001_world-scales.md`.
-- **Mapa estratégico**: escala mayor y más abstracta para exploración y
-  relaciones entre comunidades. Ver `docs/20-world/WLD-001_world-scales.md`.
+- **Mapa regional (o estratégico)**: escala mayor y más abstracta para
+  exploración, rutas, comunidades y expediciones; horizonte futuro, no
+  implementación activa. Ver `docs/20-world/WLD-001_world-scales.md` y
+  `docs/20-world/WLD-003_strategic-world-and-regional-simulation.md`.
+- **Perfil de escenario**: conjunto de límites que acota qué mundo local
+  puede generar una semilla (entorno, tamaño, densidad, alturas, red viaria,
+  catálogo permitido y presupuesto de complejidad). Ver
+  `docs/20-world/WLD-008_local-procedural-map-generation.md`.
+- **Estructura espacial técnica invisible**: celdas, sectores, polígonos o
+  grafos internos que sostienen navegación, niebla, zonas y consultas
+  espaciales sin imponerse como estética del mapa. Ver
+  `docs/20-world/WLD-008_local-procedural-map-generation.md`.
+- **Equipo operativo local**: conjunto de personas asignadas a una orden
+  contextual del mapa local, con tamaño `Auto / 1 / 2 / 3 / 4`. No es un
+  límite de población, de respuesta a una emergencia ni de una expedición
+  regional. Ver
+  `docs/80-interface/UI-006_contextual-place-interaction-and-teams.md`.
 - **Situación narrativa**: momento relevante presentado al jugador, derivado
   del estado simulado, no de un evento aleatorio aislado. Ver
   `docs/70-narrative/NAR-001_emergent-narrative.md`.
@@ -27,12 +45,16 @@ enlaza a ella.
   amplía el alcance de una entrega ni implica implementación. Ver
   `docs/10-vision/VIS-003_maximum-design-envelope.md`.
 - **Alcance de entrega**: lo que una etapa concreta de desarrollo se
-  compromete a construir, siempre menor o igual al horizonte máximo. Ver
-  `docs/roadmap/RDM-001_first-playable-slice.md`.
-- **Materialización**: proceso por el que una zona, persona o comunidad
-  lejana gana detalle al volverse relevante, respetando su historia
-  resumida previa. Ver
-  `docs/90-architecture/ARC-003_multiscale-simulation-principles.md`.
+  compromete a construir, siempre menor o igual al horizonte máximo. La hoja
+  de ruta activa es `docs/roadmap/RDM-003_simulation-first-playable-roadmap.md`;
+  `docs/roadmap/RDM-001_first-playable-slice.md` (`deprecated`) conserva el
+  alcance histórico del prototipo Godot.
+- **Materialización**: generación diferida de **detalle semántico** de una
+  zona, persona o comunidad lejana cuando se vuelve relevante, respetando su
+  historia resumida previa. No implica abrir un mapa local nuevo, cambiar de
+  pantalla ni generar una misión táctica. Ver
+  `docs/90-architecture/ARC-003_multiscale-simulation-principles.md` y
+  `docs/20-world/WLD-003_strategic-world-and-regional-simulation.md`.
 - **Simulación distante**: actualización resumida y menos frecuente de
   zonas, comunidades o entidades lejanas al foco de juego actual. Ver
   `docs/90-architecture/ARC-003_multiscale-simulation-principles.md`.

@@ -17,6 +17,7 @@ related:
   - UI-002
   - UI-003
   - UI-005
+  - UI-006
 ---
 
 ## 1. Propósito
@@ -59,8 +60,11 @@ detallado.
 Cada superviviente tiene una tabla individual de diez familias de trabajo con
 cinco valores: `0` desactivado, `1` bajo, `2` normal, `3` alto y `4` crítico.
 El jugador la modifica desde la ficha o un panel de trabajo. Estas diez
-familias y esta escala `0–4` son el **subconjunto implementado del primer
-corte** (ver [RDM-001](../roadmap/RDM-001_first-playable-slice.md)), no el
+familias y esta escala `0–4` son el **subconjunto implementado en el
+prototipo histórico Godot** (ver
+[RDM-001](../roadmap/RDM-001_first-playable-slice.md), `deprecated`; la hoja
+de ruta activa es
+[RDM-003](../roadmap/RDM-003_simulation-first-playable-roadmap.md)), no el
 modelo final del horizonte completo. El horizonte aprobado de nueve bloques,
 34 prioridades y escala `Nunca/1–5` vive en
 [UI-003](UI-003_work-priority-taxonomy.md), que no se reescribe aquí; esta
@@ -88,7 +92,13 @@ habilidades en
 ### 3.3 Designaciones y trabajos
 
 Una designación se crea seleccionando con ratón un objetivo o una zona y
-eligiendo una acción contextual: inspeccionar una casa, buscar en un armario,
+eligiendo una acción contextual. La distinción entre **acción contextual
+sobre un objetivo incierto** y **designación por área sobre trabajo ya
+conocido**, junto con la regla de qué acciones se muestran, cuáles aparecen
+bloqueadas con motivo y cuáles no aparecen, se desarrolla en
+[UI-006](UI-006_contextual-place-interaction-and-teams.md), que este
+documento no repite. Ejemplos de acción contextual: inspeccionar una casa,
+buscar en un armario,
 recoger objetos, transportar al almacén, tapiar una ventana, reparar un
 cierre, pescar en un tramo de agua, recolectar hongos, cortar un árbol,
 construir un muro o vigilar un acceso, entre otras.
@@ -129,6 +139,12 @@ El jugador delimita zonas con el ratón. Cada zona tiene uno de estos estados:
   no exista una alternativa habitual equivalente.
 - **Prohibida**: no se generan trabajos ordinarios ni se autoriza el tránsito
   autónomo hacia ella.
+
+Estos tres estados son los **únicos estados normativos de zona**. Los
+conceptos descriptivos de territorio conocido, usado, fronterizo o
+controlado de
+[WLD-008](../20-world/WLD-008_local-procedural-map-generation.md), sección
+3.7, no crean estados de zona adicionales.
 
 Una zona delimitada no se explora, inspecciona, limpia ni asegura por el mero
 hecho de pintarla: solo define dónde pueden plantearse trabajos. Descubrir
@@ -212,6 +228,11 @@ efectos ya ocurridos.
   [UI-005](UI-005_top-down-simulation-workbench.md), que adapta la
   superficie de mapa de la sección 3.5 sin reabrir estas reglas cerradas
   por `DESIGN-001`.
+- La ficha contextual de un lugar, la evolución de las acciones según el
+  conocimiento, el reconocimiento exterior y la composición del equipo
+  operativo local (`Auto / 1 / 2 / 3 / 4`) se desarrollan en
+  [UI-006](UI-006_contextual-place-interaction-and-teams.md), que amplía la
+  sección 3.3 y la sección 3.5 sin alterar sus reglas cerradas.
 
 ## 6. Casos límite o riesgos
 
@@ -222,7 +243,10 @@ efectos ya ocurridos.
 
 Ninguna adicional a las ya registradas en `docs/OPEN-QUESTIONS.md` para otros
 dominios relacionados (fórmulas de idoneidad exactas, catálogo completo de
-acciones contextuales).
+acciones contextuales). Las familias de acciones contextuales aprobadas y su
+correspondencia con tipos de objetivo viven en
+[UI-006](UI-006_contextual-place-interaction-and-teams.md), sección 3.7, sin
+convertirse todavía en un catálogo cerrado.
 
 ## 8. Ejemplos no normativos
 

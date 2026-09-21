@@ -12,6 +12,8 @@ depends_on:
 related:
   - WLD-006
   - WLD-007
+  - WLD-008
+  - UI-006
   - SET-007
   - CAT-001
   - CAT-002
@@ -87,6 +89,39 @@ SQL, tablas ni endpoints.
 | `KnowledgeSource` | Una fuente de conocimiento física, humana o digital presente en el lugar (ver [SET-006](../40-settlement/SET-006_knowledge-assets-and-capability.md)). | Puede ser un `Item`, un `OccupantProfile` recordado o un `BuildingSystem`/`Fixture` que enseña por observación. |
 | `DiscoveryState` | El estado de información conocido por la comunidad sobre un `Building`, `Room`, `Container` o `Item` concreto (ver los cinco estados generales de [WLD-002](../20-world/WLD-002_local-exploration-and-information.md) y las capas de [WLD-004](../20-world/WLD-004_expertise-dependent-recovery.md)). | Referencia la entidad física que describe; registra quién la obtuvo y con qué confianza cuando sea relevante. |
 
+### 3.4.1 Relaciones conceptuales con el espacio, los puntos regionales y el equipo
+
+Este documento no diseña todavía entidades propias para el mapa, los puntos
+de interés regionales ni los equipos de trabajo, pero sí registra sus
+relaciones conceptuales para que una futura entrega no las invente sin
+coherencia:
+
+- Las entidades de la sección 3.1 existen **dentro** de una geografía local
+  generada según
+  [WLD-008](../20-world/WLD-008_local-procedural-map-generation.md): un
+  `Building` ocupa una parcela, que pertenece a una huella de asentamiento,
+  que existe sobre terreno, agua, vegetación y red viaria. Esa cadena
+  espacial es información de generación, no una propiedad visual del
+  edificio.
+- La estructura espacial interna (celdas, sectores, polígonos o grafos) es
+  una decisión técnica todavía abierta (ver
+  [WLD-008](../20-world/WLD-008_local-procedural-map-generation.md), sección
+  3.6). Ninguna entidad de este documento puede depender de una forma
+  concreta de esa estructura.
+- Un **punto de interés regional** es una entidad de la escala regional (ver
+  [WLD-003](../20-world/WLD-003_strategic-world-and-regional-simulation.md)),
+  con su propio estado de conocimiento. No implica la existencia de un
+  `Building` materializado ni de un mapa local asociado.
+- Un **equipo operativo local** no es una entidad persistente del mundo: es
+  la composición de una orden concreta (ver
+  [UI-006](../80-interface/UI-006_contextual-place-interaction-and-teams.md),
+  sección 3.9, y
+  [ARC-007](ARC-007_teamwork-orders-modes-and-conditions.md), sección 3.2).
+  Lo que persiste es el trabajo, su progreso, su responsable y sus
+  participantes, no un objeto «equipo» independiente.
+
+No se fija aquí ninguna tabla, columna ni clase para estos conceptos.
+
 ### 3.5 Separación de identidad y contenido
 
 `DiscoveryState` y `BuildingCondition` son deliberadamente entidades
@@ -148,6 +183,9 @@ implique regenerar su contenido al visitarlo de nuevo (ver
 - Forma concreta de persistencia (tablas, documentos, JSON estructurado)
   para cada entidad, que se decidirá en la entrega de inicialización
   técnica.
+- Si la geografía local, los puntos de interés regionales y la composición
+  de una orden necesitarán entidades propias o se derivarán de las ya
+  existentes (sección 3.4.1).
 - Granularidad exacta de `LootingEvent` (por capa, por contenedor, por
   edificio completo).
 - Si `KnowledgeSource` debe modelarse como entidad propia o como una

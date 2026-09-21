@@ -51,6 +51,60 @@ informó errores.
 
 ## Última entrega documental completada
 
+`DESIGN-005` — **mapas local y regional, generación procedural, equipos e
+interacción contextual** (21 de septiembre de 2026). Entrega
+**exclusivamente documental**: no se ha implementado código, no se ha
+inicializado la aplicación web, y no se ha tocado `src/`, `scenes/`,
+`tests/` ni `project.godot`. No amplía `RDM-003` ni reabre `RDM-001`.
+
+Cuatro documentos nuevos:
+
+- [WLD-008](20-world/WLD-008_local-procedural-map-generation.md)
+  (`approved`): generación **espacial** del mapa local, perfil procedural
+  controlado de pueblo pequeño de montaña, doce capas de perfil a
+  representación Canvas, presupuesto de complejidad con exclusión expresa de
+  grandes ciudades, estructura espacial técnica invisible y conceptos de
+  territorio conocido/usado/controlado sin crear estados de zona nuevos.
+- [UI-006](80-interface/UI-006_contextual-place-interaction-and-teams.md)
+  (`approved`): ficha contextual de lugar, evolución de acciones según el
+  conocimiento, regla «conocida pero no disponible = gris con motivo; no
+  reconocida = ausente», reconocimiento exterior como barrera blanda,
+  revelado parcial de interiores, diez familias de acción contextual y
+  selector de equipo operativo local `Auto / 1 / 2 / 3 / 4` con asignación
+  `Comunidad` o `Equipo seleccionado`.
+- [DEC-0010](decisions/DEC-0010_procedural-local-and-regional-map-direction.md)
+  (`approved`): dirección de las dos escalas espaciales; mapa local 2D
+  cenital continuo, mapa regional futuro geográfico con regiones internas,
+  geografía procedural ficticia, 3D Godot como antecedente histórico y
+  ausencia de mapa local automático por punto regional.
+- [DISC-0004](discovery/DISC-0004_local-regional-maps-and-contextual-actions-traceability.md)
+  (`draft`): trazabilidad completa del encargo —decisiones cerradas,
+  aclaraciones, opciones descartadas, ejemplos no normativos, preguntas
+  abiertas y contradicciones corregidas.
+
+**Contradicciones corregidas.** `WLD-001`, `WLD-003`, `SCN-001`, `DEC-0002`
+y `GLOSSARY.md` describían el mapa local como espacio 3D activo; ahora
+declaran su representación 2D cenital y sitúan el 3D en el prototipo
+histórico Godot. `docs/INDEX.md`, `docs/OPEN-QUESTIONS.md`, `WLD-001`,
+`WLD-003`, `SCN-001` y `UI-001` dejaban leer `RDM-001` como roadmap
+vigente; ahora remiten a `RDM-003`, con `RDM-001` conservada `deprecated`
+como historia del prototipo. Se aclara en `ARC-003`, `WLD-001`, `WLD-003` y
+`GLOSSARY.md` que «materialización» es generación diferida de detalle
+semántico y **no** implica abrir un mapa local nuevo.
+
+**Estados.** `ARC-007` y `ARC-008` permanecen `draft`: esta entrega cierra
+la **interfaz** de tamaño y asignación de un equipo local, no las fórmulas
+del motor; `P09` distingue ahora lo cerrado de lo pendiente y `P10` sigue
+íntegramente abierto. `DISC-0004` permanece `draft`. `RDM-001` permanece
+`deprecated`. **Ningún documento pasa a `implemented`.** Las 34 prioridades
+de `UI-003` no se renombran, añaden, eliminan ni mezclan con habilidades: el
+selector `Auto / 1 / 2 / 3 / 4` no es la escala `Nunca/1–5`.
+
+**El mapa regional no entra en el roadmap activo**: `RDM-003` gana una
+sección 3.3 que lo declara horizonte futuro sin fecha.
+
+## Entrega documental previa
+
 Consolidación documental del **motor de acciones/trabajos/eventos**, el
 **catálogo de horizonte máximo de personaje** (nueve características, 34
 habilidades, potencial oculto, calibre oculto y adaptación al apocalipsis)
@@ -117,7 +171,7 @@ estos catálogos de horizonte máximo queda pendiente, sin fecha, igual que
 la ya reconocida entre las diez familias de prioridad y las 34 de
 `UI-003`.
 
-## Entrega documental previa
+## Entrega documental anterior
 
 `DESIGN-004` — reinicio centrado en simulación y generador semántico de
 lugares: cambia la línea técnica activa de Godot 3D a un laboratorio de
@@ -150,7 +204,7 @@ documento nuevo como `implemented`. Ver
 [docs/discovery/DISC-0003](discovery/DISC-0003_procedural-place-generator-traceability.md)
 para la trazabilidad completa del encargo.
 
-## Entrega documental anterior
+## Entrega documental precedente
 
 `DESIGN-003` — trabajo, recuperación y conocimiento aplicado: horizonte
 máximo documental de prioridades, órdenes, zonas, políticas, eventos y
@@ -251,9 +305,10 @@ Detalle en [ARC-001](90-architecture/ARC-001_technical-direction.md) y
 
 ## Funcionalidad realmente implementada en la línea activa (Node.js/TypeScript)
 
-Ninguna. `DESIGN-004` es exclusivamente documental: no existe aplicación
-Next.js, núcleo de simulación TypeScript, esquema PostgreSQL/Prisma, mapa
-Canvas 2D ni prueba Vitest en el repositorio.
+Ninguna. `DESIGN-004` y `DESIGN-005` son exclusivamente documentales: no
+existe aplicación Next.js, núcleo de simulación TypeScript, esquema
+PostgreSQL/Prisma, mapa Canvas 2D, generador espacial, pathfinding, niebla,
+ficha contextual, selector de equipo ni prueba Vitest en el repositorio.
 
 ## Funcionalidad realmente implementada en el prototipo histórico Godot
 
@@ -355,7 +410,8 @@ posteriores de `RDM-001`.
   (`10-vision`, incluyendo `VIS-003`), escalas, exploración y mundo
   estratégico (`WLD-001`, `WLD-002`, `WLD-003`), recuperación dependiente de
   la persona (`WLD-004`), generación semántica de lugares, presión histórica
-  de saqueo e historia del apocalipsis (`WLD-005`, `WLD-006`, `WLD-007`),
+  de saqueo, historia del apocalipsis y generación espacial procedural del
+  mapa local (`WLD-005`, `WLD-006`, `WLD-007`, `WLD-008`),
   modelo de personaje, aprendizaje, autonomía, historia vital y catálogo
   cerrado de nueve características/34 habilidades (`CHR-001`, `CHR-002`,
   `CHR-003`, `CHR-004`, `CHR-006`), crecimiento, producción, recursos,
@@ -364,18 +420,20 @@ posteriores de `RDM-001`.
   (`SET-001` a `SET-007`), comunidad viva, política interna y comunidades
   externas (`SOC-001`, `SOC-002`, `SOC-003`), narrativa emergente y memoria
   causal (`NAR-001`, `NAR-002`), interacción, control, gestión a escala,
-  taxonomía de trabajo, presentación cualitativa de capacidad y laboratorio
-  de simulación cenital (`UI-001`, `UI-002`, `UI-003`, `UI-004`, `UI-005`),
+  taxonomía de trabajo, presentación cualitativa de capacidad, laboratorio
+  de simulación cenital e interacción contextual con lugares y equipos
+  locales (`UI-001` a `UI-006`),
   amenaza zombi (`THR-001`), dirección técnica, generación procedural,
   simulación multiescala, núcleo de simulación y modelo conceptual de datos
   del mundo semántico (`ARC-001` a `ARC-005`), escenario inicial
   (`SCN-001`), hoja de ruta activa (`RDM-003`), catálogo máximo de lugares,
   estancias/instalaciones y ocupantes/profesiones/aficiones/rasgos como
   horizonte de referencia (`CAT-001` a `CAT-003`), decisiones `DEC-0002` a
-  `DEC-0009` (`DEC-0001` es `deprecated`), sistema documental (`DOC-001`).
+  `DEC-0010` (`DEC-0001` es `deprecated`), sistema documental (`DOC-001`).
 - **Borrador (`draft`)**: síntesis de descubrimiento (`DISC-0001`,
   `DISC-0002`), trazabilidad del generador procedural de lugares
-  (`DISC-0003`), horizonte configurable de amenazas (`THR-002`), horizonte
+  (`DISC-0003`), trazabilidad de mapas local y regional e interacción
+  contextual (`DISC-0004`), horizonte configurable de amenazas (`THR-002`), horizonte
   de capacidades a largo plazo (`RDM-002`), propuesta de subconjunto
   inicial de lugares (`CAT-004`), motor de resolución de acciones, trabajos
   y eventos (`ARC-006`, `ARC-007`, `ARC-008`), potencial oculto, calibre
@@ -396,7 +454,10 @@ posteriores de `RDM-001`.
   resolución documentado en `ARC-006`–`ARC-008` tampoco está implementado:
   el prototipo Godot histórico resolvía trabajos con su propia lógica ya
   descrita en las entregas de código de la sección anterior, y la nueva
-  línea activa todavía no implementa ningún motor de resolución.
+  línea activa todavía no implementa ningún motor de resolución. `DESIGN-005`
+  tampoco marca nada como `implemented`: ni el generador espacial de
+  `WLD-008`, ni la ficha contextual y el selector de equipo de `UI-006`
+  existen en código.
 
 ## Validaciones automatizadas de `IMPLEMENTATION-003`
 
@@ -425,10 +486,30 @@ ocho demostradores desaparecidos) y añade seis:
 Las validaciones de `IMPLEMENTATION-001` e `IMPLEMENTATION-002` quedaron en
 su momento como **NOT RUN** por la misma razón.
 
+## Validaciones documentales de `DESIGN-005`
+
+Entrega documental: no hay suite ejecutable aplicable y no se instalaron
+herramientas. Se ejecutaron comprobaciones acotadas:
+
+- revisión de enlaces y cabeceras `depends_on`/`related` de los documentos
+  tocados;
+- comprobación de que los índices de dominio incluyen `WLD-008`, `UI-006`,
+  `DEC-0010` y `DISC-0004` con ID, estado y propósito correctos;
+- búsqueda de referencias activas al mapa local 3D y a `RDM-001` como
+  roadmap vigente, distinguiendo las menciones históricas legítimas;
+- búsqueda de usos de «materializar» que pudieran implicar abrir un mapa
+  local;
+- comprobación de que `Auto / 1 / 2 / 3 / 4` no se confunde con la escala de
+  prioridad `Nunca/1–5` ni con el tamaño de una expedición;
+- comprobación de que las 34 prioridades de `UI-003` no se renombran,
+  añaden, eliminan ni mezclan con habilidades;
+- `git diff --check`, sin errores.
+
 ## Bloqueos o contradicciones conocidos
 
 Ninguno detectado en esta entrega, más allá de la imposibilidad de ejecutar
-Godot en el entorno de implementación (ver sección anterior).
+Godot en el entorno de implementación (ver sección de validaciones de
+`IMPLEMENTATION-003`).
 
 ## Aceptación manual pendiente
 

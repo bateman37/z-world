@@ -11,21 +11,47 @@ Cuando una pregunta se cierre:
 
 ## Mundo (`20-world`)
 
-- Escala, tamaño y representación exacta de la cuadrícula hexagonal del mapa
-  estratégico. Ver [WLD-001](20-world/WLD-001_world-scales.md).
-- Mecanismo exacto de transición entre el mapa estratégico y el mapa local.
-  Ver [WLD-001](20-world/WLD-001_world-scales.md). El mapa estratégico no es
-  jugable en la primera versión visual (ver
-  [RDM-001](roadmap/RDM-001_first-playable-slice.md)).
+- Escala, tamaño, resolución y geometría exactas de la estructura interna
+  del mapa regional (regiones, celdas o hexágonos). Que el mapa regional sea
+  2D, geográfico y continuo, con esa estructura **invisible**, ya está
+  cerrado. Ver [WLD-001](20-world/WLD-001_world-scales.md) y
+  [WLD-003](20-world/WLD-003_strategic-world-and-regional-simulation.md).
+- Mecanismo exacto de transición entre el mapa regional y el mapa local.
+  Ver [WLD-001](20-world/WLD-001_world-scales.md). El mapa regional no es
+  jugable todavía y no forma parte de la hoja de ruta activa (ver
+  [RDM-003](roadmap/RDM-003_simulation-first-playable-roadmap.md);
+  [RDM-001](roadmap/RDM-001_first-playable-slice.md) es `deprecated` e
+  histórica).
 - Catálogo concreto de qué edificios y recursos declaran qué acciones de
   descubrimiento. Ver
-  [WLD-002](20-world/WLD-002_local-exploration-and-information.md).
-- Revelado exacto de niebla de guerra y transición entre mapa local y
-  estratégico. Ver
+  [WLD-002](20-world/WLD-002_local-exploration-and-information.md) y las
+  familias de
+  [UI-006](80-interface/UI-006_contextual-place-interaction-and-teams.md).
+- Revelado exacto de niebla de guerra regional y transición entre mapa local
+  y regional. Ver
   [WLD-003](20-world/WLD-003_strategic-world-and-regional-simulation.md).
-- Flujo exacto de expediciones, puestos, colonias y materialización de
-  zonas. Ver
+- Tamaño regional exacto, número de puntos de interés iniciales y máximos,
+  valor máximo de `X` en una expedición, flujo exacto de viaje, frecuencia y
+  catálogo de eventos, comunicaciones, puestos, colonias y control
+  territorial. Que una expedición sea un grupo de `1 a X` supervivientes que
+  viaja realmente por el mapa ya está cerrado. Ver
   [WLD-003](20-world/WLD-003_strategic-world-and-regional-simulation.md).
+- Si algunos lugares regionales excepcionales llegarán a resolverse de forma
+  regional, mostrar detalle contextual, usar una vista específica, reutilizar
+  el mapa local o generar otra representación. Que **ningún** punto regional
+  obligue a abrir un mapa local ya está cerrado. Ver
+  [WLD-003](20-world/WLD-003_strategic-world-and-regional-simulation.md),
+  sección 3.3, y
+  [DEC-0010](decisions/DEC-0010_procedural-local-and-regional-map-direction.md).
+- Fecha de implementación del mapa regional. Ver
+  [RDM-003](roadmap/RDM-003_simulation-first-playable-roadmap.md), sección
+  3.3.
+- Dimensiones exactas del mapa local, tamaño de celdas o sectores internos,
+  algoritmo de pathfinding, algoritmo geométrico exacto de terreno, agua,
+  calles y parcelas, cantidades exactas de edificios o lugares, cifras del
+  presupuesto de complejidad y nombres técnicos definitivos del perfil de
+  escenario. Ver
+  [WLD-008](20-world/WLD-008_local-procedural-map-generation.md).
 - Catálogo exhaustivo de acciones, herramientas de diagnóstico y objetos
   declarables por categoría de reconocimiento dependiente de la persona, y
   fórmulas numéricas exactas de calidad de reconocimiento según persona,
@@ -146,7 +172,16 @@ Cuando una pregunta se cierre:
 ## Interfaz (`80-interface`)
 
 - Catálogo completo de acciones contextuales disponibles según el objetivo.
-  Ver [UI-001](80-interface/UI-001_interaction-and-command-model.md).
+  Ver [UI-001](80-interface/UI-001_interaction-and-command-model.md). Las
+  diez familias de acción y su correspondencia con tipos de objetivo ya
+  están cerradas en
+  [UI-006](80-interface/UI-006_contextual-place-interaction-and-teams.md),
+  sección 3.7; lo pendiente es el catálogo declarado por cada objetivo
+  concreto.
+- Duración exacta de cada acción contextual, interfaz gráfica final de la
+  ficha de lugar y del selector de equipo, e interfaz exacta para edificios
+  de varias plantas. Ver
+  [UI-006](80-interface/UI-006_contextual-place-interaction-and-teams.md).
 - Flujos visuales de gestión a escala. Ver
   [UI-002](80-interface/UI-002_management-at-community-scale.md).
 - Estrategia de migración técnica desde las diez familias y escala `0–4`
@@ -191,12 +226,21 @@ Cuando una pregunta se cierre:
   reintento automático, oposición activa/pasiva, esquema de eventos,
   persistencia aleatoria y presentación de probabilidades al jugador. Ver
   [ARC-008](90-architecture/ARC-008_outcomes-knowledge-events-and-validation.md#4-preguntas-abiertas).
+  `P09` conserva su parte pendiente (fórmula de cooperación, coordinación,
+  rendimientos decrecientes y máximo útil por familia) aunque el selector
+  local `Auto / 1 / 2 / 3 / 4` y las aportaciones funcionales ya estén
+  cerrados en
+  [UI-006](80-interface/UI-006_contextual-place-interaction-and-teams.md);
+  `P10` sigue íntegramente abierto (sustitución del responsable, supervisión
+  y reasignación automática), y `P14`/`P20` conservan la política final de
+  pausas e interrupciones.
 
 ## Lugares y edificios procedurales (`20-world`, `40-settlement`, `catalogs`)
 
 - Algoritmo exacto de trazado de calles, distritos y parcelas, y fórmulas
   exactas de probabilidad de arquetipo según contexto. Ver
-  [WLD-005](20-world/WLD-005_semantic-place-and-building-generation.md).
+  [WLD-005](20-world/WLD-005_semantic-place-and-building-generation.md) y
+  [WLD-008](20-world/WLD-008_local-procedural-map-generation.md).
 - Pesos, escalas y unidades exactos del modelo interno de presión de
   saqueo, y algoritmo exacto de rutas y bolsas olvidadas. Ver
   [WLD-006](20-world/WLD-006_historical-looting-pressure-and-routes.md).
@@ -224,9 +268,11 @@ Cuando una pregunta se cierre:
 - Alcance exacto de visión de una persona o punto de observación (radio,
   línea de visión, obstáculos) en la niebla del mapa 2D. Ver
   [UI-005](80-interface/UI-005_top-down-simulation-workbench.md).
-- Representación visual exacta (colores, formas, iconografía) del mapa
-  Canvas 2D; esta entrega no fija arte ni paleta. Ver
-  [UI-005](80-interface/UI-005_top-down-simulation-workbench.md).
+- Representación visual exacta (colores, formas, paleta, iconos, sprites y
+  arte final) del mapa Canvas 2D. Que el mapa sea 2D cenital, continuo y
+  orgánico ya está cerrado. Ver
+  [UI-005](80-interface/UI-005_top-down-simulation-workbench.md) y
+  [DEC-0010](decisions/DEC-0010_procedural-local-and-regional-map-direction.md).
 
 ## Escenario inicial (`scenarios`)
 
@@ -236,10 +282,37 @@ Salvo que ya se deduzca lo contrario de
 - La estación exacta de llegada.
 - Los seis personajes concretos y sus relaciones iniciales.
 - El edificio inicial y el grado de elección disponible.
-- La geografía y tamaño exactos del mapa local.
+- Las dimensiones y cantidades exactas del mapa local. Su carácter
+  procedural, ficticio y de pueblo pequeño de montaña ya está cerrado en
+  [WLD-008](20-world/WLD-008_local-procedural-map-generation.md).
 - La población zombi inicial.
 - La disponibilidad inicial de armas, agua, alimento y electricidad.
 - La existencia y proximidad de otras comunidades.
+
+## Cerradas por `DESIGN-005`
+
+`DESIGN-005` cerró estas decisiones, antes abiertas o contradictorias: la
+representación activa del mapa local es 2D cenital sobre Canvas, visualmente
+continua y orgánica, con una estructura espacial técnica invisible, y el
+mapa local 3D queda como antecedente histórico del prototipo Godot; el mapa
+regional futuro será 2D, geográfico, topográfico, continuo, procedural,
+ficticio y bajo niebla, con regiones internas no impuestas como estética; la
+geografía del primer escenario es procedural y ficticia dentro de un perfil
+de pueblo pequeño de montaña, y una semilla no puede producir una gran
+ciudad; materializar detalle semántico no equivale a abrir un mapa local, y
+ningún punto regional obliga a generar uno; la interacción con un lugar usa
+una ficha contextual cuyas acciones evolucionan con el conocimiento, con la
+regla «conocida pero no disponible = gris con motivo; no reconocida =
+ausente»; reconocer el exterior es la vía normal y autónoma ante un edificio
+desconocido, saltable por orden explícita arriesgada; el equipo operativo
+local se compone con `Auto / 1 / 2 / 3 / 4` y asignación `Comunidad` o
+`Equipo seleccionado`, sin bonificación genérica por acumular integrantes y
+sin que `4` sea un límite del motor. Ver
+[WLD-008](20-world/WLD-008_local-procedural-map-generation.md),
+[UI-006](80-interface/UI-006_contextual-place-interaction-and-teams.md),
+[DEC-0010](decisions/DEC-0010_procedural-local-and-regional-map-direction.md)
+y la trazabilidad completa en
+[DISC-0004](discovery/DISC-0004_local-regional-maps-and-contextual-actions-traceability.md).
 
 ## Cerradas por `DESIGN-004`
 

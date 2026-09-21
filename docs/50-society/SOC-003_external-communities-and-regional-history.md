@@ -11,6 +11,7 @@ related:
   - WLD-003
   - SOC-002
   - NAR-002
+  - ARC-003
 ---
 
 ## 1. Propósito
@@ -56,9 +57,13 @@ resumir, pero no sustituye los hechos.
 
 ## 5. Interacciones con otros sistemas
 
-- Las comunidades externas existen y se materializan en el mapa estratégico
-  definido en
-  [WLD-003](../20-world/WLD-003_strategic-world-and-regional-simulation.md).
+- Las comunidades externas existen en el mapa regional definido en
+  [WLD-003](../20-world/WLD-003_strategic-world-and-regional-simulation.md),
+  y ganan **detalle semántico** cuando se vuelven relevantes. Materializar
+  ese detalle no implica abrir un mapa local nuevo ni generar un escenario
+  detallado por cada comunidad visitada (ver
+  [ARC-003](../90-architecture/ARC-003_multiscale-simulation-principles.md),
+  sección 2, y `WLD-003`, sección 3.3).
 - Sus relaciones con la política interna de la comunidad del jugador se
   rigen también por
   [SOC-002](SOC-002_internal-politics-and-leadership.md).

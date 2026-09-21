@@ -11,9 +11,11 @@ depends_on:
   - ARC-002
 related:
   - WLD-003
+  - WLD-008
   - SOC-003
   - ARC-004
   - DEC-0008
+  - DEC-0010
 ---
 
 ## 1. Propósito
@@ -26,6 +28,14 @@ regional sin crear mundos incoherentes, ampliando
 ## 2. Principios que no deben romperse
 
 - Materializar no reescribe hechos; abstraer no borra consecuencias.
+- **«Materialización» significa generación diferida de detalle semántico**,
+  no un cambio de pantalla. Materializar detalle de una zona lejana no
+  implica abrir un mapa local nuevo, generar una misión táctica
+  independiente ni crear un escenario detallado por cada punto regional
+  visitado (ver
+  [WLD-003](../20-world/WLD-003_strategic-world-and-regional-simulation.md),
+  sección 3.3, y
+  [DEC-0010](../decisions/DEC-0010_procedural-local-and-regional-map-direction.md)).
 - La simulación multiescala es independiente de la capa de presentación: es
   válida tanto para el prototipo histórico Godot como para la línea activa
   Node.js/TypeScript/Next.js/PostgreSQL de
@@ -78,8 +88,13 @@ cubre detalles no materializados.
 
 ## 5. Interacciones con otros sistemas
 
-- El mapa estratégico y sus zonas materializables se rigen por
-  [WLD-003](../20-world/WLD-003_strategic-world-and-regional-simulation.md).
+- El mapa regional y el detalle semántico materializable de sus zonas se
+  rigen por
+  [WLD-003](../20-world/WLD-003_strategic-world-and-regional-simulation.md),
+  que descarta expresamente abrir un mapa local por cada punto visitado.
+- La generación espacial y la carga diferida por sectores del mapa local se
+  rigen por
+  [WLD-008](../20-world/WLD-008_local-procedural-map-generation.md).
 - Las comunidades externas lejanas se rigen por
   [SOC-003](../50-society/SOC-003_external-communities-and-regional-history.md).
 - No repite las reglas ya aprobadas de generación bajo demanda y modelo de

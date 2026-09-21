@@ -4,6 +4,68 @@ Registra entregas documentales y de diseño de Z-World. No atribuye código ni
 funcionalidad implementada salvo que se indique explícitamente como
 `implemented` en la documentación afectada.
 
+## DESIGN-005 — Mapas local y regional, generación procedural, equipos e interacción contextual
+
+Entrega **exclusivamente documental** que consolida el diseño aprobado de
+las dos escalas espaciales de Z-World, la generación procedural controlada
+del mapa local, la interacción contextual con lugares y la composición de
+equipos operativos locales. No implementa código, no inicializa la
+aplicación web y no toca `src/`, `scenes/`, `tests/` ni `project.godot`.
+
+- **Generación espacial del mapa local**: perfil procedural controlado de
+  pueblo pequeño de montaña, doce capas de perfil a representación Canvas,
+  variación permitida por semilla, presupuesto de complejidad con exclusión
+  expresa de grandes ciudades, estructura espacial técnica invisible y
+  conceptos de territorio conocido, usado y controlado sin crear estados de
+  zona nuevos
+  ([WLD-008](docs/20-world/WLD-008_local-procedural-map-generation.md),
+  `approved`).
+- **Interacción contextual y equipos**: ficha contextual de lugar, evolución
+  de las acciones según el conocimiento, regla «conocida pero no disponible
+  = gris con motivo; no reconocida = ausente», reconocimiento exterior como
+  barrera blanda, revelado parcial de interiores, diez familias de acción
+  contextual, selector `Auto / 1 / 2 / 3 / 4`, modos de asignación
+  `Comunidad`/`Equipo seleccionado` y descomposición de operaciones mayores
+  en varios equipos
+  ([UI-006](docs/80-interface/UI-006_contextual-place-interaction-and-teams.md),
+  `approved`).
+- **Decisión de dirección**: mapa local 2D cenital continuo con estructura
+  técnica invisible, mapa regional futuro geográfico con regiones internas,
+  geografía procedural ficticia, 3D Godot como antecedente histórico,
+  ausencia de materialización obligatoria de mapa local por punto regional y
+  semántica independiente de la presentación
+  ([DEC-0010](docs/decisions/DEC-0010_procedural-local-and-regional-map-direction.md),
+  `approved`).
+- **Trazabilidad**: matriz compacta de decisiones cerradas, aclaraciones,
+  opciones descartadas, ejemplos no normativos, preguntas abiertas y
+  contradicciones corregidas
+  ([DISC-0004](docs/discovery/DISC-0004_local-regional-maps-and-contextual-actions-traceability.md),
+  `draft`).
+- **Mapa regional**: documentado como horizonte futuro coherente en
+  [WLD-003](docs/20-world/WLD-003_strategic-world-and-regional-simulation.md)
+  (representación 2D geográfica, mundo conocido creciente, expediciones de
+  `1 a X` supervivientes, geografía procedural ficticia) y **expresamente
+  excluido** del roadmap activo
+  ([RDM-003](docs/roadmap/RDM-003_simulation-first-playable-roadmap.md),
+  sección 3.3).
+- **Contradicciones corregidas**: `WLD-001`, `WLD-003`, `SCN-001`,
+  `DEC-0002` y `GLOSSARY.md` dejan de presentar el mapa local 3D como
+  representación activa; `docs/INDEX.md`, `docs/OPEN-QUESTIONS.md`,
+  `WLD-001`, `WLD-003`, `SCN-001` y `UI-001` dejan de dirigir el alcance
+  activo a `RDM-001`, que permanece `deprecated` como historia del prototipo
+  Godot; `ARC-003`, `WLD-001`, `WLD-003` y `GLOSSARY.md` aclaran que
+  «materialización» es generación diferida de detalle semántico y no implica
+  abrir un mapa local.
+- **Estados documentales**: `ARC-007` y `ARC-008` siguen `draft` —se cierra
+  la interfaz de tamaño y asignación, no las fórmulas del motor: `P09`
+  distingue lo cerrado de lo pendiente y `P10` sigue abierto—; `DISC-0004`
+  sigue `draft`; ningún documento pasa a `implemented`.
+- Se actualizan los índices de `20-world`, `80-interface`,
+  `90-architecture`, `decisions` y `discovery`, además de
+  `docs/00-governance/GLOSSARY.md`, `docs/INDEX.md`,
+  `docs/OPEN-QUESTIONS.md`, `docs/STATUS.md` y `prompts/INDEX.md`. Las 34
+  prioridades de `UI-003` no se modifican.
+
 ## Rescate documental — Motor de acciones, catálogo de personaje y objetos
 
 Consolidación documental del motor de acciones/trabajos/eventos, el

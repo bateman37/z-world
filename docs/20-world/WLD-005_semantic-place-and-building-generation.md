@@ -18,6 +18,7 @@ related:
   - WLD-004
   - WLD-006
   - WLD-007
+  - WLD-008
   - SET-007
   - ARC-002
   - ARC-005
@@ -96,6 +97,13 @@ Cada eslabón puede materializarse de forma diferida (ver
 pero el orden lógico de dependencia no cambia: un programa de estancias no
 existe antes de un tipo y subtipo, y un tipo no existe antes de que la
 parcela y el contexto limiten sus arquetipos compatibles.
+
+Los eslabones **espaciales** previos a la parcela —perfil de escenario,
+terreno, agua, vegetación, red viaria, huella del asentamiento y
+subdivisión en parcelas— se definen en
+[WLD-008](WLD-008_local-procedural-map-generation.md), sección 3.2, que este
+documento no duplica. `WLD-005` es canónico desde la parcela hacia el
+edificio semántico; `WLD-008`, desde el perfil hasta la parcela.
 
 ### 3.2 Contexto, parcela y arquetipos compatibles
 
@@ -226,6 +234,9 @@ ocupantes, historia o saqueo: solo cambia cómo se dibuja.
 - La generación reproducible por semilla, ID y versión sigue definida en
   [ARC-002](../90-architecture/ARC-002_procedural-generation-and-persistence.md)
   y [DEC-0005](../decisions/DEC-0005_reproducible-lazy-generation.md).
+- La generación espacial del mapa local que produce el contexto, las calles
+  y las parcelas de la sección 3.2 se define en
+  [WLD-008](WLD-008_local-procedural-map-generation.md).
 
 ## 6. Casos límite o riesgos
 
@@ -239,7 +250,8 @@ ocupantes, historia o saqueo: solo cambia cómo se dibuja.
 ## 7. Preguntas abiertas
 
 - Algoritmo exacto de trazado de calles, distritos y parcelas dentro de un
-  asentamiento.
+  asentamiento (compartida con
+  [WLD-008](WLD-008_local-procedural-map-generation.md), sección 7).
 - Fórmulas exactas de probabilidad de arquetipo según los factores de la
   sección 3.2.
 - Catálogo exhaustivo de programas de estancias por subtipo más allá de los

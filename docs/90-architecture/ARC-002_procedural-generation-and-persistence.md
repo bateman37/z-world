@@ -13,6 +13,7 @@ related:
   - DEC-0008
   - WLD-002
   - WLD-005
+  - WLD-008
   - ARC-003
   - ARC-004
   - WLD-004
@@ -143,6 +144,13 @@ directamente.
   [WLD-005](../20-world/WLD-005_semantic-place-and-building-generation.md);
   las entidades conceptuales que ese contenido persiste se definen en
   [ARC-005](ARC-005_semantic-world-data-model.md).
+- La generación **espacial** del mapa local (perfil de escenario, terreno,
+  agua, vegetación, rutas, huella del asentamiento y parcelas) se define en
+  [WLD-008](../20-world/WLD-008_local-procedural-map-generation.md). Esa
+  geografía se deriva de la misma semilla, ID estable y versión de generador
+  de la sección 3.1, se materializa de forma diferida por sectores y
+  persiste todo cambio ya causado o conocido; este documento no duplica sus
+  capas ni fija tamaños de sector o `chunk`.
 
 ## 6. Casos límite o riesgos
 
