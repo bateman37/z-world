@@ -10,7 +10,8 @@ related:
   - CHR-002
   - CHR-003
   - CHR-004
-  - CHR-005
+  - CHR-006
+  - CHR-007
   - VIS-002
   - UI-003
   - SET-006
@@ -114,9 +115,18 @@ esta regla: sirven para priorizar tareas, no otorgan competencia en ellas.
   personales se desarrolla en
   [CHR-004](CHR-004_life-history-and-personal-arcs.md), sin ampliar el
   conjunto exacto de habilidades iniciales de la sección 3.1.
-- Una taxonomía candidata y extensa de habilidades futuras, todavía
-  `draft`, vive en [CHR-005](CHR-005_extended-skill-taxonomy.md); no se
-  importa al primer corte jugable.
+- El catálogo cerrado de horizonte máximo de nueve características y 34
+  habilidades base vive en
+  [CHR-006](CHR-006_characteristics-and-skill-catalog.md); no se importa al
+  primer corte jugable ni sustituye la lista exacta de la sección 3.1. Esa
+  sección 3.1 y el catálogo de CHR-006 no coinciden literalmente en
+  nombres; ver la reconciliación registrada en
+  [CHR-006 §7](CHR-006_characteristics-and-skill-catalog.md#7-preguntas-abiertas).
+  El potencial oculto, el calibre oculto y la adaptación al apocalipsis que
+  condicionan la evolución de esas habilidades viven en
+  [CHR-007](CHR-007_hidden-potential-caliber-and-adaptation.md).
+  [CHR-005](CHR-005_extended-skill-taxonomy.md) queda `deprecated` en favor
+  de CHR-006.
 - El aprendizaje y la enseñanza se desarrollan en
   [CHR-002](CHR-002_knowledge-and-learning.md).
 - La autonomía, las motivaciones y la evolución del comportamiento se

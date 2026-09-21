@@ -18,18 +18,50 @@ documentación de horizonte máximo: no cambió el juego ejecutable ni amplió
 
 ## Última entrega documental completada
 
-`DESIGN-003` — trabajo, recuperación y conocimiento aplicado: horizonte
-máximo documental de prioridades, órdenes, zonas, políticas, eventos y
-trabajos (nueve bloques y 34 prioridades con escala `Nunca/1–5`,
-`UI-003`); presentación cualitativa de capacidad sin números internos
-(`UI-004`); inspección, saqueo, reconocimiento experto y revisitas
-dependientes de la persona con contenido base estable (`WLD-004`); fuentes
-de conocimiento físicas, humanas y digitales, estados comunitarios de un
-fragmento y capacidad real (`SET-006`); y la decisión transversal que
-respalda las 34 prioridades separadas de habilidad y del alcance
-implementado (`DEC-0007`). Los cinco documentos son `approved`. No cambia
-el juego ejecutable: no se tocó código, escenas, `game_data/` ni `tests/`,
-no se amplió `RDM-001` y `CHR-005`/`RDM-002` siguen `draft`. Ver
+Consolidación documental del **motor de acciones/trabajos/eventos**, el
+**catálogo de horizonte máximo de personaje** (nueve características, 34
+habilidades, potencial oculto, calibre oculto y adaptación al apocalipsis)
+y los **objetos del mundo, familias logísticas y desmontaje** (21 de
+septiembre de 2026): seis documentos nuevos —
+[ARC-004](90-architecture/ARC-004_action-and-event-resolution-model.md),
+[ARC-005](90-architecture/ARC-005_teamwork-orders-modes-and-conditions.md),
+[ARC-006](90-architecture/ARC-006_outcomes-knowledge-events-and-validation.md)
+(`draft`, motor de resolución: procedimiento común, medias de
+características/habilidades, modelos B y D, cooperación, órdenes, modos,
+resultados, conocimiento imperfecto, eventos, 19 casos de validación y 22
+decisiones pendientes `P01`–`P22`),
+[CHR-006](30-characters/CHR-006_characteristics-and-skill-catalog.md)
+(`approved`, nueve características y catálogo cerrado de 34 habilidades
+base),
+[CHR-007](30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md)
+(`draft`, potencial oculto, calibre oculto de 1 a 5 estrellas, adaptación
+al apocalipsis, generación en ocho pasos, procesado diario y 42 reglas
+invariantes),
+[SET-007](40-settlement/SET-007_object-model-and-logistics-families.md) y
+[SET-008](40-settlement/SET-008_disassembly-and-world-transformation.md)
+(`draft`, modelo de objeto, 12 familias logísticas de horizonte máximo,
+flujo de desmontaje en nueve pasos y 20 decisiones cerradas) — respaldados
+por [DEC-0008](decisions/DEC-0008_character-catalog-and-resolution-engine-domain.md).
+[CHR-005](30-characters/CHR-005_extended-skill-taxonomy.md) queda
+`deprecated`, sustituido por `CHR-006`, conservado como antecedente. No
+cambia el juego ejecutable: no se tocó código, escenas, `game_data/` ni
+`tests/`, y no se amplió `RDM-001`. Los nueve recursos agregados de
+`SET-003` y las once habilidades del primer corte de `CHR-001` §3.1 siguen
+siendo el alcance realmente implementado; su migración hacia estos
+catálogos de horizonte máximo queda pendiente, sin fecha, igual que la ya
+reconocida entre las diez familias de prioridad y las 34 de `UI-003`.
+
+Entrega previa: `DESIGN-003` — trabajo, recuperación y conocimiento
+aplicado: horizonte máximo documental de prioridades, órdenes, zonas,
+políticas, eventos y trabajos (nueve bloques y 34 prioridades con escala
+`Nunca/1–5`, `UI-003`); presentación cualitativa de capacidad sin números
+internos (`UI-004`); inspección, saqueo, reconocimiento experto y
+revisitas dependientes de la persona con contenido base estable
+(`WLD-004`); fuentes de conocimiento físicas, humanas y digitales, estados
+comunitarios de un fragmento y capacidad real (`SET-006`); y la decisión
+transversal que respalda las 34 prioridades separadas de habilidad y del
+alcance implementado (`DEC-0007`). Los cinco documentos son `approved`. No
+cambió el juego ejecutable ni se amplió `RDM-001`. Ver
 [UI-003](80-interface/UI-003_work-priority-taxonomy.md),
 [UI-004](80-interface/UI-004_qualitative-capability-presentation.md),
 [WLD-004](20-world/WLD-004_expertise-dependent-recovery.md),
@@ -193,21 +225,30 @@ elemento listado como fuera de alcance en el prompt de la entrega.
   narrativa emergente y memoria causal (`NAR-001`, `NAR-002`), interacción,
   control, gestión a escala, taxonomía de trabajo y presentación cualitativa
   de capacidad (`UI-001`, `UI-002`, `UI-003`, `UI-004`), amenaza zombi
-  (`THR-001`), dirección técnica, generación procedural y simulación
-  multiescala (`ARC-001`, `ARC-002`, `ARC-003`), escenario inicial
+  (`THR-001`), dirección técnica, generación procedural, simulación
+  multiescala y catálogo de nueve características/34 habilidades
+  (`ARC-001`, `ARC-002`, `ARC-003`, `CHR-006`), escenario inicial
   (`SCN-001`), alcance del primer corte jugable (`RDM-001`), decisiones
-  `DEC-0001` a `DEC-0007`, sistema documental (`DOC-001`).
+  `DEC-0001` a `DEC-0008`, sistema documental (`DOC-001`).
 - **Borrador (`draft`)**: síntesis de descubrimiento (`DISC-0001`,
-  `DISC-0002`), taxonomía extendida de habilidades (`CHR-005`), horizonte
-  configurable de amenazas (`THR-002`) y horizonte de capacidades a largo
-  plazo (`RDM-002`).
+  `DISC-0002`), horizonte configurable de amenazas (`THR-002`), horizonte de
+  capacidades a largo plazo (`RDM-002`), motor de resolución de acciones,
+  trabajos y eventos (`ARC-004`, `ARC-005`, `ARC-006`), potencial oculto,
+  calibre oculto y adaptación al apocalipsis (`CHR-007`), y modelo de
+  objeto, familias logísticas y desmontaje del mundo (`SET-007`,
+  `SET-008`).
+- **Sustituido (`deprecated`)**: taxonomía extendida de habilidades
+  (`CHR-005`), sustituida por `CHR-006`.
 - **Implementado (`implemented`)**: no se usa todavía en ningún documento de
   dominio. `IMPLEMENTATION-001` a `IMPLEMENTATION-004` son entregas de
   código, no un cambio de estado documental de `WLD-002`, `SET-003`,
   `CHR-001`, `UI-001`, `CHR-003`, `SCN-001`, `ARC-002`, `THR-001` ni del
   resto de `RDM-001`, que siguen siendo `approved` a la espera de sus
   entregas correspondientes: esta entrega implementa solo el subconjunto de
-  defensa y vida propia descrito en su prompt.
+  defensa y vida propia descrito en su prompt. El motor de resolución
+  documentado en `ARC-004`–`ARC-006` tampoco está implementado: el juego
+  ejecutable sigue resolviendo trabajos con la lógica ya descrita en las
+  entregas de código anteriores de esta misma sección.
 
 ## Validaciones automatizadas de `IMPLEMENTATION-004`
 

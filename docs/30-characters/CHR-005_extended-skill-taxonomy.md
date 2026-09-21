@@ -1,21 +1,33 @@
 ---
 id: CHR-005
 title: Taxonomía extendida de habilidades
-status: draft
+status: deprecated
 canonical_for: []
 depends_on:
   - CHR-001
 related:
   - CHR-004
+  - CHR-006
   - SET-005
   - UI-003
 ---
+
+> **Sustituido por [CHR-006](CHR-006_characteristics-and-skill-catalog.md).**
+> El catálogo candidato de este documento queda reemplazado por el catálogo
+> cerrado de horizonte máximo de nueve características y 34 habilidades base
+> de CHR-006, que también resuelve la pregunta abierta de la sección 7
+> sobre cómo y cuándo una habilidad candidata pasa a formar parte de un
+> catálogo aprobado. Este documento se conserva como antecedente histórico
+> del espacio de diseño explorado antes de esa consolidación; no debe
+> usarse como fuente de nuevas habilidades base.
 
 ## 1. Propósito
 
 Documentar un mapa amplio y candidato de familias de habilidades y técnicas
 futuras, sin fijar catálogo, balance ni sustituir las habilidades iniciales
-de [CHR-001](CHR-001_character-model.md).
+de [CHR-001](CHR-001_character-model.md). **Ver la nota de sustitución
+anterior: este documento queda `deprecated` en favor de
+[CHR-006](CHR-006_characteristics-and-skill-catalog.md).**
 
 ## 2. Principios que no deben romperse
 

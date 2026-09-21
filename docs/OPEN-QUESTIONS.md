@@ -37,7 +37,10 @@ Cuando una pregunta se cierre:
 - Valores y fórmulas exactos de características, habilidades, aptitudes,
   progreso y calidad. Ver
   [CHR-001](30-characters/CHR-001_character-model.md) y
-  [CHR-003](30-characters/CHR-003_autonomy-intentions-and-behavior.md).
+  [CHR-003](30-characters/CHR-003_autonomy-intentions-and-behavior.md). El
+  catálogo en sí (nueve características, 34 habilidades) ya está cerrado en
+  [CHR-006](30-characters/CHR-006_characteristics-and-skill-catalog.md); lo
+  pendiente es su calibración numérica.
 - Técnicas exactas, prerrequisitos y transferencia completa entre
   habilidades más allá de los ejemplos registrados. Ver
   [CHR-002](30-characters/CHR-002_knowledge-and-learning.md).
@@ -48,8 +51,19 @@ Cuando una pregunta se cierre:
   [CHR-002](30-characters/CHR-002_knowledge-and-learning.md).
 - Valores y curvas del modelo profundo de personas. Ver
   [CHR-004](30-characters/CHR-004_life-history-and-personal-arcs.md).
-- Lista final, granularidad, transferencias y técnicas de habilidades. Ver
-  [CHR-005](30-characters/CHR-005_extended-skill-taxonomy.md).
+- Dominios definitivos de cada habilidad del catálogo. Ver
+  [CHR-006](30-characters/CHR-006_characteristics-and-skill-catalog.md).
+  [CHR-005](30-characters/CHR-005_extended-skill-taxonomy.md) queda
+  `deprecated` en favor de `CHR-006`.
+- Escalas exactas de la habilidad 1–10, campos de potencial, distribución
+  de estrellas del calibre oculto, catálogo de frases de potencial,
+  escala y dimensiones de la adaptación al apocalipsis, y catálogo de
+  rasgos/beneficios/aflicciones. Ver
+  [CHR-007](30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md).
+- Estrategia y momento de migrar el alcance implementado de habilidades
+  (`CHR-001` §3.1, once habilidades) hacia el catálogo de horizonte máximo
+  de 34 habilidades. Ver
+  [CHR-006](30-characters/CHR-006_characteristics-and-skill-catalog.md#7-preguntas-abiertas).
 
 ## Asentamiento (`40-settlement`)
 
@@ -71,6 +85,19 @@ Cuando una pregunta se cierre:
   [SET-004](40-settlement/SET-004_technological-transition-and-knowledge-economy.md)
   y
   [SET-005](40-settlement/SET-005_production-web-and-infrastructure.md).
+- Nombres definitivos de los niveles de calidad aprovechable de materiales;
+  número final de conjuntos de herramientas y qué equipos conservan
+  identidad individual; catálogo completo de prendas y protecciones;
+  catálogo completo de especies vegetales; tratamiento de materiales
+  peligrosos y de residuos/escombros; estrategia y momento de migrar los 9
+  recursos agregados de `SET-003` hacia las 12 familias logísticas de
+  horizonte máximo. Ver
+  [SET-007](40-settlement/SET-007_object-model-and-logistics-families.md).
+- Cantidades exactas recuperadas por objeto al desmontar, probabilidades y
+  tiempos de desmontaje, interfaz definitiva de desmontaje, estructura
+  técnica de datos de objetos, y alcance exacto de una primera versión
+  jugable de este sistema. Ver
+  [SET-008](40-settlement/SET-008_disassembly-and-world-transformation.md).
 - Fórmulas numéricas exactas de cobertura, confianza, dificultad y progreso
   interno de un fragmento de conocimiento; catálogo exhaustivo de
   fragmentos, dominios y técnicas; frecuencia y equilibrio de aparición de
@@ -147,6 +174,15 @@ Cuando una pregunta se cierre:
 - Presupuestos, frecuencias, materialización y rendimiento de la
   simulación multiescala. Ver
   [ARC-003](90-architecture/ARC-003_multiscale-simulation-principles.md).
+- Las 22 decisiones pendientes de calibración del motor de resolución de
+  acciones, trabajos y eventos (`P01`–`P22`): peso entre característica y
+  habilidad efectivas, tabla o función del modelo B, tamaño de la
+  variación del modelo D, requisitos duros por método, fórmula de
+  cooperación y número útil de ayudantes, lista final de modos y sus
+  costes, críticos e incidencias, distribución de conocimiento imperfecto,
+  reintento automático, oposición activa/pasiva, esquema de eventos,
+  persistencia aleatoria y presentación de probabilidades al jugador. Ver
+  [ARC-006](90-architecture/ARC-006_outcomes-knowledge-events-and-validation.md#4-preguntas-abiertas).
 
 ## Escenario inicial (`scenarios`)
 

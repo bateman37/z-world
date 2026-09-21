@@ -26,6 +26,7 @@ documento canónico de dominio correspondiente.
 | [DEC-0005](DEC-0005_reproducible-lazy-generation.md) | `approved` | Generación bajo demanda estable y reproducible. |
 | [DEC-0006](DEC-0006_maximum-envelope-vs-delivery-scope.md) | `approved` | Separar visión máxima, alcance de entrega y estado implementado. |
 | [DEC-0007](DEC-0007_layered-work-and-priorities.md) | `approved` | Conservar 34 prioridades jerárquicas, separadas de habilidades y del alcance implementado. |
+| [DEC-0008](DEC-0008_character-catalog-and-resolution-engine-domain.md) | `approved` | Cerrar el catálogo de nueve características/34 habilidades y crear el dominio del motor de resolución en `90-architecture`. |
 
 ## Dependencias con otros dominios
 
