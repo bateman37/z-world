@@ -4,6 +4,59 @@ Registra entregas documentales y de diseño de Z-World. No atribuye código ni
 funcionalidad implementada salvo que se indique explícitamente como
 `implemented` en la documentación afectada.
 
+## Rescate documental — Motor de acciones, catálogo de personaje y objetos
+
+Consolidación documental del motor de acciones/trabajos/eventos, el
+catálogo de horizonte máximo de personaje y el modelo de objeto y familias
+logísticas del asentamiento, rescatada de la rama
+`claude/docs-foundation-setup-94xtnn` y el PR #10 de GitHub
+(«IMPLEMENTATION-004: Defensa y vida propia»), que quedó obsoleto por el
+reinicio de línea técnica de `DESIGN-004` y se cierra sin fusionarse. Solo
+se transfiere documentación; no se incluye código, escenas ni recursos de
+Godot.
+
+- **Motor de resolución**: procedimiento común de resolución, capacidades
+  efectivas, modelos B (porcentual) y D (trabajo continuo), cooperación con
+  líder, órdenes del lugar, modos de ejecución, resultados, conocimiento
+  imperfecto, eventos, 19 casos de validación y 22 decisiones pendientes
+  `P01`–`P22`, conservando los 20 principios `R01`–`R20`
+  ([ARC-006](docs/90-architecture/ARC-006_action-and-event-resolution-model.md),
+  [ARC-007](docs/90-architecture/ARC-007_teamwork-orders-modes-and-conditions.md),
+  [ARC-008](docs/90-architecture/ARC-008_outcomes-knowledge-events-and-validation.md),
+  `draft`).
+- **Catálogo de personaje**: nueve características y catálogo cerrado de 34
+  habilidades base, con arquitectura característica/habilidad/dominio/
+  conocimiento/trabajo
+  ([CHR-006](docs/30-characters/CHR-006_characteristics-and-skill-catalog.md),
+  `approved`); potencial oculto, calibre oculto de 1 a 5 estrellas,
+  adaptación al apocalipsis, generación en ocho pasos, procesado diario y
+  42 reglas invariantes
+  ([CHR-007](docs/30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md),
+  `draft`). `CHR-005` queda `deprecated`, sustituida por `CHR-006`.
+- **Objetos y familias logísticas**: modelo de objeto completo y catálogo
+  de horizonte máximo de familias logísticas
+  ([SET-008](docs/40-settlement/SET-008_object-model-and-logistics-families.md),
+  `draft`); reconocimiento, desmontaje y transformación permanente de
+  objetos completos, con 20 decisiones cerradas
+  ([SET-009](docs/40-settlement/SET-009_disassembly-and-world-transformation.md),
+  `draft`). Desarrolla las capas 1–3 de las cinco capas de aprovechamiento
+  ya canónicas de `SET-007`; no las redefine ni afecta a la demolición
+  estructural de edificios (capa 5), que sigue siendo responsabilidad
+  exclusiva de `SET-007`.
+- **Decisión de cierre**:
+  [DEC-0009](docs/decisions/DEC-0009_character-catalog-and-resolution-engine-domain.md)
+  registra el cierre del catálogo de personaje y la creación del dominio
+  del motor de resolución en `90-architecture`; es compatible con
+  `DEC-0008` (reinicio de línea de código) y no la sustituye.
+- **Reconciliación de identificadores**: el contenido original usaba
+  `ARC-004`/`ARC-005`/`ARC-006`, `SET-007`/`SET-008` y `DEC-0008`, slots ya
+  ocupados por `DESIGN-004` con documentos no relacionados; se renumeraron
+  a `ARC-006`/`ARC-007`/`ARC-008`, `SET-008`/`SET-009` y `DEC-0009`.
+- Se actualizan `docs/00-governance/GLOSSARY.md`, los índices de
+  `30-characters`, `40-settlement`, `90-architecture` y `decisions`,
+  `docs/OPEN-QUESTIONS.md` y `docs/STATUS.md`. No modifica código, escenas,
+  `game_data/` ni `tests/`, y no amplía `RDM-001` ni `RDM-003`.
+
 ## DESIGN-004 — Reinicio centrado en simulación y generador semántico de lugares
 
 Entrega exclusivamente documental que reinicia la línea técnica activa de

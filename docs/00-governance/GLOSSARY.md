@@ -44,3 +44,32 @@ enlaza a ella.
   necesidad material, cada una con sus propios requisitos y consecuencias,
   sin una cadena tecnológica única. Ver
   `docs/40-settlement/SET-005_production-web-and-infrastructure.md`.
+- **Capacidad efectiva**: valor de una característica o de una habilidad
+  que alimenta una resolución, igual al valor único requerido o a la media
+  aritmética cuando el método requiere dos del mismo grupo. Ver
+  `docs/90-architecture/ARC-006_action-and-event-resolution-model.md`.
+- **Modelo B**: resolución porcentual de una incertidumbre pertinente
+  dentro de una acción o fase. Ver
+  `docs/90-architecture/ARC-006_action-and-event-resolution-model.md`.
+- **Modelo D**: progreso continuo de un trabajo prolongado en función del
+  tiempo trabajado y el rendimiento pertinente. Ver
+  `docs/90-architecture/ARC-006_action-and-event-resolution-model.md`.
+- **Potencial oculto**: margen real de desarrollo de una característica o
+  de un campo de habilidad, nunca mostrado como cifra al jugador. Ver
+  `docs/30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md`.
+- **Calibre oculto**: tipo de superviviente de 1 a 5 estrellas, generado
+  antes que el resto del personaje, que condiciona la distribución de
+  potenciales sin ser un bonificador directo. Ver
+  `docs/30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md`.
+- **Adaptación al apocalipsis**: sistema separado del calibre oculto que
+  mide cuánto ha aprendido una persona a desenvolverse en el mundo
+  posterior al colapso. Ver
+  `docs/30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md`.
+- **Familia logística**: categoría abstracta y reducida de recursos
+  almacenables en la que se agrupan componentes recuperados de objetos
+  completos, sin representar cada pieza individual. Ver
+  `docs/40-settlement/SET-008_object-model-and-logistics-families.md`.
+- **Desmontaje**: transformación de un objeto completo en componentes
+  reutilizables, materiales, residuos u objetos secundarios, distinta de
+  registrar/saquear, desguazar o demoler. Ver
+  `docs/40-settlement/SET-009_disassembly-and-world-transformation.md`.
