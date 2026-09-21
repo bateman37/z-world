@@ -51,6 +51,74 @@ informó errores.
 
 ## Última entrega documental completada
 
+Consolidación documental del **motor de acciones/trabajos/eventos**, el
+**catálogo de horizonte máximo de personaje** (nueve características, 34
+habilidades, potencial oculto, calibre oculto y adaptación al apocalipsis)
+y el **modelo de objeto y familias logísticas del asentamiento** (21 de
+septiembre de 2026): rescate documental de contenido creado originalmente
+en la rama `claude/docs-foundation-setup-94xtnn` y el PR #10 de GitHub
+(«IMPLEMENTATION-004: Defensa y vida propia»), cuando esa rama todavía
+partía de `main` anterior a `DESIGN-004`. El PR #10 quedó obsoleto por el
+reinicio de línea técnica de `DESIGN-004` y se cierra sin fusionarse; esta
+entrega recupera únicamente su documentación válida, la reconcilia contra
+el `main` actual y la integra en una rama y un PR exclusivamente
+documentales nuevos, partiendo de `main` con `DESIGN-004` ya incorporado.
+No se transfiere código, escenas, recursos ni tests de Godot.
+
+Seis documentos nuevos —
+[ARC-006](90-architecture/ARC-006_action-and-event-resolution-model.md),
+[ARC-007](90-architecture/ARC-007_teamwork-orders-modes-and-conditions.md),
+[ARC-008](90-architecture/ARC-008_outcomes-knowledge-events-and-validation.md)
+(`draft`, motor de resolución: procedimiento común, medias de
+características/habilidades, modelos B y D, cooperación, órdenes, modos,
+resultados, conocimiento imperfecto, eventos, 19 casos de validación y 22
+decisiones pendientes `P01`–`P22`),
+[CHR-006](30-characters/CHR-006_characteristics-and-skill-catalog.md)
+(`approved`, nueve características y catálogo cerrado de 34 habilidades
+base),
+[CHR-007](30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md)
+(`draft`, potencial oculto, calibre oculto de 1 a 5 estrellas, adaptación
+al apocalipsis, generación en ocho pasos, procesado diario y 42 reglas
+invariantes),
+[SET-008](40-settlement/SET-008_object-model-and-logistics-families.md) y
+[SET-009](40-settlement/SET-009_disassembly-and-world-transformation.md)
+(`draft`, modelo de objeto, 12 familias logísticas de horizonte máximo,
+flujo de desmontaje en nueve pasos y 20 decisiones cerradas) — respaldados
+por
+[DEC-0009](decisions/DEC-0009_character-catalog-and-resolution-engine-domain.md).
+[CHR-005](30-characters/CHR-005_extended-skill-taxonomy.md) queda
+`deprecated`, sustituido por `CHR-006`, conservado como antecedente.
+
+**Reconciliación de identificadores contra `DESIGN-004`.** El contenido
+original de este rescate usaba `ARC-004`/`ARC-005`/`ARC-006`, `SET-007`/
+`SET-008` y `DEC-0008`, slots que `DESIGN-004` ya ocupa con documentos no
+relacionados (núcleo de simulación, modelo de datos semántico, explotación
+de edificios y el propio reinicio de arquitectura). Se renumeraron a los
+siguientes IDs libres: `ARC-004`→`ARC-006`, `ARC-005`→`ARC-007`,
+`ARC-006`→`ARC-008`, `SET-007`→`SET-008`, `SET-008`→`SET-009`,
+`DEC-0008`→`DEC-0009`; `CHR-006` y `CHR-007` no colisionaban y conservan su
+numeración original. El modelo de objeto de `SET-008` se ajustó para no
+redeclarar las cinco capas de aprovechamiento de un edificio, ya canónicas
+de `SET-007` (`DESIGN-004`): `SET-008`/`SET-009` desarrollan en detalle
+solo las capas 1 a 3 (contenido suelto, mobiliario/equipamiento e
+instalaciones) desde el punto de vista del objeto individual y sus
+familias logísticas; la estructura y demolición de un edificio (capa 5)
+siguen siendo responsabilidad exclusiva de `SET-007`. El motor de
+resolución de `ARC-006`–`ARC-008` es un modelo de reglas de diseño,
+agnóstico de motor, que la línea activa de código deberá implementar sobre
+el núcleo de simulación ya aprobado en `ARC-004`; no reintroduce Godot como
+arquitectura activa.
+
+No cambia el juego ejecutable: no se tocó código, escenas, `game_data/` ni
+`tests/`, y no se amplió `RDM-001` ni `RDM-003`. Los nueve recursos
+agregados de `SET-003` y las once habilidades del primer corte de `CHR-001`
+§3.1 siguen siendo el alcance realmente implementado; su migración hacia
+estos catálogos de horizonte máximo queda pendiente, sin fecha, igual que
+la ya reconocida entre las diez familias de prioridad y las 34 de
+`UI-003`.
+
+## Entrega documental previa
+
 `DESIGN-004` — reinicio centrado en simulación y generador semántico de
 lugares: cambia la línea técnica activa de Godot 3D a un laboratorio de
 simulación web (Node.js/TypeScript/Next.js/PostgreSQL,
@@ -82,7 +150,7 @@ documento nuevo como `implemented`. Ver
 [docs/discovery/DISC-0003](discovery/DISC-0003_procedural-place-generator-traceability.md)
 para la trazabilidad completa del encargo.
 
-## Entrega documental previa
+## Entrega documental anterior
 
 `DESIGN-003` — trabajo, recuperación y conocimiento aplicado: horizonte
 máximo documental de prioridades, órdenes, zonas, políticas, eventos y
@@ -288,8 +356,9 @@ posteriores de `RDM-001`.
   estratégico (`WLD-001`, `WLD-002`, `WLD-003`), recuperación dependiente de
   la persona (`WLD-004`), generación semántica de lugares, presión histórica
   de saqueo e historia del apocalipsis (`WLD-005`, `WLD-006`, `WLD-007`),
-  modelo de personaje, aprendizaje, autonomía e historia vital (`CHR-001`,
-  `CHR-002`, `CHR-003`, `CHR-004`), crecimiento, producción, recursos,
+  modelo de personaje, aprendizaje, autonomía, historia vital y catálogo
+  cerrado de nueve características/34 habilidades (`CHR-001`, `CHR-002`,
+  `CHR-003`, `CHR-004`, `CHR-006`), crecimiento, producción, recursos,
   transición tecnológica, red productiva, activos de conocimiento y
   explotación/reutilización/demolición de edificios del asentamiento
   (`SET-001` a `SET-007`), comunidad viva, política interna y comunidades
@@ -303,24 +372,31 @@ posteriores de `RDM-001`.
   (`SCN-001`), hoja de ruta activa (`RDM-003`), catálogo máximo de lugares,
   estancias/instalaciones y ocupantes/profesiones/aficiones/rasgos como
   horizonte de referencia (`CAT-001` a `CAT-003`), decisiones `DEC-0002` a
-  `DEC-0008` (`DEC-0001` es `deprecated`), sistema documental (`DOC-001`).
+  `DEC-0009` (`DEC-0001` es `deprecated`), sistema documental (`DOC-001`).
 - **Borrador (`draft`)**: síntesis de descubrimiento (`DISC-0001`,
   `DISC-0002`), trazabilidad del generador procedural de lugares
-  (`DISC-0003`), taxonomía extendida de habilidades (`CHR-005`), horizonte
-  configurable de amenazas (`THR-002`), horizonte de capacidades a largo
-  plazo (`RDM-002`) y propuesta de subconjunto inicial de lugares
-  (`CAT-004`).
-- **Deprecada (`deprecated`)**: motor Godot 4 como línea inicial
-  (`DEC-0001`, sustituida por `DEC-0008`) y alcance del primer corte
-  jugable del prototipo Godot (`RDM-001`, sustituida por `RDM-003`); ambas
-  se conservan como referencia histórica.
+  (`DISC-0003`), horizonte configurable de amenazas (`THR-002`), horizonte
+  de capacidades a largo plazo (`RDM-002`), propuesta de subconjunto
+  inicial de lugares (`CAT-004`), motor de resolución de acciones, trabajos
+  y eventos (`ARC-006`, `ARC-007`, `ARC-008`), potencial oculto, calibre
+  oculto y adaptación al apocalipsis (`CHR-007`), y modelo de objeto,
+  familias logísticas y desmontaje de objetos (`SET-008`, `SET-009`).
+- **Sustituido (`deprecated`)**: motor Godot 4 como línea inicial
+  (`DEC-0001`, sustituida por `DEC-0008`), alcance del primer corte
+  jugable del prototipo Godot (`RDM-001`, sustituida por `RDM-003`) y
+  taxonomía extendida de habilidades (`CHR-005`, sustituida por `CHR-006`);
+  las tres se conservan como referencia histórica.
 - **Implementado (`implemented`)**: no se usa todavía en ningún documento de
   dominio. `IMPLEMENTATION-001` a `IMPLEMENTATION-004` son entregas de
   código del prototipo histórico Godot, no un cambio de estado documental
   de `WLD-002`, `SET-003`, `CHR-001`, `UI-001`, `CHR-003`, `SCN-001`,
   `ARC-002` ni del resto de `RDM-001`. `DESIGN-004` no marca ningún
   documento nuevo como `implemented`: la nueva línea de código
-  Node.js/TypeScript no tiene todavía ninguna entrega.
+  Node.js/TypeScript no tiene todavía ninguna entrega. El motor de
+  resolución documentado en `ARC-006`–`ARC-008` tampoco está implementado:
+  el prototipo Godot histórico resolvía trabajos con su propia lógica ya
+  descrita en las entregas de código de la sección anterior, y la nueva
+  línea activa todavía no implementa ningún motor de resolución.
 
 ## Validaciones automatizadas de `IMPLEMENTATION-003`
 

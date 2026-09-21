@@ -10,12 +10,21 @@ simulación, datos y presentación, y persistencia.
 - Elección de motor, lenguaje y dirección visual de alto nivel.
 - Principios de separación de responsabilidades técnicas.
 - Persistencia y alcance de red.
+- El modelo de resolución de acciones, trabajos y eventos: procedimiento
+  común, capacidades efectivas, modelos B/D, cooperación, órdenes, modos,
+  resultados, conocimiento imperfecto y eventos (`ARC-006` a `ARC-008`).
+  Este modelo es una capa de reglas de diseño consumida por el núcleo de
+  simulación de `ARC-004`; no redefine su reloj continuo ni sus fronteras
+  técnicas.
 
 ## Qué no pertenece aquí
 
 - Contenido de diseño de juego (habilidades, edificios, situaciones): vive en
   su dominio y, en el futuro, en `game_data/`.
 - Interfaz de usuario detallada: `docs/80-interface/`.
+- El catálogo de características y habilidades (`docs/30-characters/`) ni el
+  catálogo de objetos y familias logísticas (`docs/40-settlement/`); el
+  motor de resolución solo los consume.
 
 ## Documentos
 
@@ -26,11 +35,21 @@ simulación, datos y presentación, y persistencia.
 | [ARC-003](ARC-003_multiscale-simulation-principles.md) | `approved` | Principios para simular detalle local y abstracción regional. |
 | [ARC-004](ARC-004_simulation-core-runtime-and-boundaries.md) | `approved` | Núcleo de simulación puro, reloj continuo, fases visibles y fronteras técnicas. |
 | [ARC-005](ARC-005_semantic-world-data-model.md) | `approved` (entidades conceptuales) | Modelo conceptual de datos del mundo semántico (`Building`, `Room`, etc.). |
+| [ARC-006](ARC-006_action-and-event-resolution-model.md) | `draft` | Procedimiento común de resolución, capacidades efectivas y modelos B (porcentual) y D (trabajo continuo). |
+| [ARC-007](ARC-007_teamwork-orders-modes-and-conditions.md) | `draft` | Cooperación con líder, órdenes del lugar, modos de ejecución, tiempo, estado, herramientas y entorno. |
+| [ARC-008](ARC-008_outcomes-knowledge-events-and-validation.md) | `draft` | Resultados, conocimiento imperfecto, eventos, aplicación por familias, persistencia, casos de validación y decisiones pendientes del motor. |
 
 ## Dependencias con otros dominios
 
-- `docs/decisions/` (`DEC-0001` a `DEC-0008` respaldan estas reglas;
-  `DEC-0008` fija el stack activo).
+- `docs/decisions/` (`DEC-0001` a `DEC-0009` respaldan estas reglas;
+  `DEC-0008` fija el stack activo; `DEC-0009` cierra el dominio del motor de
+  resolución y el catálogo de personaje).
 - `20-world` (información que depende de la generación bajo demanda;
   `WLD-005` a `WLD-007` alimentan `ARC-005`).
 - `catalogs` (fuente de contenido para `ARC-005`).
+- `30-characters` (catálogo de características y habilidades que consume el
+  motor de resolución de `ARC-006`–`ARC-008`).
+- `40-settlement` (modelo de objeto, familias logísticas y desmontaje que
+  consume el motor de resolución).
+- `80-interface` (taxonomía de trabajo y prioridades que consume el motor
+  de resolución).
