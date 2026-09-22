@@ -19,6 +19,7 @@ related:
   - CHR-003
   - UI-003
   - UI-006
+  - SET-010
   - DEC-0011
 ---
 
@@ -531,6 +532,10 @@ eventos y pausa de
   [DEC-0011](../decisions/DEC-0011_hybrid-resolution-engine-and-capability-presentation.md);
   la trazabilidad completa vive en
   [DISC-0005](../discovery/DISC-0005_resolution-engine-closure-traceability.md).
+- La cooperación por porte coordinado de un traslado, y las políticas de
+  respuesta a amenaza que pueden dejar carga abandonada, se aplican según
+  [SET-010 §3.10](../40-settlement/SET-010_local-hauling-and-transport.md#310-cooperación-y-seguridad),
+  sin que ese documento redefina esta sección.
 
 ## 6. Casos límite o riesgos
 

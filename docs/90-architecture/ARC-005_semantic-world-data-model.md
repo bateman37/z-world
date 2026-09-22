@@ -6,6 +6,7 @@ canonical_for:
   - entidades conceptuales de edificio, estancia, instalación y contenido
   - entidades conceptuales de ocupantes, historia y saqueo
   - identidades, relaciones y límites entre estas entidades
+  - entidades conceptuales de área, línea, nodo, estructura, anclaje, abertura, cierre, obstrucción, parcela de cultivo, medio de transporte y carga
 depends_on:
   - ARC-004
   - WLD-005
@@ -13,12 +14,18 @@ related:
   - WLD-006
   - WLD-007
   - WLD-008
+  - WLD-010
+  - WLD-011
   - UI-006
   - SET-007
+  - SET-010
   - CAT-001
   - CAT-002
   - CAT-003
+  - CAT-004
+  - CAT-005
   - DEC-0003
+  - DEC-0013
 ---
 
 ## 1. Propósito
@@ -122,7 +129,33 @@ coherencia:
 
 No se fija aquí ninguna tabla, columna ni clase para estos conceptos.
 
-### 3.5 Separación de identidad y contenido
+### 3.5 Entidades del entorno moldeable, accesos y transporte (`DESIGN-008`)
+
+Ampliación conceptual, sin fijar tablas o clases finales, que registra
+nombres candidatos coherentes con el modelo de
+[WLD-010](../20-world/WLD-010_mutable-terrain-and-spatial-construction.md)
+y [WLD-011](../20-world/WLD-011_openings-access-and-connectivity.md):
+
+| Entidad candidata | Responsabilidad conceptual | Relaciones principales |
+|---|---|---|
+| `WorldFeature` (elemento espacial o entidad del mundo común) | Superclase conceptual, no técnica, que agrupa área, cobertura, elemento lineal, nodo y estructura no edificatoria. | Existe dentro de la geografía de [WLD-008](../20-world/WLD-008_local-procedural-map-generation.md). |
+| `TerrainArea` (área de terreno) | Una zona (campo, bosque/matorral, patio, parcela): capas semánticas de [WLD-010 §3.2](../20-world/WLD-010_mutable-terrain-and-spatial-construction.md#32-capas-semánticas-de-una-zona-de-terreno). | Puede contener `Building[]`, `LinearFeature[]` o `CultivationPlot`. |
+| `LandCover` (cobertura o uso del suelo) | La capa 2 de una `TerrainArea`: hierba, matorral, bosque, cultivo, asfalto, grava, barro, agua o escombros. | Pertenece a una `TerrainArea`. |
+| `LinearFeature` (elemento lineal o corredor) | Muro, valla, carretera, camino, acequia o tubería. | Conecta `Anchor[]`; puede cruzar otra `LinearFeature` o `TerrainArea`. |
+| `NaturalOrTechnicalNode` (nodo o instalación exterior) | Pozo, bomba, poste, árbol singular o depósito (perfil `ENV-01`). | Puede pertenecer a una `TerrainArea` o a un `Building`. |
+| `NonBuildingStructure` (estructura construida no necesariamente edificatoria) | Torre, poste construido u otra estructura con huella sin programa de estancias completo. | Puede servir de `Anchor`. |
+| `Anchor` (anclaje) | Punto estructural, esquina de muro, poste, extremo de barrera o portón válido para construcción lineal. | Referenciado por `LinearFeature`. |
+| `Opening` (abertura) | Hueco físico que conecta dos espacios (ver [WLD-011 §3.1](../20-world/WLD-011_openings-access-and-connectivity.md#31-tres-conceptos-separados)). | Conecta dos `Room`, `TerrainArea` o exterior/interior. |
+| `InstalledClosure` (cierre instalado) | Puerta, portón, ventana, persiana, verja o trampilla. | Controla una `Opening`; conserva su propio `BuildingCondition` y puede existir como `Item` si se recupera. |
+| `Obstruction` (obstrucción, barricada o modificación) | Cerradura, bloqueo, barricada, tablones, refuerzo, escombros o tapiado. | Aplicada sobre una `Opening` o `InstalledClosure`; evoluciona de forma independiente. |
+| `Connection` (conexión entre espacios) | Un enlace del grafo de circulación entre dos `Room`/`TerrainArea`/`NonBuildingStructure`. | Puede depender de una `Opening` transitable. |
+| `CultivationPlot` (parcela de cultivo) | Estado del ciclo agrícola de [SET-011 §3.1](../40-settlement/SET-011_initial-agriculture-loop.md#31-estados-funcionales-mínimos). | Pertenece a una `TerrainArea` de tipo campo. |
+| `TransportMeans` (medio de transporte local) | Carretilla, carro u otro medio de [SET-010 §3.2](../40-settlement/SET-010_local-hauling-and-transport.md#32-métodos-activos-en-el-primer-recorte). | Puede transportar `LoadBundle`; conserva su propio `BuildingCondition`. |
+| `LoadBundle` (carga o conjunto de carga) | Agrupación de `Item`/recursos en tránsito, con peso, bulto y etiquetas de manipulación. | Referencia `Item[]` o cantidades de recurso; asociada a un `TransportMeans` o a una persona. |
+| `TransferPoint` (punto de transferencia o destino logístico) | Punto de reunión, borde de campo, zona temporal de carga, puerta/portón del perímetro u otro destino de [SET-010 §3.8](../40-settlement/SET-010_local-hauling-and-transport.md#38-logística-por-etapas-y-puntos-de-transferencia). | Puede coincidir con una `Opening`, `Container` o `TerrainArea`. |
+| `PersistentTerrainChange` (transformación persistente del terreno) | Registro de que una `TerrainArea` o `LinearFeature` fue despejada, excavada, rellenada, nivelada, cultivada, fortificada o construida. | Asociada a la entidad física transformada; nunca se deshace por recarga. |
+
+### 3.6 Separación de identidad y contenido
 
 `DiscoveryState` y `BuildingCondition` son deliberadamente entidades
 separadas del contenido físico que describen (`Building`, `Room`, `Item`,
@@ -147,6 +180,15 @@ implique regenerar su contenido al visitarlo de nuevo (ver
 - Ninguna forma concreta de tabla, columna o clase de ORM queda fijada por
   este documento; solo entidades, responsabilidades y relaciones
   conceptuales.
+- Un `Building` deja de ser el contenedor universal del mundo: las
+  entidades de la sección 3.5 existen con la misma legitimidad, dentro o
+  fuera de cualquier edificio.
+- No todo elemento de la sección 3.5 debe convertirse en una entidad SQL
+  separada; tampoco hereda todo de una clase técnica imaginaria común.
+  `BuildingCondition` puede aplicarse igualmente a `InstalledClosure`,
+  `NonBuildingStructure` y `TransportMeans`, no solo a `Building`.
+- `DiscoveryState` sigue separado del estado real también para
+  `TerrainArea`, `LinearFeature`, `CultivationPlot` y `TransportMeans`.
 
 ## 5. Interacciones con otros sistemas
 
@@ -168,6 +210,17 @@ implique regenerar su contenido al visitarlo de nuevo (ver
 - Las fronteras técnicas que impiden a estas entidades depender de Prisma,
   React o Next.js se definen en
   [ARC-004](ARC-004_simulation-core-runtime-and-boundaries.md).
+- Las reglas funcionales que gobiernan las entidades de la sección 3.5 se
+  definen en
+  [WLD-010](../20-world/WLD-010_mutable-terrain-and-spatial-construction.md),
+  [WLD-011](../20-world/WLD-011_openings-access-and-connectivity.md),
+  [SET-010](../40-settlement/SET-010_local-hauling-and-transport.md) y
+  [SET-011](../40-settlement/SET-011_initial-agriculture-loop.md); este
+  documento solo registra su vocabulario conceptual.
+- El primer catálogo implementable que instancia estas entidades se
+  aprueba en
+  [CAT-004](../catalogs/CAT-004_initial-semantic-place-slice.md) y
+  [CAT-005](../catalogs/CAT-005_initial-object-resource-and-transport-slice.md).
 
 ## 6. Casos límite o riesgos
 

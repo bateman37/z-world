@@ -79,6 +79,12 @@ resiliencia.
 - No repite las reglas ya aprobadas en
   [SET-002](SET-002_production-and-solutions.md) sobre ausencia de ruta
   única.
+- Los campos, carreteras, barreras lineales y perímetros que esta red
+  productiva puede reclamar, mantener o conectar se definen en
+  [WLD-010](../20-world/WLD-010_mutable-terrain-and-spatial-construction.md);
+  la logística que traslada insumos y producción entre instalaciones se
+  define en
+  [SET-010](SET-010_local-hauling-and-transport.md).
 
 ## 6. Casos límite o riesgos
 

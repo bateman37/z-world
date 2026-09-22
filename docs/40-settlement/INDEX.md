@@ -32,14 +32,19 @@ que sostienen a la comunidad.
 | [SET-007](SET-007_building-exploitation-reuse-and-demolition.md) | `approved` | Cinco capas de aprovechamiento, tres vidas del edificio, desmontaje, desmantelamiento y demolición irreversible. |
 | [SET-008](SET-008_object-model-and-logistics-families.md) | `draft` | Modelo de objeto completo y catálogo de horizonte máximo de familias logísticas (capas 1–3 de `SET-007`). |
 | [SET-009](SET-009_disassembly-and-world-transformation.md) | `draft` | Reconocimiento, desmontaje y transformación permanente de objetos completos. |
+| [SET-010](SET-010_local-hauling-and-transport.md) | `approved` | Transporte y logística local: composición de un traslado, cinco métodos activos, modelo de carga, fases, transferencias y selección `Auto`/método. |
+| [SET-011](SET-011_initial-agriculture-loop.md) | `approved` | Ciclo agrícola inicial: estados de una parcela cultivable, acciones mínimas, rendimiento causal y producción localizada, sin estaciones todavía. |
 
 ## Dependencias con otros dominios
 
 - `20-world` (mapa local como escenario del asentamiento; `WLD-005` a
   `WLD-007` generan el edificio que `SET-007` explota; reconocimiento
   dependiente de la persona de `WLD-004`, que `SET-009` desarrolla en
-  detalle para el desmontaje de objetos).
-- `catalogs` (`CAT-002`, catálogo de instalaciones y acabados desmontables).
+  detalle para el desmontaje de objetos; `WLD-010`/`WLD-011` definen el
+  entorno mutable y los accesos sobre los que actúan `SET-010`/`SET-011`).
+- `catalogs` (`CAT-002`, catálogo de instalaciones y acabados desmontables;
+  `CAT-005`, primer catálogo aprobado de objetos, materiales y transporte
+  que `SET-010`/`SET-011` consumen).
 - `30-characters` (habilidades y conocimiento que habilitan la producción y
   el desmontaje).
 - `80-interface` (reservas y designaciones sobre recursos).

@@ -216,6 +216,13 @@ efectos ya ocurridos.
   [WLD-002](../20-world/WLD-002_local-exploration-and-information.md).
 - Las reservas de recursos usadas por un trabajo se rigen por
   [SET-003](../40-settlement/SET-003_resources-logistics-and-condition.md).
+- Las designaciones sobre áreas, líneas y accesos (despejar, cultivar,
+  construir barrera, tapiar) se rigen por
+  [WLD-010](../20-world/WLD-010_mutable-terrain-and-spatial-construction.md)
+  y [WLD-011](../20-world/WLD-011_openings-access-and-connectivity.md); el
+  selector de método de transporte se rige por
+  [SET-010](../40-settlement/SET-010_local-hauling-and-transport.md) y no
+  sustituye a las tres zonas ya cerradas de la sección 3.4.
 - El horizonte máximo de gestión a escala comunitaria se desarrolla en
   [UI-002](UI-002_management-at-community-scale.md), sin alterar las reglas
   ya cerradas en este documento por `DESIGN-001`.

@@ -108,8 +108,11 @@ Cuando una pregunta se cierre:
   [SET-003](40-settlement/SET-003_resources-logistics-and-condition.md).
 - Valores y curvas exactos de deterioro y condición. Ver
   [SET-003](40-settlement/SET-003_resources-logistics-and-condition.md).
-- Duración de estaciones, número de días por estación, año completo y
-  fórmulas de agricultura (no implementadas en la primera versión). Ver
+- Duración de estaciones, número de días por estación, año completo,
+  catálogo completo de cultivos, fertilidad, rotación, plagas,
+  fertilizantes y conservación de semillas. El ciclo agrícola básico sin
+  estaciones ya está cerrado en
+  [SET-011](40-settlement/SET-011_initial-agriculture-loop.md). Ver
   [ARC-002](90-architecture/ARC-002_procedural-generation-and-persistence.md).
 - Catálogos de producción, mantenimiento, energía, transporte, animales y
   agricultura. Ver
@@ -120,9 +123,12 @@ Cuando una pregunta se cierre:
   número final de conjuntos de herramientas y qué equipos conservan
   identidad individual; catálogo completo de prendas y protecciones;
   catálogo completo de especies vegetales; tratamiento de materiales
-  peligrosos y de residuos/escombros; estrategia y momento de migrar los 9
-  recursos agregados de `SET-003` hacia las 12 familias logísticas de
-  horizonte máximo. Ver
+  peligrosos y de residuos/escombros; migración completa del resto de las
+  12 familias logísticas de horizonte máximo hacia objetos individuales.
+  Un primer subconjunto concreto de estas familias, y la reconciliación de
+  «materiales de reparación», ya están cerrados en
+  [CAT-005](catalogs/CAT-005_initial-object-resource-and-transport-slice.md).
+  Ver
   [SET-008](40-settlement/SET-008_object-model-and-logistics-families.md).
 - Cantidades exactas recuperadas por objeto al desmontar, probabilidades y
   tiempos de desmontaje, interfaz definitiva de desmontaje, estructura
@@ -274,9 +280,45 @@ Cuando una pregunta se cierre:
   [CAT-001](catalogs/CAT-001_maximum-place-catalog.md).
 - Ampliación del catálogo de estancias más allá de la base heredada del
   Anexo A. Ver [CAT-002](catalogs/CAT-002_rooms-modules-and-building-systems.md).
-- Si Dennis aprueba el subconjunto inicial propuesto en
-  [CAT-004](catalogs/CAT-004_initial-semantic-place-slice.md) o uno
-  distinto.
+
+## Entorno mutable, accesos, transporte y agricultura (`20-world`, `40-settlement`, `catalogs`)
+
+Cerradas por `DESIGN-008` (ver sección dedicada más abajo): que el entorno
+completo es materia jugable de primera clase, los ocho perfiles iniciales,
+la libertad de transformación con causalidad, la barrera lineal entre
+anclajes, la red de perímetro, la carretera transformable, el modelo
+abertura/cierre/modificación, los cinco métodos de transporte activos y el
+ciclo agrícola básico sin estaciones.
+
+Quedan abiertas, por pertenecer a la parametrización numérica y técnica:
+
+- Algoritmos geométricos exactos de trazado, excavación, nivelación y
+  detección de recintos. Ver
+  [WLD-010](20-world/WLD-010_mutable-terrain-and-spatial-construction.md).
+- Longitud máxima, costes exactos y tiempos de una barrera lineal; daño y
+  asalto detallado contra perímetros y cierres. Ver
+  [WLD-010](20-world/WLD-010_mutable-terrain-and-spatial-construction.md)
+  y [WLD-011](20-world/WLD-011_openings-access-and-connectivity.md).
+- Anchuras y alturas métricas exactas por clase cualitativa de acceso;
+  ingeniería estructural detallada de huecos nuevos. Ver
+  [WLD-011](20-world/WLD-011_openings-access-and-connectivity.md).
+- Construcción libre completa de edificios nuevos, terraformación
+  (excavación, aporte de tierra, nivelación, rampas, escaleras, terrazas,
+  muros de contención) y editor funcional final de interiores y de varias
+  plantas. Ver
+  [WLD-010](20-world/WLD-010_mutable-terrain-and-spatial-construction.md)
+  y [CAT-002](catalogs/CAT-002_rooms-modules-and-building-systems.md).
+- Extracción profunda por capas de carreteras. Ver
+  [WLD-010 §3.8](20-world/WLD-010_mutable-terrain-and-spatial-construction.md#38-horizonte-máximo).
+- Cifras exactas de peso, capacidad, velocidad, pendiente y anchura por
+  método de transporte; fórmulas exactas de ruido y fatiga; catálogo y
+  activación de animales de carga/tiro y vehículos. Ver
+  [SET-010](40-settlement/SET-010_local-hauling-and-transport.md).
+- Catálogo completo de cultivos y estaciones, fórmulas de fertilidad,
+  riego, deterioro y rendimiento, tiempos de cultivo y cantidades de
+  cosecha. Ver [SET-011](40-settlement/SET-011_initial-agriculture-loop.md).
+- Interfaz gráfica definitiva de la ficha de acceso, de traslado y de
+  parcela cultivable.
 
 ## Interfaz de laboratorio de simulación (`80-interface`)
 
@@ -309,6 +351,36 @@ Quedan abiertas, por pertenecer a otros sistemas:
 - Distribución global de calibre de la población mundial más allá de la
   cohorte protagonista de este escenario. Ver
   [CHR-007](30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md).
+
+## Cerradas por `DESIGN-008`
+
+`DESIGN-008` cerró las veinticuatro decisiones `P01`–`P24` del primer
+catálogo implementable y el mundo local moldeable, antes abiertas: si se
+aprueba `CAT-004` (aprobado, ocho perfiles: cuatro edificios más agua,
+campo, bosque/matorral y carretera); los cuatro programas iniciales de
+edificio; la inclusión de perfiles no edificatorios; el entorno como
+realidad transformable de primera clase; las primitivas espaciales
+conceptuales (nodo, línea, área, estructura); la agricultura básica
+dentro del primer catálogo; la carretera despejable y transformable de
+forma básica; la barrera lineal sencilla; la naturaleza topológica de
+perímetros y accesos; la distinción abertura/cierre/modificación; la
+posición funcional de puertas; las acciones iniciales sobre accesos
+existentes; ventanas y brechas como accesos; la compatibilidad entre
+carga, ruta y abertura; las familias iniciales de objetos; el subconjunto
+material inicial; el fin de «materiales de reparación» como pila
+universal; los métodos iniciales de transporte local; el modelo de carga
+por peso, bulto y etiquetas; la logística por fases, transferencias y
+selección de método; el marco común de posibilidades para todos los
+objetivos; y la materialización diferida del detalle. Ver
+[CAT-004](catalogs/CAT-004_initial-semantic-place-slice.md),
+[CAT-005](catalogs/CAT-005_initial-object-resource-and-transport-slice.md),
+[WLD-010](20-world/WLD-010_mutable-terrain-and-spatial-construction.md),
+[WLD-011](20-world/WLD-011_openings-access-and-connectivity.md),
+[SET-010](40-settlement/SET-010_local-hauling-and-transport.md),
+[SET-011](40-settlement/SET-011_initial-agriculture-loop.md),
+[DEC-0013](decisions/DEC-0013_implementable-catalog-and-mutable-world.md)
+y la trazabilidad completa en
+[DISC-0007](discovery/DISC-0007_implementable-catalog-and-mutable-world-traceability.md).
 
 ## Cerradas por `DESIGN-007`
 

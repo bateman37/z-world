@@ -14,6 +14,8 @@ related:
   - WLD-004
   - CHR-006
   - ARC-006
+  - CAT-005
+  - SET-003
 ---
 
 ## 1. Propósito
@@ -325,12 +327,19 @@ recuperada.
   básicas, materiales de reparación, medicinas básicas, munición inicial)
   y los 6 estados de logística ya están cerrados en
   [SET-003](SET-003_resources-logistics-and-condition.md); este documento
-  no los sustituye. **Reconciliación pendiente:** la migración desde esos 9
-  recursos agregados hacia las 12 familias logísticas de horizonte máximo
-  de §3.3, y desde ellas hacia objetos completos individuales, no tiene
-  fecha ni estrategia decidida; es análoga a la migración ya reconocida y
-  también pendiente entre las diez familias de prioridad implementadas y
-  las 34 de [UI-003](../80-interface/UI-003_work-priority-taxonomy.md) (ver
+  no los sustituye. **Reconciliación parcial cerrada por `DESIGN-008`:**
+  [CAT-005](../catalogs/CAT-005_initial-object-resource-and-transport-slice.md)
+  aprueba un primer subconjunto concreto de familias logísticas de esta
+  tabla (agua, alimento fresco, alimento conservado, semillas, material de
+  cura, madera y tablones, chapa, cableado, componentes eléctricos I,
+  piezas mecánicas I y motores eléctricos II) y reconcilia expresamente
+  «materiales de reparación» (ver
+  [CAT-005 §4.3](../catalogs/CAT-005_initial-object-resource-and-transport-slice.md#43-fin-del-recurso-mágico-materiales-de-reparación)).
+  La migración completa del resto de las 12 familias de §3.3 hacia
+  objetos completos individuales sigue sin fecha ni estrategia decidida;
+  es análoga a la migración ya reconocida y también pendiente entre las
+  diez familias de prioridad implementadas y las 34 de
+  [UI-003](../80-interface/UI-003_work-priority-taxonomy.md) (ver
   [DEC-0007](../decisions/DEC-0007_layered-work-and-priorities.md)).
 - El desmontaje que transforma un objeto completo en estas familias vive en
   [SET-009](SET-009_disassembly-and-world-transformation.md).

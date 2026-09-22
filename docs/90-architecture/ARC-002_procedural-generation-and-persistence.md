@@ -129,6 +129,10 @@ directamente.
 - La información descubierta sobre lugares depende de la generación bajo
   demanda (ver
   [WLD-002](../20-world/WLD-002_local-exploration-and-information.md)).
+- La persistencia de transformaciones de terreno, carreteras, barreras y
+  accesos, y la materialización diferida del catálogo de perfiles no
+  soportados, se rigen por
+  [WLD-010 §3.3](../20-world/WLD-010_mutable-terrain-and-spatial-construction.md#33-identidad-estable-y-persistencia).
 - Los recursos y su condición dependen del estado simulado, no de la
   representación cargada (ver
   [SET-003](../40-settlement/SET-003_resources-logistics-and-condition.md)).

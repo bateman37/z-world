@@ -19,6 +19,9 @@ related:
   - WLD-002
   - WLD-004
   - WLD-008
+  - WLD-010
+  - WLD-011
+  - SET-010
   - ARC-007
   - ARC-008
   - CHR-003
@@ -108,6 +111,19 @@ El diseño gráfico exacto, la posición del panel y la iconografía final
 **quedan abiertos**. La presentación cualitativa de capacidad y dificultad
 sigue rigiéndose por
 [UI-004](UI-004_qualitative-capability-presentation.md), sin repetirse aquí.
+
+**Tipos de objetivo (`DESIGN-008`).** Esta misma ficha contextual se
+aplica sin excepción a edificio, campo, zona de bosque, tramo de
+carretera, fuente de agua, acceso (puerta, ventana, portón, brecha) y
+objeto completo (armario, frigorífico, bomba de agua, carretilla, carro),
+según el modelo de nodo/línea/área/estructura de
+[WLD-010](../20-world/WLD-010_mutable-terrain-and-spatial-construction.md).
+Cuando el objetivo es un traslado, la ficha añade el selector `Método de
+transporte: Auto / método concreto disponible`, definido en
+[SET-010 §3.9](../40-settlement/SET-010_local-hauling-and-transport.md#39-selección-del-método):
+no sustituye ni se confunde con la prioridad `Nunca/1–5`, el tamaño de
+equipo `Auto/1/2/3/4` de la sección 3.9, ni el modo de ritmo/atención de
+[ARC-007](../90-architecture/ARC-007_teamwork-orders-modes-and-conditions.md).
 
 ### 3.4 Regla de visibilidad de acciones
 
@@ -397,6 +413,13 @@ fija aquí**: su calibración pertenece a `P14` y `P20` de
   [WLD-004](../20-world/WLD-004_expertise-dependent-recovery.md).
 - La geografía sobre la que se selecciona un lugar se genera según
   [WLD-008](../20-world/WLD-008_local-procedural-map-generation.md).
+- El modelo de nodo, línea, área y estructura, y de abertura/cierre/
+  modificación, que amplía los tipos de objetivo de la sección 3.3 se
+  define en
+  [WLD-010](../20-world/WLD-010_mutable-terrain-and-spatial-construction.md)
+  y [WLD-011](../20-world/WLD-011_openings-access-and-connectivity.md).
+- El selector de método de transporte de la sección 3.3 se define en
+  [SET-010](../40-settlement/SET-010_local-hauling-and-transport.md).
 - La cooperación con responsable, los modos y las condiciones siguen siendo
   propiedad de
   [ARC-007](../90-architecture/ARC-007_teamwork-orders-modes-and-conditions.md)

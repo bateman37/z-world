@@ -139,6 +139,10 @@ confundirse ni sustituir en silencio los cinco estados de la sección 3.1.
   que se apoya en los cinco estados de la sección 3.1 sin sustituirlos.
 - La geografía sobre la que existen estos lugares se genera según
   [WLD-008](WLD-008_local-procedural-map-generation.md).
+- Los cinco estados de esta sección se aplican igualmente a nodos, líneas
+  y áreas de terreno (fuente de agua, campo, bosque, carretera), no solo a
+  edificios; su modelo espacial y su transformación persistente se rigen
+  por [WLD-010](WLD-010_mutable-terrain-and-spatial-construction.md).
 
 ## 6. Casos límite o riesgos
 

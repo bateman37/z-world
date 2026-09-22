@@ -129,3 +129,31 @@ enlaza a ella.
   distinto del refugio provisional por intención e inversión de trabajo,
   no por tipo de edificio. Ver
   `docs/40-settlement/SET-001_settlement-growth.md`.
+- **Perfil ambiental de interacción**: perfil no exclusivamente
+  edificatorio (fuente de agua, campo, bosque/matorral, carretera) que
+  usa la convención de identificador `ENV-*`, distinta de los arquetipos
+  de edificio de `CAT-001`. Ver
+  `docs/catalogs/CAT-004_initial-semantic-place-slice.md`.
+- **Entorno mutable**: principio por el cual terreno, agua, vegetación,
+  carreteras, parcelas, estructuras lineales e instalaciones son parte
+  persistente y transformable del mundo, no un fondo sobre el que se
+  colocan edificios. Ver
+  `docs/20-world/WLD-010_mutable-terrain-and-spatial-construction.md`.
+- **Abertura, cierre instalado y modificación**: tres conceptos
+  separados de la topología de acceso: el hueco físico, el elemento que
+  lo controla (puerta, ventana, portón) y la obstrucción o barricada
+  aplicada sobre él. Ver
+  `docs/20-world/WLD-011_openings-access-and-connectivity.md`.
+- **Materiales de reparación**: en el primer catálogo implementable, un
+  filtro o resumen visible de existencias compatibles concretas (chapa,
+  madera, cableado, componentes eléctricos, etc.), nunca una pila
+  universal capaz de reparar indistintamente cualquier cosa. Ver
+  `docs/catalogs/CAT-005_initial-object-resource-and-transport-slice.md`.
+- **Método de transporte**: selector `Auto / método concreto` de un
+  traslado local, distinto de la prioridad `Nunca/1–5` y del tamaño de
+  equipo `Auto/1/2/3/4`. Ver
+  `docs/40-settlement/SET-010_local-hauling-and-transport.md`.
+- **Parcela cultivable**: área de terreno (perfil `ENV-02`) que evoluciona
+  por una cadena de estados causales desde terreno no preparado hasta
+  cosechado, con rendimiento variable y producción localizada. Ver
+  `docs/40-settlement/SET-011_initial-agriculture-loop.md`.

@@ -113,6 +113,10 @@ completo. Ejemplos de referencia (no normativos en probabilidad exacta):
   [CAT-001](CAT-001_maximum-place-catalog.md).
 - Las estancias y mobiliario que reciben este contenido coherente se
   definen en [CAT-002](CAT-002_rooms-modules-and-building-systems.md).
+- Los objetos concretos que un perfil de taller mecánico (`TAL-01`) hace
+  coherentes se aprueban en
+  [CAT-005](CAT-005_initial-object-resource-and-transport-slice.md), sin
+  que este documento redefina esos objetos.
 - La cadena generativa completa que sitúa el perfil de ocupantes entre
   subtipo y programa de estancias se define en
   [WLD-005](../20-world/WLD-005_semantic-place-and-building-generation.md).

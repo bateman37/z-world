@@ -396,6 +396,18 @@ coherente con
   [SET-008](../40-settlement/SET-008_object-model-and-logistics-families.md).
 - La amenaza zombi estándar aplicada aquí como instancia concreta se rige
   por [THR-001](../60-threats/THR-001_zombie-threat-model.md).
+- El primer catálogo implementable aprobado por `DESIGN-008`
+  ([CAT-004](../catalogs/CAT-004_initial-semantic-place-slice.md),
+  [CAT-005](../catalogs/CAT-005_initial-object-resource-and-transport-slice.md))
+  y el entorno mutable, los accesos y el transporte local
+  ([WLD-010](../20-world/WLD-010_mutable-terrain-and-spatial-construction.md),
+  [WLD-011](../20-world/WLD-011_openings-access-and-connectivity.md),
+  [SET-010](../40-settlement/SET-010_local-hauling-and-transport.md),
+  [SET-011](../40-settlement/SET-011_initial-agriculture-loop.md)) pueden
+  aplicarse sobre este escenario en una futura implementación; ninguno de
+  ellos garantiza carretilla, carro, semillas, cultivo ya sembrado ni
+  vehículo entre las pertenencias iniciales de la sección 3.5, que este
+  documento no modifica.
 - La validación y regeneración determinista de semillas se rige por
   [ARC-002](../90-architecture/ARC-002_procedural-generation-and-persistence.md)
   y

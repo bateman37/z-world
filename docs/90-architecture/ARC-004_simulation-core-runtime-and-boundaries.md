@@ -144,7 +144,10 @@ consultable y persistente. Sin embargo:
   [DEC-0008](../decisions/DEC-0008_simulation-first-web-architecture.md).
 - El modelo de datos semántico que vive dentro del núcleo y de los
   catálogos se define en
-  [ARC-005](ARC-005_semantic-world-data-model.md).
+  [ARC-005](ARC-005_semantic-world-data-model.md). Las entidades de
+  entorno moldeable, accesos y transporte que `DESIGN-008` añade a
+  `ARC-005` conservan las mismas fronteras técnicas de esta sección: no
+  las amplía ni las relaja.
 - El mapa Canvas 2D, la niebla y el control puntual con ratón que consumen
   este núcleo desde la capa de presentación se definen en
   [UI-005](../80-interface/UI-005_top-down-simulation-workbench.md).

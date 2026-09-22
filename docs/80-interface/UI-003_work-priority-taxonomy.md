@@ -573,6 +573,15 @@ plantillas se amplía en
   local y **no** es la escala de prioridad `Nunca/1–5` de la sección 3.2. La
   movilización ante un desastre sigue rigiéndose por Emergencias (sección
   3.6), sin límite de cuatro personas.
+- Agricultura (19), Construcción y fortificación (22), Reparación (23) y
+  Logística (30) son las familias ya existentes que ubican el ciclo
+  agrícola, la barrera lineal, la reparación de accesos/objetos y el
+  transporte local del primer catálogo implementable; `DESIGN-008` no
+  crea prioridades nuevas como «Transporte por carretilla» o «Puertas»
+  (ver [SET-011](../40-settlement/SET-011_initial-agriculture-loop.md),
+  [WLD-010](../20-world/WLD-010_mutable-terrain-and-spatial-construction.md),
+  [WLD-011](../20-world/WLD-011_openings-access-and-connectivity.md) y
+  [SET-010](../40-settlement/SET-010_local-hauling-and-transport.md)).
 
 ## 6. Casos límite o riesgos
 

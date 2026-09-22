@@ -196,6 +196,13 @@ con el mapa sin duplicar su información innecesariamente.
   [WLD-005](../20-world/WLD-005_semantic-place-and-building-generation.md).
 - La matriz de prioridades y trabajos que puede convivir con este mapa se
   rige por [UI-003](UI-003_work-priority-taxonomy.md), sin repetirse aquí.
+- El Canvas representa visualmente las transformaciones persistentes de
+  terreno, carreteras, barreras y accesos definidas en
+  [WLD-010](../20-world/WLD-010_mutable-terrain-and-spatial-construction.md)
+  y [WLD-011](../20-world/WLD-011_openings-access-and-connectivity.md);
+  nunca es la fuente de verdad de esos cambios, coherente con la
+  separación semántica/representación de
+  [WLD-005 §3.8](../20-world/WLD-005_semantic-place-and-building-generation.md#38-separación-semántica-de-la-representación).
 - La geografía representada, el perfil procedural del escenario y la
   estructura espacial técnica invisible se rigen por
   [WLD-008](../20-world/WLD-008_local-procedural-map-generation.md).

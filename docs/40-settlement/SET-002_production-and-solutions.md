@@ -56,6 +56,10 @@ robusta.
   [SET-004](SET-004_technological-transition-and-knowledge-economy.md) y el
   de la red de soluciones productivas en
   [SET-005](SET-005_production-web-and-infrastructure.md).
+- El ciclo agrícola básico, primera ruta renovable de alimento del primer
+  catálogo implementable, se define en
+  [SET-011](SET-011_initial-agriculture-loop.md); es una ruta más, no
+  sustituye a búsqueda, pesca, hongos o caza.
 
 ## 6. Casos límite o riesgos
 

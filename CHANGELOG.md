@@ -4,6 +4,74 @@ Registra entregas documentales y de diseño de Z-World. No atribuye código ni
 funcionalidad implementada salvo que se indique explícitamente como
 `implemented` en la documentación afectada.
 
+## DESIGN-008 — Catálogo implementable y mundo local moldeable
+
+Entrega **exclusivamente documental** que convierte `CAT-004`, hasta ahora
+`draft`, en el primer catálogo implementable del mundo local, y cierra el
+marco funcional de un entorno moldeable donde terreno, agua, vegetación,
+carreteras, accesos y objetos son materia jugable de primera clase, no un
+fondo sobre el que se colocan edificios. No implementa código, no
+inicializa la aplicación web y no toca `src/`, `scenes/`, `tests/` ni
+`project.godot`.
+
+- **Ocho perfiles iniciales aprobados**: casa familiar mediana (`RES-10`),
+  cabaña (`RES-17`), supermercado pequeño (`COM-02`), taller mecánico
+  (`TAL-01`), fuente local de agua (`ENV-01`), campo o parcela abierta
+  (`ENV-02`), zona de bosque o matorral (`ENV-03`) y tramo de carretera o
+  camino (`ENV-04`)
+  ([CAT-004](docs/catalogs/CAT-004_initial-semantic-place-slice.md),
+  `approved` por decisión expresa de Dennis).
+- **Cuatro programas iniciales de edificio**, con estancias obligatorias y
+  opcionales, límite de una planta activa y sin editor arquitectónico
+  ([CAT-002](docs/catalogs/CAT-002_rooms-modules-and-building-systems.md),
+  ampliado).
+- **Entorno mutable y construcción espacial**: modelo de nodo, línea, área
+  y estructura; capas semánticas de terreno; libertad de transformación
+  con causalidad; barrera lineal entre anclajes; red de perímetro
+  derivada de cierres físicos reales; carretera transformable
+  ([WLD-010](docs/20-world/WLD-010_mutable-terrain-and-spatial-construction.md),
+  `approved`).
+- **Aberturas, cierres y conectividad**: abertura, cierre instalado y
+  modificación/obstrucción como conceptos separados; colocación
+  procedural coherente de accesos; tapiado con consecuencias reales;
+  ventanas y brechas como accesos potenciales
+  ([WLD-011](docs/20-world/WLD-011_openings-access-and-connectivity.md),
+  `approved`).
+- **Primer catálogo de objetos, recursos y transporte**: catorce familias
+  de comportamiento, cuatro objetos demostradores profundos (armario,
+  frigorífico, bomba de agua, carretilla/carro), subconjunto inicial de
+  materiales y fin de «materiales de reparación» como pila universal
+  ([CAT-005](docs/catalogs/CAT-005_initial-object-resource-and-transport-slice.md),
+  `approved`).
+- **Transporte y logística local**: cinco métodos activos (a pulso,
+  recipiente/equipamiento personal, porte coordinado, carretilla, carro),
+  modelo de carga, fases logísticas y puntos de transferencia
+  ([SET-010](docs/40-settlement/SET-010_local-hauling-and-transport.md),
+  `approved`).
+- **Ciclo agrícola inicial**: cadena de estados causal, rendimiento
+  causal y producción localizada, sin sistema de estaciones
+  ([SET-011](docs/40-settlement/SET-011_initial-agriculture-loop.md),
+  `approved`).
+- **Decisión y trazabilidad**: decisión transversal
+  ([DEC-0013](docs/decisions/DEC-0013_implementable-catalog-and-mutable-world.md),
+  `approved`) y trazabilidad completa de las decisiones `P01`–`P24`
+  ([DISC-0007](docs/discovery/DISC-0007_implementable-catalog-and-mutable-world-traceability.md),
+  `draft`).
+- **Contradicciones corregidas**: «materiales de reparación» deja de
+  poder implementarse como recurso agregado universal; despejar una
+  carretera y retirar su función viaria dejan de confundirse; un recinto
+  cerrado deja de implicar seguridad automática; retirar una puerta deja
+  de implicar eliminar el hueco.
+- **Estados documentales**: `CAT-004` pasa de `draft` a `approved`.
+  `CAT-005`, `WLD-010`, `WLD-011`, `SET-010`, `SET-011` y `DEC-0013` nacen
+  `approved`. `DISC-0007` nace `draft`. `SET-008` y `SET-009` permanecen
+  `draft` en su horizonte máximo todavía abierto. `RDM-003` permanece
+  `approved` y no ejecutado, con su incremento 5 precisado sin crear un
+  incremento nuevo. `RDM-001` permanece `deprecated`. **Ningún documento
+  pasa a `implemented`**; la nueva línea web sigue sin mapa, lugares,
+  objetos, agricultura, accesos, transporte, construcción, inventario ni
+  aplicación web reales.
+
 ## DESIGN-007 — Primer escenario real, cohorte protagonista y pueblo de llegada
 
 Entrega **exclusivamente documental** que convierte el escenario inicial

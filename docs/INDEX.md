@@ -59,6 +59,9 @@ que necesitas y lee solo eso y sus dependencias declaradas.
   `decisions/` (línea activa: `DEC-0008`).
 - **Cambio de lugares, edificios o saqueo procedural**: lee
   `20-world/WLD-005` a `WLD-007`, `40-settlement/SET-007` y `catalogs/`.
+- **Cambio de terreno moldeable, accesos, transporte local o agricultura**:
+  lee `20-world/WLD-010`, `20-world/WLD-011`, `40-settlement/SET-010`,
+  `40-settlement/SET-011` y `catalogs/CAT-004`/`CAT-005`.
 - **Cualquier cambio**: revisa `docs/OPEN-QUESTIONS.md` para no resolver en
   silencio una pregunta todavía abierta.
 
