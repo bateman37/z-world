@@ -95,6 +95,10 @@ Cuando una pregunta se cierre:
   (`CHR-001` §3.1, once habilidades) hacia el catálogo de horizonte máximo
   de 34 habilidades. Ver
   [CHR-006](30-characters/CHR-006_characteristics-and-skill-catalog.md#7-preguntas-abiertas).
+  Esta pregunta es propia del prototipo histórico Godot, que conserva sus
+  once habilidades y no recibe más desarrollo: la línea web activa no
+  arrastra ese subconjunto y usa directamente las 34 habilidades finales
+  desde `WEB-001`, sin migración pendiente en el código nuevo.
 
 ## Asentamiento (`40-settlement`)
 
@@ -210,24 +214,36 @@ Cuando una pregunta se cierre:
 
 ## Arquitectura técnica (`90-architecture`)
 
-- Estructura interna definitiva de carpetas para la nueva línea de código
-  Node.js/TypeScript, que se fijará en su entrega de inicialización
-  técnica. Ver [ARC-001](90-architecture/ARC-001_technical-direction.md).
-- Formato definitivo de datos de contenido y de esquema PostgreSQL/Prisma.
-  Ver [ARC-001](90-architecture/ARC-001_technical-direction.md) y
-  [ARC-002](90-architecture/ARC-002_procedural-generation-and-persistence.md).
-- Formato de guardado, compatibilidad entre versiones y representación de
-  datos final. Ver
+- **Cerrada, como valor técnico provisional, por `WEB-001`:** estructura
+  de carpetas de la nueva línea (`npm workspaces` con `apps/web` y cinco
+  paquetes de dominio con dependencias unidireccionales), frecuencia de
+  ticks (paso fijo de un segundo simulado) y cadencia de snapshots/eventos
+  sobre PostgreSQL (por creación de partida, pausa/cambio relevante,
+  asentamiento de una orden, cambio de prioridad y guardado manual). Ver
+  [ARC-001](90-architecture/ARC-001_technical-direction.md),
+  [ARC-004](90-architecture/ARC-004_simulation-core-runtime-and-boundaries.md)
+  y
+  [DEC-0014](decisions/DEC-0014_web-runtime-foundation-and-initial-simulation-contracts.md).
+  Sigue abierto si esta estructura de paquetes y estos valores deben
+  elevarse a regla de diseño canónica o seguir siendo ajustables por
+  medición.
+- **Cerrado, para el esquema mínimo de `GameSave`/`SimulationSnapshot`/
+  `DomainEventRecord`, por `WEB-001`:** el snapshot JSONB versionado es la
+  fuente autoritativa de carga, con revisión optimista; los eventos son
+  auditoría causal, sin event sourcing integral. Sigue abierto el formato
+  definitivo de datos de contenido para el generador semántico completo
+  (más allá del fixture determinista actual) y la representación final de
+  cada entidad conceptual del mundo semántico dentro de ese esquema. Ver
+  [ARC-001](90-architecture/ARC-001_technical-direction.md),
+  [ARC-002](90-architecture/ARC-002_procedural-generation-and-persistence.md)
+  y
+  [ARC-005](90-architecture/ARC-005_semantic-world-data-model.md).
+- Compatibilidad entre versiones de esquema más allá de la actual
+  (`schemaVersion: 1`) cuando el estado canónico cambie de forma. Ver
   [ARC-002](90-architecture/ARC-002_procedural-generation-and-persistence.md).
 - Presupuestos, frecuencias, materialización y rendimiento de la
   simulación multiescala. Ver
   [ARC-003](90-architecture/ARC-003_multiscale-simulation-principles.md).
-- Frecuencia exacta de ticks internos o tamaño del acumulador de tiempo
-  simulado, y cadencia exacta de snapshots/eventos sobre PostgreSQL. Ver
-  [ARC-004](90-architecture/ARC-004_simulation-core-runtime-and-boundaries.md).
-- Forma concreta de persistencia (tablas, documentos, JSON estructurado)
-  para cada entidad conceptual del mundo semántico. Ver
-  [ARC-005](90-architecture/ARC-005_semantic-world-data-model.md).
 - **Cerradas por `DESIGN-006`:** las 22 decisiones de calibración del motor
   de resolución de acciones, trabajos y eventos (`P01`–`P22`) —escala real
   `0–10` y media humana `4`, representación de cero y dato desconocido,

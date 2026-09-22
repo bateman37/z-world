@@ -91,9 +91,9 @@ Complejidad: limitada por presupuesto de generación y simulación
 Los nombres técnicos definitivos del perfil y de sus campos quedan
 **abiertos**. Este bloque no es un esquema TypeScript ni Prisma y no fija
 unidades, métricas ni rangos numéricos. El subconjunto de catálogo
-permitido depende de lo que se apruebe a partir de
-[CAT-004](../catalogs/CAT-004_initial-semantic-place-slice.md), todavía
-`draft`.
+permitido es el ya aprobado por `DESIGN-008` en
+[CAT-004](../catalogs/CAT-004_initial-semantic-place-slice.md)
+(`approved`): ocho perfiles iniciales.
 
 Si en el futuro se desea una geografía real, será **otro modo de generación
 o fuente de datos**, con su propia decisión; no una consecuencia implícita
@@ -325,9 +325,11 @@ fórmulas de deterioro de información no se fijan en esta entrega.
 - Cantidades exactas de edificios o lugares por semilla.
 - Cifras del presupuesto de complejidad y de rendimiento.
 - Nombres técnicos definitivos del perfil y de sus campos.
-- Catálogo inicial definitivo mientras
-  [CAT-004](../catalogs/CAT-004_initial-semantic-place-slice.md) siga
-  pendiente de aprobación.
+- Implementación real del generador semántico completo sobre el catálogo
+  ya aprobado de
+  [CAT-004](../catalogs/CAT-004_initial-semantic-place-slice.md): sigue
+  pendiente (ver `RDM-003`, incremento 5); `WEB-001` usa un fixture
+  determinista provisional, no este generador.
 
 Ver también `docs/OPEN-QUESTIONS.md`.
 

@@ -42,7 +42,15 @@ el navegador, sin fechas ni compromiso de versión.
   navegador; no se agrupan zonas, defensa, amenaza, aprendizaje y autonomía
   en un único bloque monolítico, repitiendo el error que
   [RDM-001](RDM-001_first-playable-slice.md) evitó con sus cinco entregas
-  separadas.
+  separadas. `WEB-001` agrupó deliberadamente los incrementos 1 a 3 de la
+  sección 3.1 en una sola entrega —decisión expresa del encargo, registrada
+  en
+  [DEC-0014](../decisions/DEC-0014_web-runtime-foundation-and-initial-simulation-contracts.md)—
+  precisamente porque fundación técnica, reloj/cohorte y mapa/niebla/
+  movimiento forman una única base coherente y verificable en un mismo
+  laboratorio; esto no deroga este principio para los incrementos futuros
+  (4 en adelante), que siguen sin agruparse trabajos, objetos,
+  necesidades, amenazas, autonomía o narrativa entre sí.
 - Esta entrega documental no crea código; cada incremento requerirá su
   propio prompt de implementación.
 - Ninguna capacidad de este roadmap está implementada por el mero hecho de
@@ -53,22 +61,27 @@ el navegador, sin fechas ni compromiso de versión.
 
 ### 3.1 Incrementos previstos, en orden, sin fechas
 
-1. **Inicialización técnica y primer estado visible**: proyecto Next.js
-   local, núcleo de simulación TypeScript mínimo, conexión a PostgreSQL vía
-   Prisma, reloj continuo funcionando y una pantalla que muestre el estado
-   inicial del asentamiento. Dennis podrá arrancar la aplicación localmente
-   y ver un estado inicial coherente.
-2. **Reloj continuo, seis personas y estado operativo**: seis
-   supervivientes iniciales con estado operativo visible (qué hacen, fase,
-   progreso, motivo de bloqueo), coherente con el modelo de fases de
-   [ARC-004](../90-architecture/ARC-004_simulation-core-runtime-and-boundaries.md).
-   Dennis podrá ver el reloj avanzar y observar el estado de cada persona.
-3. **Mapa cenital, niebla y movimiento**: mapa Canvas 2D con terreno,
-   niebla de guerra, exploración progresiva y movimiento visible de
-   personas, según
-   [UI-005](../80-interface/UI-005_top-down-simulation-workbench.md).
-   Dennis podrá desplazar la cámara, hacer zoom y ver a las personas
-   moverse sobre el mapa.
+1. ~~**Inicialización técnica y primer estado visible**~~ — **completado
+   por `WEB-001`**: monorepo `npm workspaces`, núcleo de simulación
+   TypeScript puro, PostgreSQL/Prisma desde el primer arranque, reloj
+   continuo y pantalla inicial del escenario de llegada. Ver
+   [DEC-0014](../decisions/DEC-0014_web-runtime-foundation-and-initial-simulation-contracts.md)
+   y `docs/STATUS.md`.
+2. ~~**Reloj continuo, seis personas y estado operativo**~~ — **completado
+   por `WEB-001`**: seis protagonistas procedurales con ficha completa
+   (identidad, nueve características, 34 habilidades, prioridades) y
+   subconjunto real de estado operativo (esperando órdenes, aceptando
+   orden, desplazándose, llegada completada, bloqueada, orden cancelada);
+   el motor de resolución completo con todas las fases de
+   [ARC-004](../90-architecture/ARC-004_simulation-core-runtime-and-boundaries.md)
+   sigue pendiente del incremento 6.
+3. ~~**Mapa cenital, niebla y movimiento**~~ — **completado por `WEB-001`**
+   para el fixture de llegada: Canvas 2D con terreno, niebla de tres
+   estados, cámara con pan/zoom centrado en cursor, y movimiento directo
+   con navegación A* determinista, según
+   [UI-005](../80-interface/UI-005_top-down-simulation-workbench.md). El
+   generador semántico completo del mapa local (más allá del fixture del
+   sector de llegada) sigue siendo el incremento 5.
 4. **Trabajos, prioridades, recursos y necesidades**: designaciones con
    ratón, trabajos por fases, prioridades y recursos localizados básicos,
    coherentes con el subconjunto ya validado en el prototipo Godot
