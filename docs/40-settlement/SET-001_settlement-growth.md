@@ -12,6 +12,7 @@ related:
   - SET-003
   - SET-004
   - SET-005
+  - SCN-003
 ---
 
 ## 1. Propósito
@@ -34,10 +35,41 @@ inicial (ver
 final: es el primer lugar desde el que el asentamiento crece, no un guion de
 crecimiento fijo.
 
+### 3.1 Refugio provisional frente a asentamiento elegido
+
+Un **refugio provisional** es un edificio suficiente para que el grupo
+sobreviva a corto plazo tras reconocimiento y trabajo razonables: no se
+entrega como seguro ni definitivo, y puede conservar carencias
+significativas (ver la garantía concreta del primer escenario en
+[SCN-003 §3.4](../scenarios/SCN-003_first-day-starting-state.md#34-refugio-provisional-garantizado)).
+Un **asentamiento elegido** es el edificio o conjunto de edificios que la
+comunidad decide reclamar, adaptar y hacer crecer de forma sostenida.
+
+La diferencia es de intención y de inversión de trabajo, no de tipo de
+edificio: el mismo edificio puede empezar como refugio provisional y
+convertirse en asentamiento elegido si el grupo decide transformarlo, sin
+que exista una mudanza obligatoria. Evaluar un candidato a asentamiento
+implica, como mínimo: superficie y distribución, accesos, visibilidad y
+retirada, cercanía al agua, terreno productivo, almacenamiento, talleres
+e instalaciones, confort, saneamiento, perímetro, daños, amenazas y
+desconocimiento, y coste de traslado y adaptación. Ningún candidato es
+universalmente mejor; la comparación depende de la cohorte real y del
+mundo generado, no de una fórmula de puntuación cerrada.
+
+**Ocupación progresiva.** Reclamar un edificio no requiere asegurarlo por
+completo: un grupo puede usar una parte realmente inspeccionada y
+mantener otras zonas cerradas o desconocidas mientras reclama el
+edificio de forma progresiva (ver
+[UI-006 §3.8](../80-interface/UI-006_contextual-place-interaction-and-teams.md#38-interior-y-revelado-progresivo)).
+
 ## 4. Reglas aprobadas
 
 - Cada ampliación ofrece capacidad y también costes de vigilancia,
   mantenimiento, logística, ruido, defensa y trabajo.
+- Un refugio provisional y un asentamiento elegido se distinguen por
+  intención e inversión de trabajo, nunca por una lista cerrada de tipos
+  de edificio; ninguna implementación puede exigir una mudanza
+  obligatoria del primero al segundo.
 
 ## 5. Interacciones con otros sistemas
 
@@ -52,6 +84,10 @@ crecimiento fijo.
 - La expansión puede generar tensiones sociales o narrativas (ver
   [SOC-001](../50-society/SOC-001_living-community.md) y
   [NAR-001](../70-narrative/NAR-001_emergent-narrative.md)).
+- La garantía concreta de refugio provisional del primer escenario y sus
+  candidatos a asentamiento se definen en
+  [SCN-003](../scenarios/SCN-003_first-day-starting-state.md); este
+  documento fija la regla general que esa entrega instancia.
 
 ## 6. Casos límite o riesgos
 

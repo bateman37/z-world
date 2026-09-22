@@ -10,6 +10,7 @@ depends_on:
 related:
   - WLD-005
   - RDM-003
+  - WLD-009
 ---
 
 ## 1. Propósito
@@ -82,6 +83,12 @@ Ninguna: este documento es `draft` y no fija alcance ni reglas aprobadas.
 
 - Confundir esta propuesta con alcance aprobado rompería
   [DEC-0006](../decisions/DEC-0006_maximum-envelope-vs-delivery-scope.md).
+- El presupuesto numérico del primer escenario
+  ([WLD-009](../20-world/WLD-009_initial-mountain-village-profile.md),
+  `55–85` construcciones) describe el mundo funcional **máximo** de esa
+  entrega y no aprueba, por sí solo, esta propuesta ni ningún otro
+  subconjunto técnico para implementación (ver
+  [WLD-009 §3.7](../20-world/WLD-009_initial-mountain-village-profile.md#37-relación-con-cat-004)).
 
 ## 7. Preguntas abiertas
 

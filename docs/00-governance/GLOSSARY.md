@@ -113,3 +113,19 @@ enlaza a ella.
   reutilizables, materiales, residuos u objetos secundarios, distinta de
   registrar/saquear, desguazar o demoler. Ver
   `docs/40-settlement/SET-009_disassembly-and-world-transformation.md`.
+- **Cohorte protagonista**: los seis supervivientes adultos generados
+  proceduralmente al inicio de `SCN-001`, con una distribución mínima de
+  calibre oculto específica de ese escenario, cobertura funcional
+  colectiva y red de relaciones conectada; distinta de la población
+  corriente generada sin restricciones. Ver
+  `docs/scenarios/SCN-002_initial-survivor-cohort.md`.
+- **Refugio provisional**: edificio suficiente para que el grupo
+  sobreviva a corto plazo tras reconocimiento y trabajo razonables, nunca
+  entregado como seguro ni definitivo. Ver
+  `docs/40-settlement/SET-001_settlement-growth.md` y
+  `docs/scenarios/SCN-003_first-day-starting-state.md`.
+- **Asentamiento elegido**: edificio o conjunto de edificios que la
+  comunidad decide reclamar, adaptar y hacer crecer de forma sostenida,
+  distinto del refugio provisional por intención e inversión de trabajo,
+  no por tipo de edificio. Ver
+  `docs/40-settlement/SET-001_settlement-growth.md`.

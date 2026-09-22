@@ -29,6 +29,7 @@ estratégico) y sus reglas de relación.
 | [WLD-006](WLD-006_historical-looting-pressure-and-routes.md) | `approved` | Presión histórica de saqueo por zona, correlación local, rutas/corredores y bolsas olvidadas. |
 | [WLD-007](WLD-007_place-history-and-environmental-storytelling.md) | `approved` | Historia del apocalipsis por lugar, rastro ambiental y edificios memorables. |
 | [WLD-008](WLD-008_local-procedural-map-generation.md) | `approved` | Generación espacial del mapa local: perfil de pueblo pequeño de montaña, capas terreno→parcelas, presupuesto de complejidad y estructura técnica invisible. |
+| [WLD-009](WLD-009_initial-mountain-village-profile.md) | `approved` | Perfil numérico inicial del pueblo de montaña: huella `3×3 km`, presupuesto de construcciones, red viaria, agua, cobertura de terreno, puntos de interés y amenaza zombi del primer escenario. |
 
 `WLD-005` es canónico desde la parcela hacia el edificio semántico;
 `WLD-008` lo es desde el perfil de escenario hasta la parcela. No se
@@ -43,3 +44,5 @@ duplican entre sí.
   define la interacción contextual con sus lugares).
 - `decisions` (`DEC-0010` fija la dirección de ambas escalas).
 - Relacionado con `40-settlement`, `50-society` y `90-architecture`.
+- `scenarios` (`WLD-009` instancia, con cifras concretas, el perfil de
+  `WLD-008` para el primer escenario documentado en `SCN-001`–`SCN-003`).

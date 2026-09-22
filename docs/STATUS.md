@@ -51,6 +51,97 @@ informó errores.
 
 ## Última entrega documental completada
 
+`DESIGN-007` — **primer escenario real, cohorte protagonista y pueblo de
+llegada** (22 de septiembre de 2026). Entrega **exclusivamente
+documental**: no se ha implementado código, no se ha inicializado la
+aplicación web, y no se ha tocado `src/`, `scenes/`, `tests/` ni
+`project.godot`. Convierte el escenario inicial de referencia en un
+escenario real, concreto y reproducible:
+
+- **Momento exacto de llegada**: Día 1, 17:30, aproximadamente seis
+  semanas tras el colapso general, primera mitad de abril, cuatro días de
+  marcha previa, banda meteorológica templada-fría de montaña sin
+  fenómenos letales.
+- **Cohorte protagonista procedural**: seis adultos sin elenco fijo, con
+  distribución mínima obligatoria de calibre oculto `5/4+/4+/3+/3+/3+`
+  específica de este escenario (nunca visible al jugador, sin
+  bonificador directo ni protección narrativa), cobertura funcional
+  colectiva mínima y una red de relaciones conectada con al menos un
+  acontecimiento compartido durante la huida.
+- **Refugio por estancias**: el refugio provisional garantizado (100–250
+  m del punto de llegada) y cualquier otro edificio del escenario se
+  generan siempre como composición de estancias, accesos, instalaciones y
+  sistemas mediante el modelo ya aprobado de `WLD-005`/`CAT-002`, nunca
+  como excepción hecha a mano; se formaliza la diferencia entre refugio
+  provisional y asentamiento elegido en `SET-001`.
+- **Presupuesto del mapa**: huella aproximada `3×3 km`, `55–85`
+  construcciones, red viaria, dos rutas de agua garantizadas, cobertura
+  de terreno y `12–18` puntos de interés, de los que solo `3–6` se
+  conocen al llegar.
+- **Amenaza inicial contenida**: `12–30` zombis, sin horda inicial ni
+  respawn de lo limpiado, aplicando sin ampliar el zombi estándar de
+  `THR-001`.
+- **Pertenencias y carencias**: presupuesto garantizado de agua, comida,
+  encendido, luz, primeros auxilios y un arma cuerpo a cuerpo o
+  improvisada por protagonista, junto a carencias obligatorias (agua
+  sostenible, camas, almacén, electricidad, defensas).
+- **Validación de semillas**: nueve garantías internas que toda semilla
+  válida debe cumplir antes de empezar, sin informar al jugador de dónde
+  está la solución.
+- **Comunidades inciertas**: ninguna comunidad local obligatoria, señales
+  humanas siempre presentes pero ambiguas, y entre cero y dos comunidades
+  regionales posibles, sin abrir el mapa regional.
+
+Documentos nuevos:
+[SCN-002](scenarios/SCN-002_initial-survivor-cohort.md) y
+[SCN-003](scenarios/SCN-003_first-day-starting-state.md) (`approved`,
+cohorte protagonista y estado de llegada/primera noche);
+[WLD-009](20-world/WLD-009_initial-mountain-village-profile.md)
+(`approved`, presupuesto numérico del mapa local inicial);
+[DEC-0012](decisions/DEC-0012_first-arrival-scenario-contract.md)
+(`approved`, contrato transversal del escenario) y
+[DISC-0006](discovery/DISC-0006_first-arrival-scenario-traceability.md)
+(`draft`, trazabilidad completa del encargo).
+
+Documentos modificados:
+[SCN-001](scenarios/SCN-001_mountain-village-arrival.md) (permanece
+`approved`, pasa a ser punto de entrada y síntesis, retira sus preguntas
+abiertas ya cerradas);
+[CHR-007](30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md)
+(permanece `draft`, añade únicamente la distribución mínima de calibre
+de la cohorte protagonista como regla de escenario, sin cerrar la
+distribución global de calibre ni los campos de potencial);
+[SET-001](40-settlement/SET-001_settlement-growth.md) (permanece
+`approved`, añade la diferencia formal entre refugio provisional y
+asentamiento elegido);
+[THR-001](60-threats/THR-001_zombie-threat-model.md) y
+[CAT-004](catalogs/CAT-004_initial-semantic-place-slice.md) (permanecen
+`approved`/`draft` respectivamente, solo enlaces y aclaraciones de
+alcance);
+[RDM-003](roadmap/RDM-003_simulation-first-playable-roadmap.md)
+(permanece `approved`, solo enlaces informativos, sin ampliar sus
+incrementos).
+
+**Contradicciones corregidas.** `SCN-001` dejaba abiertas la estación, la
+cohorte, el edificio inicial, las dimensiones del mapa, la amenaza y la
+disponibilidad de recursos; ahora remite a `SCN-002`, `SCN-003` y
+`WLD-009`, que las cierran. `CAT-004` sigue `draft`: el presupuesto de
+`55–85` construcciones de `WLD-009` no lo aprueba como alcance de
+implementación.
+
+**Estados.** `SCN-002`, `SCN-003`, `WLD-009` y `DEC-0012` nacen
+`approved`. `DISC-0006` nace `draft`. `SCN-001` permanece `approved`.
+`CHR-007` permanece `draft` por las razones ya registradas en
+`DESIGN-006` más la nueva regla de escenario. `CAT-004` permanece
+`draft`. **Ningún documento pasa a `implemented`.** No se ha implementado
+generación, personajes, mapa, inventario, zombis ni escenario web; la
+nueva línea Node.js/TypeScript sigue sin inicializar.
+
+Ver la trazabilidad completa en
+[DISC-0006](discovery/DISC-0006_first-arrival-scenario-traceability.md).
+
+## Entrega documental previa
+
 `DESIGN-006` — **cierre del motor de simulación, resolución y presentación
 de capacidades** (21 de septiembre de 2026). Entrega **exclusivamente
 documental**: no se ha implementado código, no se ha inicializado la
@@ -118,7 +209,7 @@ descrita en las entregas de código previas.
 Ver la trazabilidad completa en
 [DISC-0005](discovery/DISC-0005_resolution-engine-closure-traceability.md).
 
-## Entrega documental previa
+## Entrega documental anterior
 
 `DESIGN-005` — **mapas local y regional, generación procedural, equipos e
 interacción contextual** (21 de septiembre de 2026). Entrega
@@ -172,7 +263,7 @@ selector `Auto / 1 / 2 / 3 / 4` no es la escala `Nunca/1–5`.
 **El mapa regional no entra en el roadmap activo**: `RDM-003` gana una
 sección 3.3 que lo declara horizonte futuro sin fecha.
 
-## Entrega documental anterior
+## Entrega documental precedente
 
 Consolidación documental del **motor de acciones/trabajos/eventos**, el
 **catálogo de horizonte máximo de personaje** (nueve características, 34
@@ -240,7 +331,7 @@ estos catálogos de horizonte máximo queda pendiente, sin fecha, igual que
 la ya reconocida entre las diez familias de prioridad y las 34 de
 `UI-003`.
 
-## Entrega documental precedente
+## Entrega documental previa a `DESIGN-004`
 
 `DESIGN-004` — reinicio centrado en simulación y generador semántico de
 lugares: cambia la línea técnica activa de Godot 3D a un laboratorio de
@@ -495,21 +586,26 @@ posteriores de `RDM-001`.
   amenaza zombi (`THR-001`), dirección técnica, generación procedural,
   simulación multiescala, núcleo de simulación, modelo conceptual de datos
   del mundo semántico y motor de resolución de acciones, trabajos y
-  eventos (`ARC-001` a `ARC-008`), escenario inicial
-  (`SCN-001`), hoja de ruta activa (`RDM-003`), catálogo máximo de lugares,
-  estancias/instalaciones y ocupantes/profesiones/aficiones/rasgos como
-  horizonte de referencia (`CAT-001` a `CAT-003`), decisiones `DEC-0002` a
-  `DEC-0011` (`DEC-0001` es `deprecated`), sistema documental (`DOC-001`).
+  eventos (`ARC-001` a `ARC-008`), escenario inicial y primer escenario
+  real de llegada
+  (`SCN-001`, `SCN-002`, `SCN-003`), perfil numérico inicial del pueblo de
+  montaña (`WLD-009`), hoja de ruta activa (`RDM-003`), catálogo máximo de
+  lugares, estancias/instalaciones y ocupantes/profesiones/aficiones/rasgos
+  como horizonte de referencia (`CAT-001` a `CAT-003`), decisiones
+  `DEC-0002` a `DEC-0012` (`DEC-0001` es `deprecated`), sistema documental
+  (`DOC-001`).
 - **Borrador (`draft`)**: síntesis de descubrimiento (`DISC-0001`,
   `DISC-0002`), trazabilidad del generador procedural de lugares
   (`DISC-0003`), trazabilidad de mapas local y regional e interacción
   contextual (`DISC-0004`), trazabilidad del cierre del motor de
-  resolución y capacidades (`DISC-0005`), horizonte configurable de
+  resolución y capacidades (`DISC-0005`), trazabilidad del primer
+  escenario de llegada (`DISC-0006`), horizonte configurable de
   amenazas (`THR-002`), horizonte de capacidades a largo plazo
   (`RDM-002`), propuesta de subconjunto inicial de lugares (`CAT-004`),
   potencial oculto, calibre oculto y adaptación al apocalipsis (`CHR-007`,
-  con el catálogo de frases de potencial y el nivel actual visible ya
-  cerrados), y modelo de objeto, familias logísticas y desmontaje de
+  con el catálogo de frases de potencial, el nivel actual visible y la
+  distribución mínima de calibre de la cohorte protagonista de `SCN-001`
+  ya cerrados), y modelo de objeto, familias logísticas y desmontaje de
   objetos (`SET-008`, `SET-009`).
 - **Sustituido (`deprecated`)**: motor Godot 4 como línea inicial
   (`DEC-0001`, sustituida por `DEC-0008`), alcance del primer corte
@@ -532,6 +628,11 @@ posteriores de `RDM-001`.
   contextual y el selector de equipo de `UI-006`, ni la escala `0–10`, los
   perfiles de ponderación, los modelos B/D, la cooperación, los modos ni
   la presentación de potencial de `DESIGN-006` existen en código.
+  `DESIGN-007` tampoco marca nada como `implemented`: la cohorte
+  protagonista, el refugio provisional, el presupuesto del mapa, la
+  amenaza inicial y las garantías de semilla de `SCN-002`, `SCN-003` y
+  `WLD-009` son diseño documental, sin generador, personajes, mapa,
+  inventario ni zombis reales en código.
 
 ## Validaciones automatizadas de `IMPLEMENTATION-003`
 
@@ -559,6 +660,47 @@ ocho demostradores desaparecidos) y añade seis:
 
 Las validaciones de `IMPLEMENTATION-001` e `IMPLEMENTATION-002` quedaron en
 su momento como **NOT RUN** por la misma razón.
+
+## Validaciones documentales de `DESIGN-007`
+
+Entrega documental: no hay suite ejecutable aplicable y no se instalaron
+herramientas. Se ejecutaron comprobaciones acotadas:
+
+- confirmación de que `DESIGN-006` estaba fusionado en `main` antes de
+  crear la rama;
+- revisión de que ninguna cifra de este escenario contradice la escala
+  `0–10`, la media humana `4` ni la presentación de potencial oculto ya
+  cerradas por `DESIGN-006`;
+- búsqueda de referencias activas a seis personajes fijos, estación
+  abierta, refugio indefinido, dimensiones abiertas o amenaza inicial sin
+  concretar en `SCN-001` y en `docs/OPEN-QUESTIONS.md`;
+- verificación de que el calibre alto de la cohorte protagonista nunca se
+  traduce en nivel actual, bonificación directa o protección narrativa;
+- verificación de que las estrellas de calibre no aparecen en ningún
+  ejemplo de interfaz o ficha;
+- verificación de que todo edificio del escenario, incluido el refugio
+  provisional, depende del modelo de estancias de `WLD-005`/`CAT-002`;
+- verificación de que la huella `3×3 km` de `WLD-009` no se presenta como
+  cuadrado visual obligatorio;
+- verificación de que los zombis iniciales son finitos, sin respawn de lo
+  limpiado, y que ningún caso los presenta reapareciendo;
+- verificación de que cada uno de los seis protagonistas tiene un arma
+  cuerpo a cuerpo o improvisada garantizada;
+- comprobación de que `CAT-004` sigue `draft` y de que ningún documento
+  nuevo lo aprueba como alcance de implementación;
+- comprobación de que `RDM-003` no gana ningún incremento nuevo ni cambia
+  de estado;
+- comprobación de que no se ha modificado código ni configuración
+  ejecutable (`src/`, `scenes/`, `tests/`, `project.godot` intactos);
+- revisión de enlaces y cabeceras `depends_on`/`related` de los
+  documentos nuevos y modificados;
+- comprobación de que los índices de `scenarios`, `20-world`,
+  `decisions` y `discovery` incluyen `SCN-002`, `SCN-003`, `WLD-009`,
+  `DEC-0012` y `DISC-0006` con ID, estado y propósito correctos;
+- comprobación de que `docs/OPEN-QUESTIONS.md` retira exactamente las
+  preguntas cerradas por esta entrega y conserva las de otros sistemas;
+- comprobación de que ningún documento pasa a `implemented`;
+- `git diff --check`, sin errores.
 
 ## Validaciones documentales de `DESIGN-006`
 

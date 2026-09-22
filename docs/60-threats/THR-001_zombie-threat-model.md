@@ -11,6 +11,7 @@ related:
   - UI-001
   - SET-003
   - THR-002
+  - SCN-003
 ---
 
 ## 1. Propósito
@@ -61,6 +62,12 @@ generar ruido.
   [UI-001](../80-interface/UI-001_interaction-and-command-model.md).
 - La munición y los materiales de defensa se gestionan según
   [SET-003](../40-settlement/SET-003_resources-logistics-and-condition.md).
+- El presupuesto concreto de población zombi inicial (`12–30`,
+  contenida y limpiable) del primer escenario, que aplica este zombi
+  estándar sin ampliarlo, se define en
+  [SCN-003](../scenarios/SCN-003_first-day-starting-state.md), sección
+  3.6; es una aplicación de escenario, no una regla universal para toda
+  semilla futura.
 
 ## 6. Casos límite o riesgos
 

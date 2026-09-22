@@ -17,6 +17,7 @@ related:
   - UI-004
   - ARC-008
   - DEC-0011
+  - SCN-002
 ---
 
 ## 1. Propósito
@@ -142,6 +143,37 @@ superviviente interno de 1 estrella con Agricultura 7 y gran experiencia en
 cultivo puede ser mucho más valioso para un asentamiento agrícola que un
 superviviente interno de 5 estrellas con Agricultura 0 y sin experiencia. El
 calibre nunca sustituye el análisis del personaje real.
+
+### 3.2.1 Distribución mínima de calibre de la cohorte protagonista de SCN-001 (específica de escenario)
+
+`DESIGN-007` cierra una **regla de generación de escenario**, no una
+modificación de la distribución global de calibre de la sección 7.3: la
+cohorte de seis protagonistas de
+[SCN-001](../scenarios/SCN-001_mountain-village-arrival.md), definida en
+detalle en
+[SCN-002 §3.2](../scenarios/SCN-002_initial-survivor-cohort.md#32-distribución-mínima-obligatoria-de-calibre-oculto),
+aplica una distribución mínima obligatoria de calibre oculto:
+
+| Plaza lógica | Calibre mínimo |
+|---|---:|
+| 1 protagonista | `5` estrellas (máximo del sistema) |
+| 2 protagonistas adicionales | al menos `4` estrellas cada uno |
+| 3 protagonistas restantes | al menos `3` estrellas cada uno |
+
+Esta distribución (`5 / 4+ / 4+ / 3+ / 3+ / 3+`) es deliberadamente alta
+porque los seis son protagonistas de la partida, no población corriente
+generada sin restricciones. Se aplican, sin excepción, todos los
+principios ya cerrados en este documento: las estrellas permanecen
+totalmente ocultas, sin posición visible que revele qué plaza ocupa cada
+persona; el calibre no es un modificador directo, no implica protección
+narrativa, inmunidad, obediencia, moral alta ni supervivencia
+garantizada, y no obliga a niveles actuales altos. Un protagonista de
+calibre `5` puede empezar inexperto, herido, poco adaptado, con miedo o
+sin conocimientos útiles para la crisis inmediata.
+
+Esta regla **no** altera la distribución global de calibre de la
+población mundial (sección 7.3, todavía abierta) ni se generaliza a
+otros escenarios sin una decisión propia.
 
 ### 3.3 Adaptación al apocalipsis
 

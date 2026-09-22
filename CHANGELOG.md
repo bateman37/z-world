@@ -4,6 +4,74 @@ Registra entregas documentales y de diseño de Z-World. No atribuye código ni
 funcionalidad implementada salvo que se indique explícitamente como
 `implemented` en la documentación afectada.
 
+## DESIGN-007 — Primer escenario real, cohorte protagonista y pueblo de llegada
+
+Entrega **exclusivamente documental** que convierte el escenario inicial
+de referencia en un escenario real, concreto y reproducible. No
+implementa código, no inicializa la aplicación web y no toca `src/`,
+`scenes/`, `tests/` ni `project.godot`.
+
+- **Momento exacto de llegada**: Día 1, 17:30, aproximadamente seis
+  semanas tras el colapso general, primera mitad de abril, cuatro días de
+  marcha previa, banda meteorológica templada-fría de montaña sin
+  fenómenos letales
+  ([SCN-003](docs/scenarios/SCN-003_first-day-starting-state.md),
+  `approved`).
+- **Cohorte protagonista procedural**: seis adultos sin elenco fijo, con
+  distribución mínima obligatoria de calibre oculto `5/4+/4+/3+/3+/3+`
+  específica de este escenario (siempre oculta, sin bonificador directo
+  ni protección narrativa), cobertura funcional colectiva mínima y una
+  red de relaciones conectada con al menos un acontecimiento compartido
+  durante la huida
+  ([SCN-002](docs/scenarios/SCN-002_initial-survivor-cohort.md),
+  `approved`;
+  [CHR-007](docs/30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md),
+  `draft`, registra la regla de escenario sin cerrar la distribución
+  global de calibre).
+- **Refugio por estancias**: el refugio provisional garantizado y
+  cualquier otro edificio del escenario se generan siempre como
+  composición de estancias, accesos, instalaciones y sistemas mediante el
+  modelo ya aprobado de
+  [WLD-005](docs/20-world/WLD-005_semantic-place-and-building-generation.md)/[CAT-002](docs/catalogs/CAT-002_rooms-modules-and-building-systems.md);
+  se formaliza la diferencia entre refugio provisional y asentamiento
+  elegido en
+  [SET-001](docs/40-settlement/SET-001_settlement-growth.md) (`approved`).
+- **Presupuesto del mapa local**: huella aproximada `3×3 km`, `55–85`
+  construcciones, red viaria, dos rutas de agua garantizadas, cobertura
+  de terreno y `12–18` puntos de interés, de los que solo `3–6` se
+  conocen al llegar
+  ([WLD-009](docs/20-world/WLD-009_initial-mountain-village-profile.md),
+  `approved`).
+- **Amenaza inicial contenida**: `12–30` zombis, sin horda inicial ni
+  respawn de lo limpiado, aplicando sin ampliar el zombi estándar de
+  [THR-001](docs/60-threats/THR-001_zombie-threat-model.md).
+- **Pertenencias, armas y carencias**: presupuesto garantizado de agua,
+  comida, encendido, luz y primeros auxilios, un arma cuerpo a cuerpo o
+  improvisada por protagonista, y carencias obligatorias (agua
+  sostenible, camas, almacén, electricidad, defensas).
+- **Garantías de semilla**: nueve condiciones internas que toda semilla
+  válida debe cumplir antes de empezar, sin informar al jugador de dónde
+  está la solución.
+- **Comunidades inciertas**: ninguna comunidad local obligatoria, señales
+  humanas siempre presentes pero ambiguas, y entre cero y dos comunidades
+  regionales posibles, sin abrir el mapa regional.
+- **Decisión y trazabilidad**: decisión transversal que respalda el
+  contrato del escenario
+  ([DEC-0012](docs/decisions/DEC-0012_first-arrival-scenario-contract.md),
+  `approved`) y trazabilidad completa del encargo
+  ([DISC-0006](docs/discovery/DISC-0006_first-arrival-scenario-traceability.md),
+  `draft`).
+- **Contradicciones corregidas**: `SCN-001` deja de contener preguntas
+  abiertas sobre estación, cohorte, refugio, dimensiones, amenaza y
+  comunidades, y pasa a ser el punto de entrada y síntesis del escenario.
+- **Estados documentales**: `SCN-002`, `SCN-003`, `WLD-009` y `DEC-0012`
+  nacen `approved`. `DISC-0006` nace `draft`. `SCN-001` permanece
+  `approved`. `CHR-007` permanece `draft`. `CAT-004` permanece `draft`:
+  el presupuesto de `55–85` construcciones no lo aprueba como alcance de
+  implementación. **Ningún documento pasa a `implemented`**; la nueva
+  línea web sigue sin generador, personajes, mapa, inventario ni zombis
+  reales.
+
 ## DESIGN-006 — Cierre del motor de resolución y capacidades
 
 Entrega **exclusivamente documental** que cierra las veintidós decisiones

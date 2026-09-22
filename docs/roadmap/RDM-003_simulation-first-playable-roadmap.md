@@ -15,6 +15,7 @@ related:
   - WLD-005
   - WLD-008
   - WLD-003
+  - WLD-009
   - CAT-004
   - DEC-0010
 ---
@@ -157,6 +158,13 @@ propia decisión de alcance y sus propios prompts, sin fecha comprometida
   [WLD-006](../20-world/WLD-006_historical-looting-pressure-and-routes.md),
   [WLD-007](../20-world/WLD-007_place-history-and-environmental-storytelling.md)
   y [SET-007](../40-settlement/SET-007_building-exploitation-reuse-and-demolition.md).
+- El presupuesto numérico y las garantías del primer escenario que el
+  incremento 5 podría usar como referencia (mundo funcional máximo, no
+  alcance aprobado) se documentan en
+  [WLD-009](../20-world/WLD-009_initial-mountain-village-profile.md) y en
+  [docs/scenarios/SCN-002](../scenarios/SCN-002_initial-survivor-cohort.md)/[SCN-003](../scenarios/SCN-003_first-day-starting-state.md);
+  esta referencia no amplía ni adelanta ningún incremento de esta
+  sección.
 - El horizonte de capacidades a largo plazo sigue organizado en
   [RDM-002](RDM-002_long-term-capability-horizon.md) (`draft`), que este
   roadmap no amplía ni reduce.
