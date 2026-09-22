@@ -15,6 +15,8 @@ related:
   - CHR-003
   - CHR-004
   - UI-004
+  - ARC-008
+  - DEC-0011
 ---
 
 ## 1. Propósito
@@ -54,14 +56,8 @@ deportiva, sin copiar una escala concreta.
 - **Potencial real**: el margen real que posee la persona. Está oculto y
   nunca se presenta como `3/8`, `5/9`, «potencial 177» ni cifra equivalente.
 - **Potencial estimado**: la opinión que la comunidad puede construir sobre
-  ese margen, comunicada mediante frases cualitativas no cerradas
-  todavía, por ejemplo: «todavía no conocemos bien sus posibilidades»,
-  «da señales de tener bastante recorrido», «parece tener mucho margen
-  para seguir mejorando», «todavía puede progresar, aunque el margen
-  parece más limitado», «su evolución empieza a estabilizarse», «parece
-  estar cerca de su límite», «todo indica que ha alcanzado el máximo que
-  puede desarrollar en este ámbito» (EJEMPLO, catálogo de frases
-  pendiente, ver §7).
+  ese margen, comunicada mediante el catálogo canónico de frases
+  cualitativas cerrado en §3.9 (`DESIGN-006`, cierra parte de P22).
 
 El mensaje mostrado cambia por dos motivos distintos: **(A)** se conoce
 mejor a la persona (de «no tenemos referencias suficientes» a «empieza a
@@ -243,10 +239,20 @@ conceptual:
 > aprende bien trabajando con Marta.
 
 **Vista de capacidades.** Puede incluir características, habilidades,
-dominios, conocimientos, evolución y valoraciones de potencial; nunca
-muestra estrellas, potencial real ni el máximo numérico oculto (coherente
-con la prohibición de mostrar umbrales numéricos ya cerrada en
-[UI-004](../80-interface/UI-004_qualitative-capability-presentation.md)).
+dominios, conocimientos, evolución y valoraciones de potencial. **Muestra
+el nivel actual numérico `0–10`** de cada característica y habilidad,
+cerrado en
+[CHR-006 §3.6](CHR-006_characteristics-and-skill-catalog.md#36-escala-real-0–10-y-calibración-canónica)
+y en
+[ARC-008 §3.14](../90-architecture/ARC-008_outcomes-knowledge-events-and-validation.md#314-presentación-visible-y-potencial-oculto-cierra-p22)
+(`DESIGN-006`, cierra P22); **nunca** muestra estrellas, potencial real ni
+el máximo numérico oculto, ni combina el nivel actual con el potencial en
+una única cifra (`Conducción 3/8` queda expresamente prohibido). La
+prohibición de umbrales numéricos internos de
+[UI-004](../80-interface/UI-004_qualitative-capability-presentation.md)
+sigue vigente para dificultad, fórmula, modificadores y probabilidades de
+una acción concreta; no se aplica al nivel actual de la ficha (ver
+[UI-004 §3.8](../80-interface/UI-004_qualitative-capability-presentation.md#38-nivel-actual-visible-en-la-ficha-reconciliado-con-p22)).
 
 **Vista personal.** Rasgos, personalidad, valores, objetivos y
 preferencias (ver [CHR-004](CHR-004_life-history-and-personal-arcs.md)).
@@ -314,6 +320,49 @@ aprendizaje, evidencia y la valoración de la comunidad; no vuelve a generar
 el potencial de la persona. Permitir cambios extraordinarios del potencial
 real por acontecimientos excepcionales requeriría un diseño expreso futuro.
 
+### 3.9 Catálogo y actualización de frases de potencial (cierra parte de P22)
+
+**Catálogo canónico de frases.** La redacción exacta puede ajustarse por
+naturalidad, pero el significado y la ausencia de cifras son obligatorios:
+
+| Situación estimada | Frase base |
+|---|---|
+| Evidencia insuficiente | «Todavía no conocemos bien sus posibilidades en este ámbito.» |
+| Indicios iniciales de margen extraordinario | «Da señales de poder mejorar muchísimo en este ámbito.» |
+| Mucho margen | «Parece tener mucho margen para seguir mejorando.» |
+| Margen notable | «Todavía puede mejorar de forma notable.» |
+| Margen moderado | «Todavía puede progresar, aunque su margen parece más limitado.» |
+| Margen reducido | «Su evolución empieza a estabilizarse.» |
+| Muy cerca del máximo | «Parece estar cerca de su máximo en este ámbito.» |
+| Máximo prácticamente desarrollado | «Todo indica que ha desarrollado prácticamente todo lo que podía alcanzar en este ámbito.» |
+
+La redacción comunica **margen restante estimado**, no velocidad
+garantizada, facilidad, valor actual ni promesa de alcanzar el techo.
+
+**Confianza y actualización.** La frase se modula mediante evidencia:
+
+- sin evidencia suficiente, no se emite una valoración de margen (primera
+  fila de la tabla);
+- confianza baja: «da señales», «podría», «parece»;
+- confianza media: «parece tener», «todo apunta»;
+- confianza alta: «todo indica», sin convertirlo en certeza matemática.
+
+La valoración cambia por dos causas diferentes, que deben registrarse por
+separado:
+
+1. la comunidad conoce mejor a la persona (causa **A** de §3.1);
+2. la persona desarrolla parte de su potencial y reduce su margen restante
+   (causa **B** de §3.1).
+
+**Evita oscilaciones frecuentes:** exige nueva evidencia relevante o
+progreso acumulado; utiliza estabilidad/histéresis conceptual entre
+bandas; no cambia por una única actuación extraordinaria o un mal día
+(coherente con §3.4, «una gran actuación no revela el techo»); mentoría y
+trabajo compartido pueden acelerar la confianza (§3.5); una frase anterior
+puede revisarse si aparece evidencia nueva, explicando la incertidumbre y
+sin reescribir el pasado (coherente con
+[NAR-002](../70-narrative/NAR-002_memory-and-causal-world-history.md)).
+
 ## 4. Reglas aprobadas
 
 - El potencial real está oculto y nunca se muestra como cifra al jugador
@@ -326,6 +375,13 @@ real por acontecimientos excepcionales requeriría un diseño expreso futuro.
 - El sistema acumula evidencias ligeras durante el día y procesa la
   valoración de potencial principalmente al cierre diario, sin recalcular
   toda la ficha de todos los personajes (§3.8).
+- El nivel actual numérico `0–10` de características y habilidades es
+  visible en la ficha; el potencial real, el calibre oculto y el máximo
+  numérico permanecen siempre ocultos, y nunca se combinan en una misma
+  cifra (`DESIGN-006`, cierra P22, §3.6).
+- El potencial estimado se comunica mediante el catálogo cerrado de frases
+  de §3.9, modulado por confianza, y cambia solo por mayor conocimiento de
+  la comunidad o por desarrollo real del potencial (§3.9).
 
 ## 5. Interacciones con otros sistemas
 
@@ -339,11 +395,21 @@ real por acontecimientos excepcionales requeriría un diseño expreso futuro.
 - La trayectoria biográfica en tres etapas es propiedad de
   [CHR-004](CHR-004_life-history-and-personal-arcs.md); este documento solo
   ordena su generación dentro del proceso de §3.7.
-- La prohibición de mostrar umbrales numéricos de capacidad en interfaz
-  normal ya está cerrada en
-  [UI-004](../80-interface/UI-004_qualitative-capability-presentation.md).
-- El motor de resolución de acciones ([ARC-006](../90-architecture/ARC-006_action-and-event-resolution-model.md))
-  usa el nivel actual de una habilidad, no su potencial.
+- La prohibición de mostrar umbrales numéricos internos (dificultad,
+  fórmula, modificadores, probabilidad) en interfaz normal está cerrada en
+  [UI-004](../80-interface/UI-004_qualitative-capability-presentation.md);
+  la reconciliación con el nivel actual visible vive en
+  [UI-004 §3.8](../80-interface/UI-004_qualitative-capability-presentation.md#38-nivel-actual-visible-en-la-ficha-reconciliado-con-p22).
+- El motor de resolución de acciones
+  ([ARC-006](../90-architecture/ARC-006_action-and-event-resolution-model.md))
+  usa el nivel actual de una habilidad, no su potencial; la escala real
+  `0–10` y su calibración viven en
+  [CHR-006 §3.6](CHR-006_characteristics-and-skill-catalog.md#36-escala-real-0–10-y-calibración-canónica).
+- La presentación visible del nivel actual y del potencial oculto se
+  cierra también en
+  [ARC-008 §3.14](../90-architecture/ARC-008_outcomes-knowledge-events-and-validation.md#314-presentación-visible-y-potencial-oculto-cierra-p22),
+  respaldada por
+  [DEC-0011](../decisions/DEC-0011_hybrid-resolution-engine-and-capability-presentation.md).
 
 ## 6. Casos límite o riesgos
 
@@ -433,10 +499,16 @@ Deben preservarse en futuras entregas:
 
 ## 7. Preguntas abiertas
 
-### 7.1 Escalas exactas
+### 7.1 Velocidad de aprendizaje y curvas de progreso
 
-Qué significa cada punto de 1 a 10, velocidad media de aprendizaje, curvas
-de progreso y dificultad de alcanzar niveles altos.
+**Cerrado por `DESIGN-006`:** la escala real `0–10`, el significado de cada
+nivel y la media humana `4` (ver
+[CHR-006 §3.6](CHR-006_characteristics-and-skill-catalog.md#36-escala-real-0–10-y-calibración-canónica)).
+Sigue abierta la velocidad media de aprendizaje, las curvas exactas de
+progreso y la dificultad relativa de alcanzar niveles altos: este
+documento cierra que nivel actual, potencial real y velocidad de
+aprendizaje son tres variables distintas (§2), pero no fija sus curvas
+numéricas.
 
 ### 7.2 Campos de potencial
 
@@ -451,9 +523,9 @@ temporales exactas de la evolución de la población mundial (§3.2, §3.3).
 
 ### 7.4 Frases de potencial
 
-Se ha decidido utilizar lenguaje cualitativo (§3.1); falta el catálogo de
-frases, niveles de confianza, reglas para actualizar mensajes y cómo evitar
-cambios demasiado frecuentes o contradictorios.
+**Cerrado por `DESIGN-006`:** el catálogo canónico de frases, los niveles
+de confianza y las reglas de actualización y estabilidad viven en §3.9.
+Retirada de esta lista de preguntas abiertas.
 
 ### 7.5 Adaptación al apocalipsis
 

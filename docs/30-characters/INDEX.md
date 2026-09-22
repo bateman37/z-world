@@ -26,8 +26,8 @@ conocimiento individual y comunitario, aprendizaje y enseñanza.
 | [CHR-003](CHR-003_autonomy-intentions-and-behavior.md) | `approved` | Autonomía, intenciones y evolución del comportamiento. |
 | [CHR-004](CHR-004_life-history-and-personal-arcs.md) | `approved` | Profundidad futura de la persona, descubrimiento y evolución vital. |
 | [CHR-005](CHR-005_extended-skill-taxonomy.md) | `deprecated` | Taxonomía candidata extensa de habilidades; sustituida por `CHR-006`. |
-| [CHR-006](CHR-006_characteristics-and-skill-catalog.md) | `approved` | Nueve características y catálogo cerrado de 34 habilidades base de horizonte máximo. |
-| [CHR-007](CHR-007_hidden-potential-caliber-and-adaptation.md) | `draft` | Potencial oculto, calibre oculto de 1 a 5 estrellas y adaptación al apocalipsis. |
+| [CHR-006](CHR-006_characteristics-and-skill-catalog.md) | `approved` | Nueve características y catálogo cerrado de 34 habilidades base de horizonte máximo, con escala real `0–10` y media humana `4`. |
+| [CHR-007](CHR-007_hidden-potential-caliber-and-adaptation.md) | `draft` | Potencial oculto, calibre oculto de 1 a 5 estrellas y adaptación al apocalipsis; catálogo de frases de potencial y nivel actual visible ya cerrados. |
 
 ## Dependencias con otros dominios
 

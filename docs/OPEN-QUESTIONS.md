@@ -60,13 +60,14 @@ Cuando una pregunta se cierre:
 
 ## Personajes (`30-characters`)
 
-- Valores y fórmulas exactos de características, habilidades, aptitudes,
-  progreso y calidad. Ver
-  [CHR-001](30-characters/CHR-001_character-model.md) y
-  [CHR-003](30-characters/CHR-003_autonomy-intentions-and-behavior.md). El
-  catálogo en sí (nueve características, 34 habilidades) ya está cerrado en
-  [CHR-006](30-characters/CHR-006_characteristics-and-skill-catalog.md); lo
-  pendiente es su calibración numérica.
+- Curvas exactas de progreso, dificultad de alcanzar niveles altos y
+  fórmulas de aptitud/calidad más allá de la escala real `0–10` ya cerrada.
+  Ver [CHR-001](30-characters/CHR-001_character-model.md),
+  [CHR-003](30-characters/CHR-003_autonomy-intentions-and-behavior.md) y
+  [CHR-007 §7.1](30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md#71-velocidad-de-aprendizaje-y-curvas-de-progreso).
+  El catálogo (nueve características, 34 habilidades), la escala `0–10` con
+  media humana `4` y la visibilidad del nivel actual ya están cerrados en
+  [CHR-006](30-characters/CHR-006_characteristics-and-skill-catalog.md).
 - Técnicas exactas, prerrequisitos y transferencia completa entre
   habilidades más allá de los ejemplos registrados. Ver
   [CHR-002](30-characters/CHR-002_knowledge-and-learning.md).
@@ -81,11 +82,15 @@ Cuando una pregunta se cierre:
   [CHR-006](30-characters/CHR-006_characteristics-and-skill-catalog.md).
   [CHR-005](30-characters/CHR-005_extended-skill-taxonomy.md) queda
   `deprecated` en favor de `CHR-006`.
-- Escalas exactas de la habilidad 1–10, campos de potencial, distribución
-  de estrellas del calibre oculto, catálogo de frases de potencial,
-  escala y dimensiones de la adaptación al apocalipsis, y catálogo de
+- Campos de potencial, distribución de estrellas del calibre oculto, escala
+  y dimensiones de la adaptación al apocalipsis, y catálogo de
   rasgos/beneficios/aflicciones. Ver
   [CHR-007](30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md).
+  La escala real `0–10` y el catálogo de frases de potencial ya están
+  cerrados en
+  [CHR-006 §3.6](30-characters/CHR-006_characteristics-and-skill-catalog.md#36-escala-real-0–10-y-calibración-canónica)
+  y
+  [CHR-007 §3.9](30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md#39-catálogo-y-actualización-de-frases-de-potencial-cierra-parte-de-p22).
 - Estrategia y momento de migrar el alcance implementado de habilidades
   (`CHR-001` §3.1, once habilidades) hacia el catálogo de horizonte máximo
   de 34 habilidades. Ver
@@ -217,23 +222,33 @@ Cuando una pregunta se cierre:
 - Forma concreta de persistencia (tablas, documentos, JSON estructurado)
   para cada entidad conceptual del mundo semántico. Ver
   [ARC-005](90-architecture/ARC-005_semantic-world-data-model.md).
-- Las 22 decisiones pendientes de calibración del motor de resolución de
-  acciones, trabajos y eventos (`P01`–`P22`): peso entre característica y
-  habilidad efectivas, tabla o función del modelo B, tamaño de la
-  variación del modelo D, requisitos duros por método, fórmula de
-  cooperación y número útil de ayudantes, lista final de modos y sus
-  costes, críticos e incidencias, distribución de conocimiento imperfecto,
-  reintento automático, oposición activa/pasiva, esquema de eventos,
-  persistencia aleatoria y presentación de probabilidades al jugador. Ver
-  [ARC-008](90-architecture/ARC-008_outcomes-knowledge-events-and-validation.md#4-preguntas-abiertas).
-  `P09` conserva su parte pendiente (fórmula de cooperación, coordinación,
-  rendimientos decrecientes y máximo útil por familia) aunque el selector
-  local `Auto / 1 / 2 / 3 / 4` y las aportaciones funcionales ya estén
-  cerrados en
-  [UI-006](80-interface/UI-006_contextual-place-interaction-and-teams.md);
-  `P10` sigue íntegramente abierto (sustitución del responsable, supervisión
-  y reasignación automática), y `P14`/`P20` conservan la política final de
-  pausas e interrupciones.
+- **Cerradas por `DESIGN-006`:** las 22 decisiones de calibración del motor
+  de resolución de acciones, trabajos y eventos (`P01`–`P22`) —escala real
+  `0–10` y media humana `4`, representación de cero y dato desconocido,
+  tres perfiles de ponderación entre característica y habilidad, modelo B
+  (margen, variación acotada y cinco bandas), modelo D (variación de hasta
+  `±8 %`), requisitos duros por método, umbral `+3` de tarea básica,
+  episodios comprobables, cooperación con rendimientos decrecientes,
+  responsable/ejecutor/supervisor, modos en dos dimensiones (ritmo y
+  atención) con sus costes conceptuales, límites temporales, respuesta ante
+  amenazas, resultados multidimensionales y críticos, conocimiento
+  imperfecto, reintentos, oposición activa/pasiva, aprendizaje por
+  participación, esquema de eventos y niveles de atención, persistencia
+  aleatoria, y presentación del nivel actual visible frente al potencial
+  oculto— ya no son preguntas abiertas. Ver
+  [ARC-006](90-architecture/ARC-006_action-and-event-resolution-model.md),
+  [ARC-007](90-architecture/ARC-007_teamwork-orders-modes-and-conditions.md),
+  [ARC-008](90-architecture/ARC-008_outcomes-knowledge-events-and-validation.md#4-preguntas-abiertas),
+  [DEC-0011](decisions/DEC-0011_hybrid-resolution-engine-and-capability-presentation.md)
+  y
+  [DISC-0005](discovery/DISC-0005_resolution-engine-closure-traceability.md).
+  Sigue abierta, como **parametrización de contenido** y no como
+  reapertura del modelo: la dificultad efectiva exacta, el mínimo/
+  recomendado/máximo útil y los umbrales de dificultad concretos por cada
+  familia de acción real. Ver
+  [ARC-007 §3.5](90-architecture/ARC-007_teamwork-orders-modes-and-conditions.md#35-estado-herramientas-y-entorno)
+  y
+  [UI-006 §7](80-interface/UI-006_contextual-place-interaction-and-teams.md#7-preguntas-abiertas).
 
 ## Lugares y edificios procedurales (`20-world`, `40-settlement`, `catalogs`)
 
@@ -288,6 +303,43 @@ Salvo que ya se deduzca lo contrario de
 - La población zombi inicial.
 - La disponibilidad inicial de armas, agua, alimento y electricidad.
 - La existencia y proximidad de otras comunidades.
+
+## Cerradas por `DESIGN-006`
+
+`DESIGN-006` cerró las veintidós decisiones `P01`–`P22` del motor de
+resolución, antes pendientes de calibración: escala real `0–10` con media
+humana `4` y `0` como valor real distinto de dato desconocido; tres
+perfiles cerrados de ponderación entre característica y habilidad
+efectivas (70/30, 50/50, 30/70); modelo B mediante margen, variación
+acotada `[-4,+4]` y cinco bandas internas; modelo D con variación acotada
+de hasta `±8 %` por fase o sesión; requisitos duros por método
+(abierto/improvisable/guiado/restringido); umbral de tarea básica de `+3`
+puntos, no `+2`; delimitación de episodios comprobables; cooperación por
+funciones reales con rendimientos decrecientes (`100 %/60 %/35 %/20 %`);
+responsable, ejecutor principal y supervisor separables, con sustitución;
+modo de trabajo expresado en dos dimensiones combinables (ritmo y
+atención), no cuatro modos excluyentes, con rangos conceptuales de efectos
+y costes; límites temporales heredados del lugar; cuatro políticas
+cualitativas de respuesta ante amenazas; resultados multidimensionales y
+críticos resueltos mediante las bandas de B, no un reparto porcentual
+universal; cuatro capas de conocimiento imperfecto; reintentos por causa
+legítima con presupuestos de autonomía por orden; oposición activa mediante
+una única resolución de margen relativo; aprendizaje por participación con
+fórmula conceptual; cadena de eventos con ocho pasos y cuatro niveles de
+atención, con pausa crítica predeterminada; determinismo temporal fuerte
+entre velocidades de simulación; y nivel actual numérico `0–10` visible en
+la ficha del personaje, con potencial real, calibre oculto y máximo
+numérico siempre ocultos y comunicados mediante un catálogo cerrado de
+frases cualitativas. Ver
+[CHR-006](30-characters/CHR-006_characteristics-and-skill-catalog.md),
+[CHR-007](30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md),
+[ARC-006](90-architecture/ARC-006_action-and-event-resolution-model.md),
+[ARC-007](90-architecture/ARC-007_teamwork-orders-modes-and-conditions.md),
+[ARC-008](90-architecture/ARC-008_outcomes-knowledge-events-and-validation.md),
+[UI-004](80-interface/UI-004_qualitative-capability-presentation.md),
+[DEC-0011](decisions/DEC-0011_hybrid-resolution-engine-and-capability-presentation.md)
+y la trazabilidad completa en
+[DISC-0005](discovery/DISC-0005_resolution-engine-closure-traceability.md).
 
 ## Cerradas por `DESIGN-005`
 

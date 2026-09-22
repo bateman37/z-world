@@ -7,6 +7,7 @@ canonical_for:
   - arquitectura característica/habilidad/dominio/conocimiento/trabajo
   - catálogo completo de 34 habilidades base
   - habilidades y conceptos descartados o reclasificados
+  - escala real 0–10 y calibración canónica de nivel
 depends_on:
   - CHR-001
 related:
@@ -14,7 +15,10 @@ related:
   - CHR-005
   - CHR-007
   - ARC-006
+  - ARC-008
   - UI-003
+  - UI-004
+  - DEC-0011
 ---
 
 ## 1. Propósito
@@ -47,7 +51,7 @@ procedimiento de resolución que consume este catálogo, que vive en
 | Capa | Significado | Ejemplo |
 |---|---|---|
 | Característica | Capacidad general de la persona. | Técnica 7 |
-| Habilidad | Competencia amplia que progresa mediante experiencia, práctica, estudio y enseñanza, en una escala aproximada 1–10 (calibración pendiente, ver §7). | Electricidad 5 |
+| Habilidad | Competencia amplia que progresa mediante experiencia, práctica, estudio y enseñanza, en una escala real 0–10 (calibración cerrada, ver §3.6). | Electricidad 5 |
 | Dominio / especialización / proficiencia | Parte concreta dentro de una habilidad; su sistema de progreso propio no está cerrado. | Electricidad → instalaciones domésticas, generación, cuadros eléctricos |
 | Conocimiento | Información específica que la persona o la comunidad reconoce y sabe aplicar (ver [CHR-002](CHR-002_knowledge-and-learning.md)). | Conoce el esquema de este generador |
 | Trabajo | Lo que se hace, no lo que se sabe hacer; puede usar varias características, habilidades, especializaciones, herramientas y personas. | Cazar, registrar una vivienda, desmontar una instalación |
@@ -270,7 +274,7 @@ las combinaciones con otras habilidades o trabajos compuestos se detallan en
     auxilios, enfermería, diagnóstico, traumatología, cirugía,
     farmacología, medicina de urgencias, medicina veterinaria (en
     combinación con Manejo de animales). Primeros Auxilios no es otra
-    habilidad 1–10: es un dominio de Medicina (§3.4). Ejemplos: atención
+    habilidad 0–10: es un dominio de Medicina (§3.4). Ejemplos: atención
     básica usa Medicina; una intervención quirúrgica usa Medicina +
     dominio de cirugía + conocimientos necesarios; tratar a un animal usa
     Medicina + Manejo de animales según la situación.
@@ -353,7 +357,7 @@ Para impedir que decisiones ya corregidas reaparezcan como habilidades base:
 | Persuasión y Engaño (por separado) | No existen como dos habilidades base separadas; se unifican en Influencia. |
 | Ciencias (formulación antigua) | Se recupera como habilidad, pero solo funciona gracias a la separación entre habilidad científica general, dominio científico y conocimiento concreto; no equivale a conocer todas las disciplinas. |
 | Organización | Fuera como habilidad base; puede ser un trabajo, una responsabilidad, una aplicación de Liderazgo o de Razonamiento, o una función de logística del asentamiento. |
-| Memoria | Fuera como habilidad base; pertenece a biografía, recuerdos, conocimiento y rasgos (ver [CHR-007](CHR-007_hidden-potential-caliber-and-adaptation.md#34-descubrimiento-progresivo-del-personaje)); pueden existir particularidades de buena o mala memoria sin una habilidad 1–10 junto a Mecánica o Tiro. |
+| Memoria | Fuera como habilidad base; pertenece a biografía, recuerdos, conocimiento y rasgos (ver [CHR-007](CHR-007_hidden-potential-caliber-and-adaptation.md#34-descubrimiento-progresivo-del-personaje)); pueden existir particularidades de buena o mala memoria sin una habilidad 0–10 junto a Mecánica o Tiro. |
 | Investigación | Fuera como habilidad base; trabajo compuesto que usa las disciplinas realmente relacionadas con el problema. |
 | Construcción (genérica) | No existe como habilidad genérica; se resuelve mediante Carpintería, Obra, Trabajo del metal, Excavación y Extracción o combinaciones. |
 | Mantenimiento (genérico) | No existe como habilidad genérica; ejemplos: coche → Mecánica; instalación eléctrica → Electricidad; arma → Tiro + dominio; herramienta → Técnica + oficio pertinente; bomba → Mecánica/Obra. |
@@ -398,10 +402,78 @@ procedimiento de resolución que ejecuta estas combinaciones vive en
   Técnica, equipo y conocimientos del procedimiento, combinándose según el
   objetivo con Agricultura, Medicina, Cocina, Trabajo del metal u Obra.
 
+### 3.6 Escala real 0–10 y calibración canónica
+
+**Decisión cerrada (`DESIGN-006`, cierra `P01`).** Características y
+habilidades usan una escala **real** `0–10`, no `1–10`. `4` es la
+referencia humana media de una **característica**; no implica que toda
+persona posea nivel `4` en cada habilidad especializada, que se distribuyen
+de forma mucho más dispersa según experiencia y oportunidad.
+
+Calibración canónica de cada nivel:
+
+| Nivel | Característica | Habilidad |
+|---:|---|---|
+| 0 | Ninguna capacidad funcional utilizable en esa dimensión; estado extremo, no normal en una persona viable. | Ninguna competencia práctica actual. |
+| 1 | Extremadamente baja. | Sin formación; tanteo muy elemental. |
+| 2 | Muy baja. | Principiante, primeras nociones. |
+| 3 | Inferior a la media. | Base limitada o aprendizaje inicial. |
+| 4 | Media humana. | Competencia funcional en esa habilidad. |
+| 5 | Por encima de la media. | Competente y fiable en situaciones habituales. |
+| 6 | Notable. | Experimentada, capaz de afrontar variedad y dificultad. |
+| 7 | Muy notable. | Avanzada, claramente superior a la mayoría. |
+| 8 | Excepcional. | Experta. |
+| 9 | Extraordinaria. | Referente de primer nivel. |
+| 10 | Extremo humano muy raro. | Maestría humana excepcional. |
+
+**El `0` es un valor real, no una ausencia de dato.** No es `null`, no es
+«desconocido» y no es un dato ausente; se distingue de las capas de
+conocimiento y de información comunitaria definidas en
+[ARC-006 §3.8](../90-architecture/ARC-006_action-and-event-resolution-model.md#38-cero-dato-desconocido-y-precisión-cierra-p02).
+Matices obligatorios:
+
+- En una **característica**, un `0` base es excepcional; un estado físico o
+  mental adverso puede llevar una capacidad **efectiva** a cero sin que el
+  valor **base** se convierta necesariamente en cero (ver estado en
+  [ARC-007 §3.5](../90-architecture/ARC-007_teamwork-orders-modes-and-conditions.md#35-estado-herramientas-y-entorno)).
+- En una **habilidad**, `0` puede ser un valor perfectamente normal cuando
+  no existe experiencia práctica en esa disciplina: la mayoría de personas
+  tiene `0` en la mayoría de las 34 habilidades del catálogo.
+- Un `0` actual **no implica potencial cero**: el mínimo de potencial ya
+  aprobado en
+  [CHR-007 §3.1](CHR-007_hidden-potential-caliber-and-adaptation.md#31-potencial-oculto-y-desarrollo)
+  permite que cualquier persona aprenda competencias humanas básicas cuando
+  existan oportunidades y medios.
+- Los niveles actuales pueden conservar progreso interno fraccionario
+  (por ejemplo, un avance real hacia el siguiente punto entero), aunque la
+  ficha solo muestre el valor entero `0–10`. Los cálculos internos
+  conservan precisión y solo redondean al final de la presentación
+  correspondiente, sin redondear en cada paso intermedio (ver
+  [ARC-006 §3.8](../90-architecture/ARC-006_action-and-event-resolution-model.md#38-cero-dato-desconocido-y-precisión-cierra-p02)).
+
+**Visibilidad en la ficha (cierra `P22` junto con
+[ARC-008 §3.14](../90-architecture/ARC-008_outcomes-knowledge-events-and-validation.md#314-presentación-visible-y-potencial-oculto-cierra-p22)
+y
+[CHR-007 §3.6](CHR-007_hidden-potential-caliber-and-adaptation.md#36-presentación-por-capas-de-la-ficha)).**
+La ficha del personaje muestra el **nivel actual** numérico `0–10` de cada
+característica y habilidad: es lo que la persona puede hacer hoy. Esta
+visibilidad no se extiende al potencial real, al calibre oculto ni al
+máximo numérico de desarrollo, que permanecen ocultos según
+[CHR-007](CHR-007_hidden-potential-caliber-and-adaptation.md); tampoco
+autoriza mostrar umbrales, dificultades o probabilidades de una acción
+concreta, que siguen prohibidos en la interfaz normal según
+[UI-004 §3.5](../80-interface/UI-004_qualitative-capability-presentation.md#35-descriptores-en-lugar-de-cifras)
+y su reconciliación en
+[UI-004 §3.8](../80-interface/UI-004_qualitative-capability-presentation.md#38-nivel-actual-visible-en-la-ficha-reconciliado-con-p22).
+
 ## 4. Reglas aprobadas
 
 - Nueve características y 34 habilidades base forman el catálogo de
   horizonte máximo de Z-World (§3.2, §3.3).
+- Características y habilidades usan una escala real `0–10`, con `4` como
+  referencia humana media de una característica y con `0` como valor real
+  distinto de dato desconocido; el nivel actual es el único valor de esta
+  escala visible en la ficha (§3.6).
 - Liderazgo es una habilidad social, no una característica (§3.3.30).
 - Advertir, Orientación y Supervivencia son habilidades independientes
   entre sí y con límites propios (§3.3.5, §3.3.8, §3.3.9).
@@ -445,9 +517,11 @@ procedimiento de resolución que ejecuta estas combinaciones vive en
 
 ## 7. Preguntas abiertas
 
-- **Calibración de la escala 1–10**: qué significa cada punto, curvas de
-  progreso y dificultad de alcanzar niveles altos (ver
-  [CHR-007](CHR-007_hidden-potential-caliber-and-adaptation.md#71-escalas-exactas)).
+- **Cerrado por `DESIGN-006`:** la escala real `0–10`, el significado de
+  cada nivel y la media humana `4` quedan fijados en §3.6. Siguen abiertas
+  las curvas exactas de progreso y la dificultad relativa de alcanzar
+  niveles altos, que dependen de la velocidad de aprendizaje de
+  [CHR-007 §7.1](CHR-007_hidden-potential-caliber-and-adaptation.md#71-velocidad-de-aprendizaje-y-curvas-de-progreso).
 - **Dominios de cada habilidad**: los dominios listados en §3.3 son
   ejemplos orientativos, no el catálogo máximo definitivo de
   especializaciones, proficiencias, conocimientos o profesiones.

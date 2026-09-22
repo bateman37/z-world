@@ -35,15 +35,16 @@ simulación, datos y presentación, y persistencia.
 | [ARC-003](ARC-003_multiscale-simulation-principles.md) | `approved` | Principios para simular detalle local y abstracción regional. |
 | [ARC-004](ARC-004_simulation-core-runtime-and-boundaries.md) | `approved` | Núcleo de simulación puro, reloj continuo, fases visibles y fronteras técnicas. |
 | [ARC-005](ARC-005_semantic-world-data-model.md) | `approved` (entidades conceptuales) | Modelo conceptual de datos del mundo semántico (`Building`, `Room`, etc.). |
-| [ARC-006](ARC-006_action-and-event-resolution-model.md) | `draft` | Procedimiento común de resolución, capacidades efectivas y modelos B (porcentual) y D (trabajo continuo). |
-| [ARC-007](ARC-007_teamwork-orders-modes-and-conditions.md) | `draft` | Cooperación con líder, órdenes del lugar, modos de ejecución, tiempo, estado, herramientas y entorno. |
-| [ARC-008](ARC-008_outcomes-knowledge-events-and-validation.md) | `draft` | Resultados, conocimiento imperfecto, eventos, aplicación por familias, persistencia, casos de validación y decisiones pendientes del motor. |
+| [ARC-006](ARC-006_action-and-event-resolution-model.md) | `approved` | Procedimiento común de resolución, capacidades efectivas, perfiles de ponderación y modelos B (margen) y D (trabajo continuo). |
+| [ARC-007](ARC-007_teamwork-orders-modes-and-conditions.md) | `approved` | Cooperación con rendimientos decrecientes, responsable/ejecutor/supervisor, modos en dos dimensiones, tiempo, estado, herramientas y entorno. |
+| [ARC-008](ARC-008_outcomes-knowledge-events-and-validation.md) | `approved` | Resultados, conocimiento imperfecto, eventos, aplicación por familias, persistencia aleatoria, presentación visible, casos de validación y cierre de las 22 decisiones del motor. |
 
 ## Dependencias con otros dominios
 
-- `docs/decisions/` (`DEC-0001` a `DEC-0009` respaldan estas reglas;
-  `DEC-0008` fija el stack activo; `DEC-0009` cierra el dominio del motor de
-  resolución y el catálogo de personaje).
+- `docs/decisions/` (`DEC-0001` a `DEC-0011` respaldan estas reglas;
+  `DEC-0008` fija el stack activo; `DEC-0009` crea el dominio del motor de
+  resolución y el catálogo de personaje; `DEC-0011` cierra las 22
+  decisiones de calibración del motor de resolución, `P01`–`P22`).
 - `20-world` (información que depende de la generación bajo demanda;
   `WLD-005` a `WLD-007` alimentan `ARC-005`).
 - `catalogs` (fuente de contenido para `ARC-005`).

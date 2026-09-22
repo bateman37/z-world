@@ -4,6 +4,72 @@ Registra entregas documentales y de diseño de Z-World. No atribuye código ni
 funcionalidad implementada salvo que se indique explícitamente como
 `implemented` en la documentación afectada.
 
+## DESIGN-006 — Cierre del motor de resolución y capacidades
+
+Entrega **exclusivamente documental** que cierra las veintidós decisiones
+`P01`–`P22` del motor de acciones, trabajos y eventos, con las correcciones
+finales de Dennis. No implementa código, no inicializa la aplicación web y
+no toca `src/`, `scenes/`, `tests/` ni `project.godot`.
+
+- **Escala y capacidad base**: escala real `0–10` para características y
+  habilidades, con `4` como media humana de una característica y `0` como
+  valor real distinto de dato desconocido; tres perfiles cerrados de
+  ponderación entre característica y habilidad efectivas (instintivo/
+  físico 70/30, equilibrado 50/50, técnico/aprendido 30/70)
+  ([CHR-006](docs/30-characters/CHR-006_characteristics-and-skill-catalog.md),
+  [ARC-006](docs/90-architecture/ARC-006_action-and-event-resolution-model.md),
+  ambos `approved`).
+- **Modelo híbrido de resolución**: ejecución directa con umbral de **tres
+  puntos**, no dos, sobre la dificultad efectiva; progreso `D` con
+  variación acotada de hasta `±8 %` por fase; comprobaciones `B` mediante
+  margen, variación acotada `[-4,+4]` y cinco bandas internas; requisitos
+  duros clasificados en abierto/improvisable/guiado/restringido; episodios
+  persistentes
+  ([ARC-006](docs/90-architecture/ARC-006_action-and-event-resolution-model.md)).
+- **Cooperación y modos**: cooperación por funciones reales con
+  rendimientos decrecientes (`100 %/60 %/35 %/20 %`), responsable/ejecutor/
+  supervisor con reglas de sustitución, dos dimensiones combinables de modo
+  (ritmo y atención) en lugar de cuatro categorías excluyentes, límites
+  temporales heredados del lugar y cuatro políticas cualitativas de
+  respuesta ante amenazas
+  ([ARC-007](docs/90-architecture/ARC-007_teamwork-orders-modes-and-conditions.md),
+  `approved`).
+- **Resultados, conocimiento y eventos**: resultados multidimensionales sin
+  «crítico»/«pifia» universal, cuatro capas de conocimiento imperfecto,
+  reintentos con presupuesto de autonomía, oposición activa mediante margen
+  relativo único, aprendizaje por participación, cadena de eventos con
+  ocho pasos y cuatro niveles de atención con pausa crítica predeterminada,
+  y determinismo temporal fuerte entre velocidades de simulación
+  ([ARC-008](docs/90-architecture/ARC-008_outcomes-knowledge-events-and-validation.md),
+  `approved`, con 31 casos de validación documental).
+- **Presentación de capacidades**: nivel actual numérico `0–10` visible en
+  la ficha del personaje; potencial real, calibre oculto y máximo numérico
+  siempre ocultos, comunicados mediante un catálogo cerrado de frases
+  cualitativas moduladas por confianza
+  ([CHR-007](docs/30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md),
+  `draft`; [UI-004](docs/80-interface/UI-004_qualitative-capability-presentation.md),
+  `approved`).
+- **Decisión y trazabilidad**: decisión transversal que respalda el cierre
+  íntegro
+  ([DEC-0011](docs/decisions/DEC-0011_hybrid-resolution-engine-and-capability-presentation.md),
+  `approved`) y trazabilidad completa de `P01`–`P22`
+  ([DISC-0005](docs/discovery/DISC-0005_resolution-engine-closure-traceability.md),
+  `draft`).
+- **Contradicciones corregidas**: `CHR-006` deja de describir la escala
+  como `1–10`; el umbral de tarea básica pasa de una lectura de `+2` a
+  `+3`; los cuatro modos de trabajo dejan de leerse como mutuamente
+  excluyentes; la fórmula antigua `(característica + 2 × habilidad) / 3` y
+  la función logística candidata de B quedan descartadas como universales;
+  `UI-004` corrige su prohibición absoluta de cifras para permitir el
+  nivel actual visible sin abrir umbrales de una acción concreta.
+- **Estados documentales**: `ARC-006`, `ARC-007` y `ARC-008` pasan de
+  `draft` a `approved`. `CHR-006` y `UI-004` permanecen `approved`.
+  `CHR-007` permanece `draft`: conserva abiertas la distribución de
+  estrellas del calibre, los campos de potencial, la adaptación al
+  apocalipsis, los dominios de habilidad y el catálogo de rasgos. **Ningún
+  documento pasa a `implemented`**; la nueva línea web sigue sin
+  implementación del motor.
+
 ## DESIGN-005 — Mapas local y regional, generación procedural, equipos e interacción contextual
 
 Entrega **exclusivamente documental** que consolida el diseño aprobado de
