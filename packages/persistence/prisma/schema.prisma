@@ -1,0 +1,67 @@
+// Esquema de persistencia real de WEB-001 (§9). El snapshot es la fuente
+// autoritativa de carga; los eventos son auditoría causal (no event
+// sourcing integral).
+
+generator client {
+  provider      = "prisma-client-js"
+  output        = "../generated"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model GameSave {
+  id               String   @id @default(uuid())
+  name             String?
+  seed             String
+  generatorVersion String
+  schemaVersion    Int
+  revision         Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  lastUsedAt       DateTime @default(now())
+
+  currentSnapshotId String?         @unique
+  currentSnapshot    SimulationSnapshot? @relation("CurrentSnapshot", fields: [currentSnapshotId], references: [id])
+
+  snapshots SimulationSnapshot[] @relation("SnapshotsForSave")
+  events    DomainEventRecord[]
+
+  @@map("game_saves")
+}
+
+model SimulationSnapshot {
+  id            String   @id @default(uuid())
+  gameSaveId    String
+  gameSave      GameSave @relation("SnapshotsForSave", fields: [gameSaveId], references: [id], onDelete: Cascade)
+  revision      Int
+  schemaVersion Int
+  reason        String
+  state         Json
+  simSeconds    Int
+  writtenAt     DateTime @default(now())
+
+  currentForGameSave GameSave? @relation("CurrentSnapshot")
+
+  @@unique([gameSaveId, revision])
+  @@map("simulation_snapshots")
+}
+
+model DomainEventRecord {
+  id                String   @id @default(uuid())
+  gameSaveId        String
+  gameSave          GameSave @relation(fields: [gameSaveId], references: [id], onDelete: Cascade)
+  sequence          Int
+  type              String
+  simSeconds        Int
+  causedByCommandId String?
+  payload           Json
+  persistedAt       DateTime @default(now())
+
+  @@unique([gameSaveId, sequence])
+  @@index([gameSaveId, sequence])
+  @@map("domain_events")
+}

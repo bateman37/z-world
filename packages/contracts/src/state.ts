@@ -37,6 +37,28 @@ export interface SimulationStateV1 {
   readonly sequences: CausalSequenceCounters;
 }
 
+export interface ParseSimulationStateResult {
+  readonly success: boolean;
+  readonly data?: SimulationStateV1;
+  readonly error?: string;
+}
+
+/**
+ * Valida un valor desconocido (p. ej. la columna JSONB de un snapshot)
+ * contra el esquema Zod y lo trata como `SimulationStateV1` si es válido.
+ * El `as` está localizado aquí a propósito: Zod valida la forma en tiempo
+ * de ejecución con más generalidad (`Record<string, ...>`) que las uniones
+ * de literales de los tipos de dominio; una vez validada la forma, el
+ * contenido es programáticamente correcto para esos IDs de catálogo.
+ */
+export function parseSimulationStateV1(data: unknown): ParseSimulationStateResult {
+  const result = simulationStateV1Schema.safeParse(data);
+  if (!result.success) {
+    return { success: false, error: result.error.message };
+  }
+  return { success: true, data: result.data as unknown as SimulationStateV1 };
+}
+
 export const simulationStateV1Schema = z.object({
   schemaVersion: z.literal(SIMULATION_STATE_SCHEMA_VERSION),
   seed: z.string(),
