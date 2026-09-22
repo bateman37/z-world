@@ -117,7 +117,7 @@ function applyOrderDirectMove(
   }
 
   const totalDistanceMeters = pathLength(path);
-  let events: DomainEvent[] = [];
+  const events: DomainEvent[] = [];
   let sequences = state.sequences;
 
   const acceptedEventResult = nextEventId(sequences);

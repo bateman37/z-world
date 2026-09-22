@@ -104,6 +104,8 @@ export interface WorkerProjections {
   readonly clock: ClockProjection;
   readonly saveStatus: SaveStatusProjection;
   readonly personCards: readonly PersonCardProjection[];
+  /** Fichas completas de las seis personas (la cohorte es pequeña y fija). */
+  readonly personSheets: Readonly<Record<string, PersonSheetProjection>>;
   readonly mapEntities: MapEntitiesProjection;
   readonly fog: FogMaskProjection;
   readonly movements: readonly MovementProjection[];

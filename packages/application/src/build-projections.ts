@@ -6,12 +6,14 @@ import type {
   MovementProjection,
   OperationalLogEntryProjection,
   PersonCardProjection,
+  PersonSheetProjection,
   SaveStatus,
   SimulationStateV1,
   VisibilityState,
   WorkerProjections,
 } from "@z-world/contracts";
 import { toSimulatedDayTime } from "@z-world/contracts";
+import { buildPersonSheetProjection } from "./build-person-sheet.js";
 
 const VISIBILITY_BY_CELL_VALUE: readonly VisibilityState[] = ["hidden", "known", "observable"];
 
@@ -64,6 +66,15 @@ function buildPersonCards(state: SimulationStateV1): readonly PersonCardProjecti
   });
 }
 
+function buildPersonSheets(state: SimulationStateV1): Readonly<Record<string, PersonSheetProjection>> {
+  const sheets: Record<string, PersonSheetProjection> = {};
+  for (const id of state.peopleOrder) {
+    const sheet = buildPersonSheetProjection(state, id);
+    if (sheet) sheets[id] = sheet;
+  }
+  return sheets;
+}
+
 const EVENT_MESSAGE_KEYS: Readonly<Record<DomainEvent["type"], string>> = {
   game_created: "log.game_created",
   speed_or_pause_changed: "log.speed_or_pause_changed",
@@ -111,6 +122,7 @@ export function buildWorkerProjections(params: {
     clock: { day: dayTime.day, hour: dayTime.hour, minute: dayTime.minute, speed: state.clock.speed },
     saveStatus: { status: params.saveStatus, lastSavedSimSeconds: params.lastSavedSimSeconds },
     personCards: buildPersonCards(state),
+    personSheets: buildPersonSheets(state),
     mapEntities: buildMapEntitiesProjection(state),
     fog: buildFogProjection(state),
     movements: buildMovementsProjection(state),
