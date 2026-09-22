@@ -291,18 +291,53 @@ Cuando una pregunta se cierre:
 
 ## Escenario inicial (`scenarios`)
 
-Salvo que ya se deduzca lo contrario de
-[SCN-001](scenarios/SCN-001_mountain-village-arrival.md):
+Cerradas por `DESIGN-007` (ver sección dedicada más abajo): estación y
+hora exactas de llegada, composición y distribución mínima de calibre de
+la cohorte, red de relaciones iniciales, edificio provisional y grado de
+elección, dimensiones y presupuesto del mapa local, población zombi
+inicial, disponibilidad inicial de armas/agua/alimento/electricidad, y
+existencia posible de otras comunidades. Ver
+[SCN-001](scenarios/SCN-001_mountain-village-arrival.md),
+[SCN-002](scenarios/SCN-002_initial-survivor-cohort.md),
+[SCN-003](scenarios/SCN-003_first-day-starting-state.md) y
+[WLD-009](20-world/WLD-009_initial-mountain-village-profile.md).
 
-- La estación exacta de llegada.
-- Los seis personajes concretos y sus relaciones iniciales.
-- El edificio inicial y el grado de elección disponible.
-- Las dimensiones y cantidades exactas del mapa local. Su carácter
-  procedural, ficticio y de pueblo pequeño de montaña ya está cerrado en
-  [WLD-008](20-world/WLD-008_local-procedural-map-generation.md).
-- La población zombi inicial.
-- La disponibilidad inicial de armas, agua, alimento y electricidad.
-- La existencia y proximidad de otras comunidades.
+Quedan abiertas, por pertenecer a otros sistemas:
+
+- Algoritmo exacto de generación y validación de semillas (ver
+  [SCN-003 §3.7](scenarios/SCN-003_first-day-starting-state.md#37-garantías-de-una-semilla-válida)).
+- Distribución global de calibre de la población mundial más allá de la
+  cohorte protagonista de este escenario. Ver
+  [CHR-007](30-characters/CHR-007_hidden-potential-caliber-and-adaptation.md).
+
+## Cerradas por `DESIGN-007`
+
+`DESIGN-007` cerró estas decisiones del primer escenario, antes abiertas
+en `SCN-001` y en esta lista: momento exacto de llegada (Día 1, 17:30,
+seis semanas tras el colapso, primera mitad de abril, cuatro días de
+marcha) y banda meteorológica inicial sin fenómenos letales; seis adultos
+protagonistas procedurales con distribución mínima de calibre oculto
+`5/4+/4+/3+/3+/3+` (específica de este escenario, sin alterar la
+distribución global de calibre), cobertura funcional colectiva mínima y
+red de relaciones conectada con al menos un acontecimiento compartido
+reciente; refugio provisional garantizado a 100–250 m del punto de
+llegada, generado siempre por el modelo de estancias de `WLD-005`, y
+candidatos a asentamiento sin mudanza obligatoria; presupuesto numérico
+del mapa local (huella ≈3×3 km, 55–85 construcciones, red viaria, agua,
+cobertura de terreno y 12–18 puntos de interés, con solo 3–6 indicios
+conocidos al llegar); amenaza zombi inicial contenida y limpiable
+(12–30 zombis, sin horda inicial ni respawn); estado físico tras la
+marcha, pertenencias, arma cuerpo a cuerpo por protagonista y carencias
+obligatorias; nueve garantías internas de semilla válida sin información
+gratuita; y presencia humana local y regional incierta, sin encuentro
+forzado en las primeras 48 horas. Ver
+[SCN-001](scenarios/SCN-001_mountain-village-arrival.md),
+[SCN-002](scenarios/SCN-002_initial-survivor-cohort.md),
+[SCN-003](scenarios/SCN-003_first-day-starting-state.md),
+[WLD-009](20-world/WLD-009_initial-mountain-village-profile.md),
+[DEC-0012](decisions/DEC-0012_first-arrival-scenario-contract.md) y la
+trazabilidad completa en
+[DISC-0006](discovery/DISC-0006_first-arrival-scenario-traceability.md).
 
 ## Cerradas por `DESIGN-006`
 

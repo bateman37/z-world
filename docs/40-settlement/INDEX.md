@@ -23,7 +23,7 @@ que sostienen a la comunidad.
 
 | ID | Estado | Propósito |
 |---|---|---|
-| [SET-001](SET-001_settlement-growth.md) | `approved` | Crecimiento y costes del asentamiento. |
+| [SET-001](SET-001_settlement-growth.md) | `approved` | Crecimiento y costes del asentamiento; diferencia entre refugio provisional y asentamiento elegido. |
 | [SET-002](SET-002_production-and-solutions.md) | `approved` | Producción y ausencia de ruta tecnológica única. |
 | [SET-003](SET-003_resources-logistics-and-condition.md) | `approved` | Recursos, logística, condición y rutas alternativas iniciales. |
 | [SET-004](SET-004_technological-transition-and-knowledge-economy.md) | `approved` | Del aprovechamiento del mundo anterior a la reconstrucción local. |
