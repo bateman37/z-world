@@ -19,3 +19,24 @@ builds/
 
 # Artefactos internos de sesiones de Claude Code (worktrees temporales, etc.).
 .claude/
+
+# Línea web (Node.js/TypeScript/Next.js) — dependencias y artefactos de build.
+node_modules/
+dist/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+.env
+.env.local
+.env.*.local
+
+# Prisma: el cliente generado no se versiona.
+packages/persistence/generated/
+
+# Playwright.
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
