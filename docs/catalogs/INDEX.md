@@ -33,7 +33,8 @@ se genera y se usa ese contenido (que viven en `docs/20-world/` y
 | [CAT-001](CAT-001_maximum-place-catalog.md) | `approved` (horizonte) | Catálogo máximo de lugares: 22 familias A–V y todos sus IDs. |
 | [CAT-002](CAT-002_rooms-modules-and-building-systems.md) | `approved` (horizonte) | Módulos funcionales, catálogo máximo de estancias, instalaciones, acabados y estructura. |
 | [CAT-003](CAT-003_occupants-professions-hobbies-and-traits.md) | `approved` (horizonte) | Composiciones de hogar, estratos económicos, profesiones, aficiones y rasgos. |
-| [CAT-004](CAT-004_initial-semantic-place-slice.md) | `draft` | Propuesta pequeña de primer subconjunto implementable; no aprobada por Dennis. |
+| [CAT-004](CAT-004_initial-semantic-place-slice.md) | `approved` | Primer catálogo implementable: ocho perfiles (cuatro edificios, agua, campo, bosque/matorral y carretera), aprobado por Dennis en `DESIGN-008`. Contrato de contenido, no `implemented`. |
+| [CAT-005](CAT-005_initial-object-resource-and-transport-slice.md) | `approved` | Primer catálogo de objetos, recursos y transporte que equipa el catálogo anterior: familias de comportamiento, objetos demostradores, subconjunto de materiales y cinco métodos de transporte activos. |
 
 `approved` en `CAT-001`–`CAT-003` significa **catálogo de horizonte aprobado
 como referencia**, no contenido implementado ni alcance de una entrega
@@ -41,6 +42,12 @@ concreta (ver
 [DEC-0006](../decisions/DEC-0006_maximum-envelope-vs-delivery-scope.md)). El
 subconjunto que efectivamente se implemente en cada entrega se declara en
 `docs/STATUS.md`, nunca reduciendo en silencio este catálogo.
+
+`approved` en `CAT-004` y `CAT-005` significa **contrato de contenido
+aprobado para una futura entrega de programación** (ver
+[DEC-0013](../decisions/DEC-0013_implementable-catalog-and-mutable-world.md)):
+tampoco implica `implemented`, pero sí fija exactamente el alcance que una
+entrega de código puede usar sin volver a decidirlo.
 
 ## Dependencias con otros dominios
 
@@ -52,3 +59,7 @@ subconjunto que efectivamente se implemente en cada entrega se declara en
   contienen este contenido).
 - `docs/discovery/DISC-0003` traza cada sección del Anexo A de `DESIGN-004`
   a su destino canónico, incluidos estos catálogos.
+- `20-world` (`WLD-010`, `WLD-011`, entorno mutable y accesos que
+  completan `CAT-004`) y `40-settlement` (`SET-010`, `SET-011`, transporte
+  y agricultura que completan `CAT-005`); `docs/discovery/DISC-0007` traza
+  el cierre de `DESIGN-008`.

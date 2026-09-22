@@ -185,6 +185,13 @@ consecuencias persisten.
   limita a lo descrito en
   [WLD-003](WLD-003_strategic-world-and-regional-simulation.md); este
   documento no diseña el planificador de expediciones.
+- El reconocimiento dependiente de la persona se aplica igualmente al
+  desmontaje de objetos completos ([SET-009](../40-settlement/SET-009_disassembly-and-world-transformation.md))
+  y a la transformación de terreno, accesos y transporte
+  ([WLD-010](WLD-010_mutable-terrain-and-spatial-construction.md),
+  [WLD-011](WLD-011_openings-access-and-connectivity.md),
+  [SET-010](../40-settlement/SET-010_local-hauling-and-transport.md)), sin
+  que este documento repita sus reglas específicas.
 
 ## 6. Casos límite o riesgos
 

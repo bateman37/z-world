@@ -23,7 +23,7 @@ paneles, cámara, información mostrada y flujos de interacción.
 | [UI-003](UI-003_work-priority-taxonomy.md) | `approved` | Arquitectura de prioridad, orden y trabajo; nueve bloques, 34 prioridades y escala `Nunca/1–5`. |
 | [UI-004](UI-004_qualitative-capability-presentation.md) | `approved` | Presentación cualitativa de capacidad, dificultad, incertidumbre y bloqueos sin números internos de una acción concreta; el nivel actual `0–10` de la ficha es la única cifra visible. |
 | [UI-005](UI-005_top-down-simulation-workbench.md) | `approved` | Mapa Canvas 2D cenital, niebla, reloj continuo y control puntual del laboratorio de simulación. |
-| [UI-006](UI-006_contextual-place-interaction-and-teams.md) | `approved` | Ficha contextual de lugar, visibilidad de acciones, reconocimiento exterior, revelado de interiores y equipos locales `Auto / 1 / 2 / 3 / 4`. |
+| [UI-006](UI-006_contextual-place-interaction-and-teams.md) | `approved` | Ficha contextual de lugar, visibilidad de acciones, reconocimiento exterior, revelado de interiores, equipos locales `Auto / 1 / 2 / 3 / 4`, y desde `DESIGN-008`, tipos de objetivo ampliados (área, línea, nodo, acceso, objeto) y selector de método de transporte. |
 
 ## Dependencias con otros dominios
 
@@ -33,5 +33,7 @@ paneles, cámara, información mostrada y flujos de interacción.
   redefinir).
 - `30-characters` (elegibilidad y autonomía de las personas).
 - `20-world`, `40-settlement` (información y recursos sobre los que se
-  designan trabajos; `WLD-008` genera el mapa que `UI-005` representa).
+  designan trabajos; `WLD-008` genera el mapa que `UI-005` representa;
+  `WLD-010`/`WLD-011`/`SET-010` amplían los tipos de objetivo y el
+  selector de método de `UI-006`).
 - `decisions` (`DEC-0010` fija la dirección de representación de los mapas).

@@ -195,6 +195,12 @@ muestra ese `6` como umbral requerido: muestra «Adecuada para Luis» o
 
 - Las 34 prioridades y nueve bloques que esta presentación acompaña se
   definen en [UI-003](UI-003_work-priority-taxonomy.md).
+- Las clases cualitativas de anchura de acceso (Estrecho/Normal/Ancho/
+  Portón) y el rendimiento agrícola causal sin cifras desnudas siguen esta
+  misma presentación cualitativa; se definen en
+  [WLD-011 §3.7](../20-world/WLD-011_openings-access-and-connectivity.md#37-compatibilidad-de-accesos-y-transporte)
+  y [SET-011 §3.3](../40-settlement/SET-011_initial-agriculture-loop.md#33-requisitos-y-rendimiento),
+  sin introducir números internos de una acción concreta.
 - La gestión a escala con filtros, plantillas y edición por grupo se
   desarrolla en [UI-002](UI-002_management-at-community-scale.md), que
   enlaza este documento para la presentación de capacidad en la matriz

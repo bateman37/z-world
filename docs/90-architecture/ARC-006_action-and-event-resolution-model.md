@@ -22,6 +22,10 @@ related:
   - SET-009
   - WLD-002
   - WLD-004
+  - WLD-010
+  - WLD-011
+  - SET-010
+  - SET-011
   - DEC-0007
   - DEC-0011
 ---
@@ -699,6 +703,14 @@ Reglas de cierre:
   [DEC-0011](../decisions/DEC-0011_hybrid-resolution-engine-and-capability-presentation.md);
   la trazabilidad completa del cierre vive en
   [DISC-0005](../discovery/DISC-0005_resolution-engine-closure-traceability.md).
+- Este procedimiento común es también el que ejecuta la transformación de
+  terreno, la construcción lineal, las acciones sobre accesos, el
+  transporte local y el ciclo agrícola aprobados por `DESIGN-008` (ver
+  [WLD-010](../20-world/WLD-010_mutable-terrain-and-spatial-construction.md),
+  [WLD-011](../20-world/WLD-011_openings-access-and-connectivity.md),
+  [SET-010](../40-settlement/SET-010_local-hauling-and-transport.md) y
+  [SET-011](../40-settlement/SET-011_initial-agriculture-loop.md)); ninguno
+  de esos documentos redefine este procedimiento ni sus modelos B/D.
 
 ## 6. Casos límite o riesgos
 

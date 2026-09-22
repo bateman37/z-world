@@ -16,8 +16,14 @@ related:
   - WLD-008
   - WLD-003
   - WLD-009
+  - WLD-010
+  - WLD-011
   - CAT-004
+  - CAT-005
+  - SET-010
+  - SET-011
   - DEC-0010
+  - DEC-0013
 ---
 
 ## 1. Propósito
@@ -69,15 +75,25 @@ el navegador, sin fechas ni compromiso de versión.
    (`IMPLEMENTATION-002`/`IMPLEMENTATION-003`) pero reconstruido de forma
    nativa en la nueva línea de código. Dennis podrá asignar prioridades,
    designar tareas y ver resultados.
-5. **Generador semántico inicial y explotación de lugares**: primer
-   subconjunto de arquetipos (ver
-   [CAT-004](../catalogs/CAT-004_initial-semantic-place-slice.md), sujeto a
-   aprobación previa de Dennis), programa de estancias, contenido
-   coherente por ocupante, y al menos una acción de cada una de las cinco
-   capas de
+5. **Generador semántico inicial y explotación de lugares**: los ocho
+   perfiles y el catálogo de objetos, recursos y transporte ya aprobados
+   por `DESIGN-008`
+   ([CAT-004](../catalogs/CAT-004_initial-semantic-place-slice.md),
+   [CAT-005](../catalogs/CAT-005_initial-object-resource-and-transport-slice.md)),
+   programa de estancias, contenido coherente por ocupante, y al menos
+   una acción de cada una de las cinco capas de
    [SET-007](../40-settlement/SET-007_building-exploitation-reuse-and-demolition.md).
+   El alcance aprobado incluye además el modelo de entorno mutable y
+   construcción espacial, la conectividad de accesos, la agricultura
+   básica y el transporte local por porte manual/carretilla/carro (ver
+   [WLD-010](../20-world/WLD-010_mutable-terrain-and-spatial-construction.md),
+   [WLD-011](../20-world/WLD-011_openings-access-and-connectivity.md),
+   [SET-010](../40-settlement/SET-010_local-hauling-and-transport.md) y
+   [SET-011](../40-settlement/SET-011_initial-agriculture-loop.md)), sin
+   que esta precisión constituya un incremento nuevo ni comprometa fecha.
    Dennis podrá explorar, registrar y desmontar al menos un edificio
-   generado semánticamente.
+   generado semánticamente, despejar terreno, construir una barrera
+   sencilla, cultivar una parcela y transportar una carga entre accesos.
 6. **Autonomía, relaciones, amenazas y narrativa emergente**, en
    incrementos separados y no en una entrega monolítica: cada uno de estos
    cuatro sistemas recibe su propio incremento futuro, con su propio
@@ -158,6 +174,15 @@ propia decisión de alcance y sus propios prompts, sin fecha comprometida
   [WLD-006](../20-world/WLD-006_historical-looting-pressure-and-routes.md),
   [WLD-007](../20-world/WLD-007_place-history-and-environmental-storytelling.md)
   y [SET-007](../40-settlement/SET-007_building-exploitation-reuse-and-demolition.md).
+- El catálogo de contenido aprobado y el entorno mutable del incremento 5
+  se definen en
+  [CAT-004](../catalogs/CAT-004_initial-semantic-place-slice.md),
+  [CAT-005](../catalogs/CAT-005_initial-object-resource-and-transport-slice.md),
+  [WLD-010](../20-world/WLD-010_mutable-terrain-and-spatial-construction.md),
+  [WLD-011](../20-world/WLD-011_openings-access-and-connectivity.md),
+  [SET-010](../40-settlement/SET-010_local-hauling-and-transport.md) y
+  [SET-011](../40-settlement/SET-011_initial-agriculture-loop.md), cerrados
+  por `DESIGN-008`.
 - El presupuesto numérico y las garantías del primer escenario que el
   incremento 5 podría usar como referencia (mundo funcional máximo, no
   alcance aprobado) se documentan en
@@ -184,9 +209,6 @@ propia decisión de alcance y sus propios prompts, sin fecha comprometida
 
 - Alcance exacto de cada incremento cuando se escriba su propio prompt de
   implementación.
-- Si el incremento 5 usa el subconjunto de
-  [CAT-004](../catalogs/CAT-004_initial-semantic-place-slice.md) tal cual,
-  una variación, o uno decidido en el momento por Dennis.
 - Cuándo se evalúa formalmente una capa visual 3D avanzada (incremento 7).
 
 ## 8. Ejemplos no normativos

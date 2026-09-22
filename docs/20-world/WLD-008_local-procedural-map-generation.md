@@ -23,6 +23,7 @@ related:
   - DEC-0005
   - DEC-0010
   - CAT-004
+  - WLD-010
 ---
 
 ## 1. Propósito
@@ -291,6 +292,11 @@ fórmulas de deterioro de información no se fijan en esta entrega.
   [SCN-001](../scenarios/SCN-001_mountain-village-arrival.md).
 - La dirección de mapas y escalas que respalda este documento se registra en
   [DEC-0010](../decisions/DEC-0010_procedural-local-and-regional-map-direction.md).
+- La transformación persistente de terreno, cobertura, carreteras y
+  estructuras lineales que actúa sobre las capas 2 a 7 de la sección 3.2 se
+  define en
+  [WLD-010](WLD-010_mutable-terrain-and-spatial-construction.md); esta
+  entrega no redefine el orden ni el contenido de esas capas.
 
 ## 6. Casos límite o riesgos
 

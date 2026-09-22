@@ -8,11 +8,14 @@ canonical_for:
   - jerarquía habitación → mobiliario → contenedor → contenido
   - catálogo conceptual de instalaciones, acabados y estructura
   - variación por época constructiva
+  - cuatro programas iniciales de edificio del primer catálogo implementable
 depends_on: []
 related:
   - CAT-001
   - CAT-003
+  - CAT-004
   - WLD-005
+  - WLD-011
   - SET-007
   - ARC-005
 ---
@@ -153,7 +156,52 @@ azulejos, chapa, aislamiento, canalones, escaleras, barandillas. Recuperar
 acabados reduce la habitabilidad del edificio (ver
 [SET-007](../40-settlement/SET-007_building-exploitation-reuse-and-demolition.md)).
 
-### 3.8 Materiales estructurales (capa 5)
+### 3.8 Cuatro programas iniciales de edificio (`DESIGN-008`)
+
+Los cuatro edificios del primer catálogo implementable
+([CAT-004](CAT-004_initial-semantic-place-slice.md)) no usan planos
+totalmente fijos: cada programa declara estancias obligatorias,
+estancias opcionales, rangos o variación razonable, relaciones de
+adyacencia y circulación, accesos exteriores compatibles, mobiliario,
+contenedores e instalaciones plausibles, historia y condición variables,
+y los límites físicos de su huella. La colocación procedural de sus
+accesos exteriores es responsabilidad de
+[WLD-011 §3.3](../20-world/WLD-011_openings-access-and-connectivity.md#33-colocación-procedural-coherente),
+que esta sección no repite.
+
+**Casa familiar mediana (`RES-10`).** Base obligatoria: acceso o
+distribuidor; salón o espacio común; cocina; baño; al menos dos
+dormitorios; almacenamiento doméstico. Opcionales según huella, época y
+hogar: dormitorio adicional; comedor separado; despensa; lavadero;
+estudio; garaje; trastero; sótano o terraza cuando proceda.
+
+**Cabaña (`RES-17`).** Base obligatoria: estancia principal o espacio
+multifunción; solución de cocina; espacio de descanso; almacenamiento
+mínimo. Opcionales: pequeño dormitorio separado; baño o solución de
+saneamiento; porche; cobertizo; altillo.
+
+**Supermercado pequeño (`COM-02`).** Base obligatoria: zona pública de
+venta; caja o mostrador; estanterías o expositores; almacén trasero;
+aseo; acceso de clientes; acceso de carga o servicio. Opcionales: oficina;
+cámara fría; pequeño obrador; zona de residuos; acceso secundario.
+
+**Taller mecánico (`TAL-01`).** Base obligatoria: zona de trabajo; banco y
+herramientas; almacenamiento de piezas o recambios; oficina o recepción
+mínima; aseo o vestuario; acceso personal; portón o acceso de carga
+ancho. Opcionales: elevador o foso; maquinaria adicional; patio exterior;
+almacén separado; acceso trasero; módulo de vivienda si la semilla genera
+un edificio mixto compatible.
+
+**Límite de la primera representación.** El primer catálogo soporta
+edificios de una planta activa; el modelo conserva desde el principio la
+noción de planta para no impedir varias alturas posteriormente. No se
+implementa un editor arquitectónico completo. En el horizonte futuro,
+seleccionar un edificio podrá abrir una interfaz sencilla de adaptación
+interior y asignación funcional (dormitorios, enfermería, almacén,
+taller u otros usos); asignar una función no crea materiales,
+instalaciones, saneamiento, mobiliario ni capacidad que no existan.
+
+### 3.9 Materiales estructurales (capa 5)
 
 Madera, vigas, perfiles, ladrillos, bloques, piedra, acero, ferralla, tejas,
 chapa, paneles, elementos de cubierta, hormigón reutilizable en ciertos
@@ -192,6 +240,12 @@ demolición (ver
   `Furniture`, `Container`, `Item` y `StructuralComponent` que representan
   esta jerarquía se definen en
   [ARC-005](../90-architecture/ARC-005_semantic-world-data-model.md).
+- Los cuatro programas iniciales de la sección 3.8 pertenecen a los ocho
+  perfiles del primer catálogo implementable, aprobado en
+  [CAT-004](CAT-004_initial-semantic-place-slice.md).
+- El modelo de abertura, cierre y colocación procedural de accesos que
+  completa estos programas se define en
+  [WLD-011](../20-world/WLD-011_openings-access-and-connectivity.md).
 
 ## 6. Casos límite o riesgos
 

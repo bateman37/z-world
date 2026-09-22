@@ -19,6 +19,8 @@ related:
   - WLD-006
   - WLD-007
   - WLD-008
+  - WLD-010
+  - WLD-011
   - SET-007
   - ARC-002
   - ARC-005
@@ -237,6 +239,16 @@ ocupantes, historia o saqueo: solo cambia cómo se dibuja.
 - La generación espacial del mapa local que produce el contexto, las calles
   y las parcelas de la sección 3.2 se define en
   [WLD-008](WLD-008_local-procedural-map-generation.md).
+- Esta cadena generativa es canónica para **lugares edificados**
+  (estructuras con huella y programa de estancias). Los perfiles
+  ambientales que son nodo, línea o área de terreno —agua, campo, bosque o
+  matorral, carretera— se rigen por el modelo de
+  [WLD-010](WLD-010_mutable-terrain-and-spatial-construction.md), que no
+  duplica el programa de estancias ni el grafo funcional de esta sección.
+- El grafo funcional de la sección 3.4 incorpora, como accesos
+  coherentes, las entradas y aberturas procedurales definidas en
+  [WLD-011](WLD-011_openings-access-and-connectivity.md); esta sección no
+  redefine su colocación procedural.
 
 ## 6. Casos límite o riesgos
 

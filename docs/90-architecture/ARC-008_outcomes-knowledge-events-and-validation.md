@@ -22,6 +22,10 @@ related:
   - WLD-004
   - UI-004
   - UI-006
+  - WLD-010
+  - WLD-011
+  - SET-010
+  - SET-011
   - DEC-0011
 ---
 
@@ -671,6 +675,19 @@ Se conservan en `UI-004` los estados cualitativos `Gris`, `Advertencia`,
 operativa; no se sustituyen por el número visible de la ficha (ver la
 reconciliación completa en
 [UI-004 §3.8](../80-interface/UI-004_qualitative-capability-presentation.md#38-nivel-actual-visible-en-la-ficha-reconciliado-con-p22)).
+
+### 3.15 Aplicación al entorno moldeable (`DESIGN-008`)
+
+Los resultados multidimensionales, el ruido causal y las presentaciones de
+esta sección se aplican sin excepción al despeje de terreno, la
+construcción de barreras, el ciclo agrícola, las acciones sobre accesos y
+el transporte local aprobados por
+[WLD-010](../20-world/WLD-010_mutable-terrain-and-spatial-construction.md),
+[WLD-011](../20-world/WLD-011_openings-access-and-connectivity.md),
+[SET-010](../40-settlement/SET-010_local-hauling-and-transport.md) y
+[SET-011](../40-settlement/SET-011_initial-agriculture-loop.md). Ninguno
+de esos documentos redefine resultados, eventos ni persistencia aleatoria;
+solo declaran qué se transforma y con qué causas.
 
 ## 4. Preguntas abiertas
 

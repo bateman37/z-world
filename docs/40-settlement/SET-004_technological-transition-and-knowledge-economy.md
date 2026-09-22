@@ -81,6 +81,10 @@ obligatorios para todas las partidas.
 - El modelo de fuentes, fragmentos, estados comunitarios y capacidad real
   que sustenta la investigación de esta sección se desarrolla en
   [SET-006](SET-006_knowledge-assets-and-capability.md).
+- Vehículos y animales de carga/tiro permanecen como transiciones
+  tecnológicas futuras de este documento; su horizonte máximo de métodos
+  de transporte, sin activarse en el primer catálogo, se define en
+  [SET-010 §3.3](SET-010_local-hauling-and-transport.md#33-horizonte-máximo-de-métodos).
 
 ## 6. Casos límite o riesgos
 

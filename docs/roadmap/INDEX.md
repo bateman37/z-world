@@ -23,7 +23,7 @@ convertirse en un calendario obligatorio.
 |---|---|---|
 | [RDM-001](RDM-001_first-playable-slice.md) | `deprecated` | Alcance histórico del primer corte jugable del prototipo Godot; sustituida por `RDM-003`. |
 | [RDM-002](RDM-002_long-term-capability-horizon.md) | `draft` | Mapa de capacidades futuras, sin fechas ni compromiso de versión. |
-| [RDM-003](RDM-003_simulation-first-playable-roadmap.md) | `approved` | Hoja de ruta activa de implementación del laboratorio de simulación, en incrementos pequeños y probables. |
+| [RDM-003](RDM-003_simulation-first-playable-roadmap.md) | `approved` | Hoja de ruta activa de implementación del laboratorio de simulación, en incrementos pequeños y probables. Su incremento 5 precisa, desde `DESIGN-008`, el catálogo implementable aprobado (`CAT-004`/`CAT-005`) y el mundo local moldeable (`WLD-010`/`WLD-011`/`SET-010`/`SET-011`), sin crear un incremento nuevo. |
 
 ## Dependencias con otros dominios
 

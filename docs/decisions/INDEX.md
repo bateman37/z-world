@@ -31,6 +31,7 @@ documento canónico de dominio correspondiente.
 | [DEC-0010](DEC-0010_procedural-local-and-regional-map-direction.md) | `approved` | Mapa local 2D cenital continuo con estructura técnica invisible, mapa regional futuro geográfico, geografía procedural ficticia y ausencia de mapa local automático por punto regional. |
 | [DEC-0011](DEC-0011_hybrid-resolution-engine-and-capability-presentation.md) | `approved` | Cierre transversal del motor híbrido de resolución (directo/D/B), escala real `0–10`, cooperación, modos en dos dimensiones y presentación de nivel actual/potencial oculto; cierra `P01`–`P22`. |
 | [DEC-0012](DEC-0012_first-arrival-scenario-contract.md) | `approved` | Contrato del primer escenario de llegada: por qué combina una situación fija con personas y mundo procedurales, calibre alto de la cohorte protagonista y garantías de semilla, sin guion lineal. |
+| [DEC-0013](DEC-0013_implementable-catalog-and-mutable-world.md) | `approved` | Catálogo implementable pequeño y profundo (`CAT-004`/`CAT-005`) y mundo local como realidad transformable de primera clase (`WLD-010`/`WLD-011`/`SET-010`/`SET-011`), separando alcance inicial y horizonte máximo. |
 
 ## Dependencias con otros dominios
 

@@ -15,6 +15,9 @@ related:
   - CHR-006
   - ARC-006
   - ARC-002
+  - WLD-010
+  - WLD-011
+  - CAT-005
 ---
 
 ## 1. Propósito
@@ -25,7 +28,16 @@ evalúa y transforma mediante desmontaje, desguace o demolición, y cómo esa
 transformación queda permanentemente reflejada en el mundo persistente. No
 redefine el motor de resolución ni sus modelos B/D (ver
 [ARC-006](../90-architecture/ARC-006_action-and-event-resolution-model.md));
-solo define qué se transforma y con qué reglas de coherencia.
+solo define qué se transforma y con qué reglas de coherencia. Esta
+responsabilidad se limita a **objetos completos**; la transformación
+persistente de terreno, cobertura, carreteras y estructuras lineales
+(despejar, excavar, construir una barrera) se define en
+[WLD-010](../20-world/WLD-010_mutable-terrain-and-spatial-construction.md),
+y la de aberturas y cierres instalados, en
+[WLD-011](../20-world/WLD-011_openings-access-and-connectivity.md); este
+documento no las redefine. El primer catálogo aprobado de objetos que
+este documento transforma es
+[CAT-005](../catalogs/CAT-005_initial-object-resource-and-transport-slice.md).
 
 ## 2. Principios que no deben romperse
 

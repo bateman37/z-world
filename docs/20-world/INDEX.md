@@ -30,16 +30,23 @@ estratégico) y sus reglas de relación.
 | [WLD-007](WLD-007_place-history-and-environmental-storytelling.md) | `approved` | Historia del apocalipsis por lugar, rastro ambiental y edificios memorables. |
 | [WLD-008](WLD-008_local-procedural-map-generation.md) | `approved` | Generación espacial del mapa local: perfil de pueblo pequeño de montaña, capas terreno→parcelas, presupuesto de complejidad y estructura técnica invisible. |
 | [WLD-009](WLD-009_initial-mountain-village-profile.md) | `approved` | Perfil numérico inicial del pueblo de montaña: huella `3×3 km`, presupuesto de construcciones, red viaria, agua, cobertura de terreno, puntos de interés y amenaza zombi del primer escenario. |
+| [WLD-010](WLD-010_mutable-terrain-and-spatial-construction.md) | `approved` | Entorno mutable y construcción espacial: nodo/línea/área/estructura, capas semánticas de terreno, libertad de transformación con causalidad, barrera lineal entre anclajes, red de perímetro y carretera transformable. |
+| [WLD-011](WLD-011_openings-access-and-connectivity.md) | `approved` | Aberturas, cierres y conectividad: separación abertura/cierre/modificación, colocación procedural de accesos, tapiado, ventanas/brechas y compatibilidad con carga y transporte. |
 
 `WLD-005` es canónico desde la parcela hacia el edificio semántico;
-`WLD-008` lo es desde el perfil de escenario hasta la parcela. No se
+`WLD-008` lo es desde el perfil de escenario hasta la parcela; `WLD-010`
+lo es para el terreno, la cobertura y las estructuras lineales como
+realidad moldeable; `WLD-011` lo es para la topología de accesos. No se
 duplican entre sí.
 
 ## Dependencias con otros dominios
 
 - `10-vision` (pilares que motivan las dos escalas).
 - `catalogs` (`CAT-001` a `CAT-003`, fuente de contenido para `WLD-005`;
-  `CAT-004` acota el catálogo permitido del perfil inicial de `WLD-008`).
+  `CAT-004` acota el catálogo permitido del perfil inicial de `WLD-008`;
+  `CAT-005` equipa `WLD-010`/`WLD-011` con objetos y transporte).
+- `40-settlement` (`SET-010`, `SET-011`, transporte local y agricultura
+  que actúan sobre `WLD-010`).
 - `80-interface` (`UI-005` representa el mapa que `WLD-008` genera; `UI-006`
   define la interacción contextual con sus lugares).
 - `decisions` (`DEC-0010` fija la dirección de ambas escalas).

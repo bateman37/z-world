@@ -27,6 +27,7 @@ cerradas. No es una fuente canónica de reglas.
 | [DISC-0004](DISC-0004_local-regional-maps-and-contextual-actions-traceability.md) | `draft` | Trazabilidad de `DESIGN-005`: decisiones cerradas, aclaraciones, opciones descartadas, ejemplos no normativos, preguntas abiertas y contradicciones corregidas. |
 | [DISC-0005](DISC-0005_resolution-engine-closure-traceability.md) | `draft` | Trazabilidad de `DESIGN-006`: cierre de `P01`–`P22`, acuerdos previos preservados, correcciones, fórmulas descartadas, ejemplos no normativos y preguntas de otros sistemas que siguen abiertas. |
 | [DISC-0006](DISC-0006_first-arrival-scenario-traceability.md) | `draft` | Trazabilidad de `DESIGN-007`: decisiones cerradas, elementos procedurales, invariantes, cifras de presupuesto, opciones descartadas y preguntas que permanecen abiertas del primer escenario de llegada. |
+| [DISC-0007](DISC-0007_implementable-catalog-and-mutable-world-traceability.md) | `draft` | Trazabilidad de `DESIGN-008`: decisiones `P01`–`P24` cerradas, matriz de reconciliación, interpretaciones descartadas y registro de los 76 casos de validación documental del catálogo implementable y el mundo local moldeable. |
 
 ## Dependencias con otros dominios
 

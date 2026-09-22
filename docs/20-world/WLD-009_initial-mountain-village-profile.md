@@ -14,6 +14,7 @@ depends_on:
 related:
   - WLD-005
   - WLD-002
+  - WLD-010
   - CAT-004
   - THR-001
   - SCN-003
@@ -152,19 +153,30 @@ real.
 
 ### 3.7 Relación con CAT-004
 
-Estas cifras no se interpretan como aprobación automática de
-[CAT-004](../catalogs/CAT-004_initial-semantic-place-slice.md) para la
-primera implementación:
+`DESIGN-008` aprobó
+[CAT-004](../catalogs/CAT-004_initial-semantic-place-slice.md) como
+primer catálogo implementable (ocho perfiles), pero esa aprobación no
+amplía por sí sola este presupuesto ni el alcance de una entrega de
+código concreta:
 
-- este documento describe el **mundo funcional máximo** del escenario;
-- `CAT-004` continúa siendo una propuesta `draft` de subconjunto técnico
-  inicial hasta que Dennis lo apruebe expresamente para programación;
-- un mapa de `55–85` construcciones puede reutilizar arquetipos y
-  variaciones semánticas de
+- este documento sigue describiendo el **mundo funcional máximo** del
+  escenario; `CAT-004` describe el **catálogo de contenido aprobado** para
+  una futura entrega de programación, no el mundo funcional completo de
+  este presupuesto;
+- un mapa de `55–85` construcciones puede reutilizar los ocho perfiles y
+  sus variaciones semánticas de
   [CAT-001](../catalogs/CAT-001_maximum-place-catalog.md) sin exigir
-  `55–85` clases de edificio distintas;
+  `55–85` clases de perfil distintas; el resto del presupuesto puede
+  seguir generándose con detalle diferido y perfiles todavía no
+  soportados (ver [WLD-010 §3.3](WLD-010_mutable-terrain-and-spatial-construction.md#33-identidad-estable-y-persistencia));
 - ningún lugar de este presupuesto se marca como implementado ni amplía
-  [RDM-003](../roadmap/RDM-003_simulation-first-playable-roadmap.md).
+  [RDM-003](../roadmap/RDM-003_simulation-first-playable-roadmap.md);
+- la transformación mutable del terreno, la agricultura, los accesos y el
+  transporte que actúan sobre este mapa se definen en
+  [WLD-010](WLD-010_mutable-terrain-and-spatial-construction.md),
+  [WLD-011](WLD-011_openings-access-and-connectivity.md),
+  [SET-010](../40-settlement/SET-010_local-hauling-and-transport.md) y
+  [SET-011](../40-settlement/SET-011_initial-agriculture-loop.md).
 
 ### 3.8 Amenaza zombi inicial
 
@@ -207,10 +219,13 @@ la repite ni la reinterpreta.
   rigen por
   [WLD-002](WLD-002_local-exploration-and-information.md).
 - El catálogo de arquetipos que puebla este presupuesto se rige por
-  [CAT-001](../catalogs/CAT-001_maximum-place-catalog.md); el subconjunto
-  propuesto para una primera implementación, por
-  [CAT-004](../catalogs/CAT-004_initial-semantic-place-slice.md), todavía
-  `draft`.
+  [CAT-001](../catalogs/CAT-001_maximum-place-catalog.md); el primer
+  catálogo aprobado para implementación es
+  [CAT-004](../catalogs/CAT-004_initial-semantic-place-slice.md)
+  (`approved`, ocho perfiles).
+- El modelo de nodo, línea, área y estructura que este presupuesto
+  instancia se rige por
+  [WLD-010](WLD-010_mutable-terrain-and-spatial-construction.md).
 - La amenaza zombi inicial aplicada sobre este mapa se rige por
   [SCN-003](../scenarios/SCN-003_first-day-starting-state.md) y por
   [THR-001](../60-threats/THR-001_zombie-threat-model.md).
@@ -240,6 +255,10 @@ la repite ni la reinterpreta.
   siluetas se conocen al llegar.
 - Cantidades exactas definitivas de edificios o lugares por semilla
   concreta, más allá de los rangos orientativos de este documento.
+- Qué parte de este presupuesto usa exactamente el subconjunto de
+  [CAT-004](../catalogs/CAT-004_initial-semantic-place-slice.md), ahora
+  `approved`, frente a perfiles todavía no soportados por ninguna entrega
+  de código.
 
 Ver también `docs/OPEN-QUESTIONS.md`.
 

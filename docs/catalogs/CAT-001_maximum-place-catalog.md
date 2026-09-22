@@ -10,8 +10,10 @@ related:
   - CAT-002
   - CAT-003
   - CAT-004
+  - CAT-005
   - WLD-005
   - WLD-006
+  - WLD-010
   - DISC-0003
 ---
 
@@ -37,6 +39,15 @@ lugar (ver
 - Un arquetipo listado aquí no es una promesa de que exista en una semilla
   concreta ni de que se implemente. Es un miembro válido del horizonte
   máximo.
+- «Lugar» no equivale a «edificio». Este catálogo cataloga arquetipos de
+  **estructura con huella** (edificios y construcciones con programa de
+  estancias); no agota el terreno, la cobertura vegetal, el agua sin
+  instalación ni los elementos lineales (carreteras, caminos, vallas,
+  tuberías) del mapa local, que se rigen como nodo, línea o área según el
+  modelo de
+  [WLD-010](../20-world/WLD-010_mutable-terrain-and-spatial-construction.md).
+  Un campo o una zona de bosque sin construcción alguna no necesita un ID
+  de este catálogo.
 - Muchas de las localizaciones especiales o narrativas de la familia V no
   son arquetipos base independientes: son modificadores (trait, historia,
   ocupación) aplicados sobre un tipo base de otra familia (ver sección 4 y
@@ -388,8 +399,13 @@ modificadores; queda como pregunta abierta en
 - Los ocupantes, hogares, negocios, profesiones y aficiones que dan
   coherencia al contenido de cada arquetipo se definen en
   [CAT-003](CAT-003_occupants-professions-hobbies-and-traits.md).
-- El subconjunto propuesto para la primera implementación web vive en
-  [CAT-004](CAT-004_initial-semantic-place-slice.md) (`draft`).
+- El primer catálogo implementable, aprobado por `DESIGN-008`, vive en
+  [CAT-004](CAT-004_initial-semantic-place-slice.md) (`approved`); sus
+  perfiles ambientales de terreno (no edificatorios) usan la convención
+  `ENV-*` definida allí, distinta de este catálogo.
+- Los objetos, materiales y medios de transporte que equipan el primer
+  catálogo se aprueban en
+  [CAT-005](CAT-005_initial-object-resource-and-transport-slice.md).
 - La cadena generativa que usa este catálogo (contexto, parcela, arquetipo,
   subtipo) se define en
   [WLD-005](../20-world/WLD-005_semantic-place-and-building-generation.md).

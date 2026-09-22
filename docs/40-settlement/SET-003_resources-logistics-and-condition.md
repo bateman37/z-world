@@ -15,6 +15,9 @@ related:
   - WLD-002
   - SET-004
   - SET-005
+  - SET-008
+  - CAT-005
+  - SET-010
 ---
 
 ## 1. Propósito
@@ -54,6 +57,23 @@ libera o se transforma según el resultado real.
 
 Agua y alimentos se transportan al almacén o a una instalación pertinente; no
 se convierten automáticamente en una cifra global al ser descubiertos.
+
+Esta lista de nueve recursos agregados procede del prototipo histórico
+Godot (`IMPLEMENTATION-003`) y todavía no existe en la nueva línea web.
+`DESIGN-008` reconcilia expresamente el recurso «Materiales de
+reparación»: deja de ser una pila universal capaz de reparar
+indistintamente cualquier cosa y pasa a ser, como mucho, un filtro o
+resumen visible de existencias compatibles concretas (chapa, madera y
+tablones, cableado, componentes eléctricos I, piezas mecánicas I, etc.),
+cuya fuente real son las familias logísticas de
+[SET-008](SET-008_object-model-and-logistics-families.md) y el catálogo
+inicial aprobado de
+[CAT-005](../catalogs/CAT-005_initial-object-resource-and-transport-slice.md).
+Cada solución de reparación debe declarar sus materiales y componentes
+concretos; ninguna implementación futura puede volver a tratar
+«materiales de reparación» como un recurso agregado independiente que se
+consume igual para reparar una puerta, una bomba, un frigorífico o una
+carretera.
 
 ### 3.3 Condición y deterioro
 
@@ -98,6 +118,14 @@ fuera de la primera versión.
   desarrolla en
   [SET-004](SET-004_technological-transition-and-knowledge-economy.md) y
   [SET-005](SET-005_production-web-and-infrastructure.md).
+- El modelo de objeto completo y las familias logísticas de horizonte
+  máximo se definen en
+  [SET-008](SET-008_object-model-and-logistics-families.md); el primer
+  catálogo aprobado de objetos, materiales y transporte se define en
+  [CAT-005](../catalogs/CAT-005_initial-object-resource-and-transport-slice.md).
+- El transporte local que traslada estos recursos entre origen, destino y
+  almacén se define en
+  [SET-010](SET-010_local-hauling-and-transport.md).
 
 ## 6. Casos límite o riesgos
 

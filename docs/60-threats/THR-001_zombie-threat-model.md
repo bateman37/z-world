@@ -68,6 +68,14 @@ generar ruido.
   [SCN-003](../scenarios/SCN-003_first-day-starting-state.md), sección
   3.6; es una aplicación de escenario, no una regla universal para toda
   semilla futura.
+- Los trabajos de transformación de terreno, construcción de barreras,
+  desmontaje de objetos y transporte local definidos en
+  [WLD-010](../20-world/WLD-010_mutable-terrain-and-spatial-construction.md),
+  [SET-009](../40-settlement/SET-009_disassembly-and-world-transformation.md)
+  y [SET-010](../40-settlement/SET-010_local-hauling-and-transport.md)
+  pueden producir ruido causal que interactúa con este modelo de amenaza,
+  igual que cualquier otro trabajo; esta entrega no diseña vehículos como
+  fuente de amenaza ni reabre ninguna regla de zombis ya cerrada aquí.
 
 ## 6. Casos límite o riesgos
 

@@ -84,6 +84,11 @@ edificio de forma progresiva (ver
 - La expansión puede generar tensiones sociales o narrativas (ver
   [SOC-001](../50-society/SOC-001_living-community.md) y
   [NAR-001](../70-narrative/NAR-001_emergent-narrative.md)).
+- El crecimiento físico del asentamiento se apoya en áreas, líneas
+  (barrera, perímetro), accesos y transformación de terreno definidos en
+  [WLD-010](../20-world/WLD-010_mutable-terrain-and-spatial-construction.md)
+  y [WLD-011](../20-world/WLD-011_openings-access-and-connectivity.md);
+  este documento no redefine su modelo espacial ni de conectividad.
 - La garantía concreta de refugio provisional del primer escenario y sus
   candidatos a asentamiento se definen en
   [SCN-003](../scenarios/SCN-003_first-day-starting-state.md); este

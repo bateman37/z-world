@@ -51,6 +51,73 @@ informó errores.
 
 ## Última entrega documental completada
 
+`DESIGN-008` — **catálogo implementable y mundo local moldeable** (22 de
+septiembre de 2026). Entrega **exclusivamente documental**: no se ha
+implementado código, no se ha inicializado la aplicación web, y no se ha
+tocado `src/`, `scenes/`, `tests/` ni `project.godot`. No existe todavía
+mapa, lugares, objetos, agricultura, accesos, transporte, construcción ni
+inventario reales en la nueva línea web. Aprueba el primer catálogo
+implementable del mundo local y cierra el marco funcional de un entorno
+moldeable:
+
+- **Ocho perfiles iniciales aprobados**: casa familiar mediana (`RES-10`),
+  cabaña (`RES-17`), supermercado pequeño (`COM-02`), taller mecánico
+  (`TAL-01`), fuente local de agua (`ENV-01`), campo o parcela abierta
+  (`ENV-02`), zona de bosque o matorral (`ENV-03`) y tramo de carretera o
+  camino (`ENV-04`). [CAT-004](catalogs/CAT-004_initial-semantic-place-slice.md)
+  pasa de `draft` a `approved` por decisión expresa de Dennis, nunca
+  `implemented`.
+- **Cuatro programas iniciales de edificio**, con estancias obligatorias
+  y opcionales, límite de una planta activa y sin editor arquitectónico
+  (ver [CAT-002](catalogs/CAT-002_rooms-modules-and-building-systems.md)).
+- **Entorno mutable de primera clase**: modelo de nodo, línea, área y
+  estructura, capas semánticas de terreno, libertad de transformación con
+  causalidad (no «parcelas autorizadas»), barrera lineal entre anclajes,
+  red de perímetro derivada de cierres físicos reales, y carretera
+  transformable (despejar frente a retirar su función viaria) (ver
+  [WLD-010](20-world/WLD-010_mutable-terrain-and-spatial-construction.md)).
+- **Aberturas, cierres y conectividad**: abertura, cierre instalado y
+  modificación/obstrucción como conceptos separados; colocación
+  procedural coherente de accesos; tapiado con consecuencias reales;
+  ventanas y brechas como accesos potenciales; compatibilidad de accesos
+  con carga y transporte (ver
+  [WLD-011](20-world/WLD-011_openings-access-and-connectivity.md)).
+- **Agricultura básica sin estaciones**: cadena de estados causal desde
+  terreno no preparado hasta cosechado, rendimiento causal y producción
+  localizada, primera ruta renovable de alimento sin resolver la primera
+  noche (ver [SET-011](40-settlement/SET-011_initial-agriculture-loop.md)).
+- **Objetos y materiales iniciales**: catorce familias de comportamiento,
+  cuatro objetos demostradores profundos (armario, frigorífico, bomba de
+  agua, carretilla/carro), subconjunto inicial de materiales, y fin del
+  recurso mágico «materiales de reparación» como pila universal (ver
+  [CAT-005](catalogs/CAT-005_initial-object-resource-and-transport-slice.md)).
+- **Transporte local por porte manual**: cinco métodos activos (a pulso,
+  recipiente/equipamiento personal, porte coordinado, carretilla, carro),
+  modelo de carga por peso/bulto/etiquetas, fases logísticas, puntos de
+  transferencia y selector `Auto`/método; vehículos y animales quedan
+  como horizonte documentado, no activo (ver
+  [SET-010](40-settlement/SET-010_local-hauling-and-transport.md)).
+- **Decisión y trazabilidad**: decisión transversal
+  ([DEC-0013](decisions/DEC-0013_implementable-catalog-and-mutable-world.md),
+  `approved`) y trazabilidad completa de las veinticuatro decisiones
+  `P01`–`P24`
+  ([DISC-0007](discovery/DISC-0007_implementable-catalog-and-mutable-world-traceability.md),
+  `draft`).
+- **Ampliación conceptual de `ARC-005`**: nuevas entidades candidatas
+  (`TerrainArea`, `LinearFeature`, `NaturalOrTechnicalNode`, `Anchor`,
+  `Opening`, `InstalledClosure`, `Obstruction`, `CultivationPlot`,
+  `TransportMeans`, `LoadBundle`, `TransferPoint`,
+  `PersistentTerrainChange`), sin fijar tablas ni clases finales.
+- **Estados documentales**: `CAT-005`, `WLD-010`, `WLD-011`, `SET-010`,
+  `SET-011` y `DEC-0013` nacen `approved`. `DISC-0007` nace `draft`.
+  `SET-008` y `SET-009` permanecen `draft` en su horizonte máximo
+  todavía abierto, con el recorte aprobado enlazado desde `CAT-005`.
+  `RDM-003` permanece `approved` y no ejecutado, con su incremento 5
+  precisado sin crear un incremento nuevo. `RDM-001` permanece
+  `deprecated`. **Ningún documento pasa a `implemented`.**
+
+## Entrega documental previa
+
 `DESIGN-007` — **primer escenario real, cohorte protagonista y pueblo de
 llegada** (22 de septiembre de 2026). Entrega **exclusivamente
 documental**: no se ha implementado código, no se ha inicializado la
@@ -140,7 +207,7 @@ nueva línea Node.js/TypeScript sigue sin inicializar.
 Ver la trazabilidad completa en
 [DISC-0006](discovery/DISC-0006_first-arrival-scenario-traceability.md).
 
-## Entrega documental previa
+## Entrega documental anterior
 
 `DESIGN-006` — **cierre del motor de simulación, resolución y presentación
 de capacidades** (21 de septiembre de 2026). Entrega **exclusivamente
@@ -209,7 +276,7 @@ descrita en las entregas de código previas.
 Ver la trazabilidad completa en
 [DISC-0005](discovery/DISC-0005_resolution-engine-closure-traceability.md).
 
-## Entrega documental anterior
+## Entrega documental precedente
 
 `DESIGN-005` — **mapas local y regional, generación procedural, equipos e
 interacción contextual** (21 de septiembre de 2026). Entrega
@@ -263,7 +330,7 @@ selector `Auto / 1 / 2 / 3 / 4` no es la escala `Nunca/1–5`.
 **El mapa regional no entra en el roadmap activo**: `RDM-003` gana una
 sección 3.3 que lo declara horizonte futuro sin fecha.
 
-## Entrega documental precedente
+## Entrega documental previa a `DESIGN-005`
 
 Consolidación documental del **motor de acciones/trabajos/eventos**, el
 **catálogo de horizonte máximo de personaje** (nueve características, 34
@@ -660,6 +727,63 @@ ocho demostradores desaparecidos) y añade seis:
 
 Las validaciones de `IMPLEMENTATION-001` e `IMPLEMENTATION-002` quedaron en
 su momento como **NOT RUN** por la misma razón.
+
+## Validaciones documentales de `DESIGN-008`
+
+Entrega documental: no hay suite ejecutable aplicable y no se instalaron
+herramientas. Se ejecutaron comprobaciones acotadas:
+
+- confirmación de que `DESIGN-007` estaba fusionado en `main` antes de
+  crear la rama, y de que `CAT-004` seguía `draft` y `RDM-003` seguía
+  siendo la hoja de ruta activa;
+- recuento y verificación de los ocho perfiles exactos de `CAT-004`, con
+  solo cuatro programas de edificio;
+- búsqueda de usos de «lugar» como sinónimo universal de edificio en los
+  documentos nuevos y modificados;
+- verificación de que terreno, carretera y bosque declaran acciones
+  propias en `WLD-010` y no aparecen como fondo visual en ningún ejemplo;
+- verificación de que la agricultura básica queda dentro del recorte y
+  las estaciones fuera, y de que la cosecha permanece localizada hasta
+  transportarse;
+- verificación de que despejar una carretera y retirar su función viaria
+  se documentan como acciones distintas;
+- revisión de barrera, anclajes, perímetro y cruce de carretera, y de que
+  «cerrado» nunca se presenta como sinónimo de «seguro»;
+- verificación de que abertura, cierre y modificación son conceptos
+  separados en todos los ejemplos de `WLD-011`, y de que retirar una
+  puerta nunca elimina el hueco;
+- verificación de que crear nuevos huecos queda como horizonte, no como
+  herramienta CAD de esta entrega;
+- comprobación de los cinco métodos activos de transporte y de que
+  animales y vehículos permanecen en horizonte sin activarse;
+- comprobación del modelo de carga por peso, bulto y etiquetas, y de que
+  el selector de método nunca se confunde con prioridad, equipo, ritmo ni
+  atención;
+- verificación de que «materiales de reparación» deja de describirse como
+  pila universal en `SET-003` y en `CAT-005`, y de que `SET-008`/`SET-009`
+  conservan su horizonte `draft` sin perder contenido;
+- verificación de que el mismo procedimiento de `ARC-006`–`ARC-008` queda
+  enlazado, sin fórmulas redefinidas, desde `WLD-010`, `WLD-011`,
+  `SET-010` y `SET-011`;
+- comprobación de que `RDM-003` solo precisa su incremento 5 existente,
+  sin incremento nuevo, fecha ni cambio de estado, y de que `RDM-001`
+  sigue `deprecated` sin reactivarse;
+- comprobación de que `CAT-004`, `CAT-005`, `WLD-010`, `WLD-011`,
+  `SET-010`, `SET-011` y `DEC-0013` quedan `approved` y `DISC-0007`
+  `draft`, y de que ningún documento pasa a `implemented`;
+- revisión de enlaces y cabeceras `depends_on`/`related` de los
+  documentos nuevos y modificados, incluida la convención de IDs `ENV-*`;
+- comprobación de que los índices de `catalogs`, `20-world`,
+  `40-settlement`, `decisions`, `discovery`, `90-architecture`,
+  `80-interface` y `roadmap` incluyen los documentos nuevos con ID,
+  estado y propósito correctos;
+- comprobación de que `docs/OPEN-QUESTIONS.md` retira exactamente las
+  preguntas cerradas por esta entrega y conserva explícitamente las de
+  parametrización numérica y técnica;
+- comprobación de que no se ha modificado código ni configuración
+  ejecutable (`src/`, `scenes/`, `tests/`, `project.godot` intactos), ni
+  añadido dependencias de Node.js/TypeScript/Next.js/Prisma/PostgreSQL;
+- `git diff --check`, sin errores.
 
 ## Validaciones documentales de `DESIGN-007`
 
