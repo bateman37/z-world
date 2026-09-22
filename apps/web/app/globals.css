@@ -1,0 +1,87 @@
+:root {
+  --z-bg: #14181c;
+  --z-panel: #1c2226;
+  --z-panel-border: #2c3439;
+  --z-text: #e7ebee;
+  --z-text-muted: #9aa5ac;
+  --z-accent: #4f9d7c;
+  --z-accent-strong: #6fc79a;
+  --z-warning: #d9a441;
+  --z-danger: #d9615a;
+  --z-focus: #7fb3ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--z-bg);
+  color: var(--z-text);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+}
+
+button,
+select,
+input {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+button {
+  background: var(--z-panel);
+  border: 1px solid var(--z-panel-border);
+  color: var(--z-text);
+  border-radius: 4px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--z-accent);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--z-focus);
+  outline-offset: 2px;
+}
+
+a {
+  color: var(--z-accent-strong);
+}
+
+.z-panel {
+  background: var(--z-panel);
+  border: 1px solid var(--z-panel-border);
+  border-radius: 6px;
+}
+
+.z-muted {
+  color: var(--z-text-muted);
+}
+
+.z-scroll {
+  overflow-y: auto;
+}
+
+.z-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  border: 1px solid var(--z-panel-border);
+}

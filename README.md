@@ -5,17 +5,18 @@ tras un apocalipsis zombi, con narrativa procedural emergente: cada partida
 genera su propia historia a partir de sistemas conectados, no de una
 secuencia fija de misiones.
 
-## Estado actual (`DESIGN-004`)
+## Estado actual (`WEB-001`)
 
-`DESIGN-004` reinicia la **línea técnica activa** de Z-World: pasa del
+`DESIGN-004` reinició la **línea técnica activa** de Z-World: del
 prototipo 3D en Godot a un laboratorio de simulación web centrado en
-mecánicas (Node.js, TypeScript, Next.js, PostgreSQL). Esta entrega es
-**exclusivamente documental**: formaliza arquitectura, reloj continuo,
-trabajo por fases, mapa 2D cenital con niebla, generador procedural
-semántico de lugares y catálogo máximo de contenido. **Todavía no existe
-ninguna aplicación Node.js/Next.js inicializada, ni código, ni pruebas
-ejecutables de esta nueva línea.** Ver el estado detallado en
-[docs/STATUS.md](docs/STATUS.md) y la hoja de ruta activa en
+mecánicas (Node.js, TypeScript, Next.js, PostgreSQL). `WEB-001` es la
+**primera entrega ejecutable** de esa línea: existe una aplicación Next.js
+real, con núcleo de simulación TypeScript puro, un Web Worker que ejecuta
+la simulación, persistencia PostgreSQL/Prisma real desde el primer
+arranque, seis protagonistas procedurales con ficha completa, y un mapa
+local Canvas 2D con niebla y movimiento directo. Ver las instrucciones de
+arranque en «Instalación y arranque de la línea web» más abajo, el estado
+detallado en [docs/STATUS.md](docs/STATUS.md) y la hoja de ruta activa en
 [docs/roadmap/RDM-003_simulation-first-playable-roadmap.md](docs/roadmap/RDM-003_simulation-first-playable-roadmap.md).
 
 `DESIGN-005`, también exclusivamente documental, consolida sobre esa línea
@@ -39,14 +40,35 @@ de GitHub, pero no fue aceptada manualmente por Dennis ni fusionada a
 
 ## Tecnología
 
-### Línea activa (laboratorio de simulación, todavía sin inicializar)
+### Línea activa (laboratorio de simulación, inicializada desde `WEB-001`)
 
-Node.js LTS, TypeScript estricto, Next.js + React, núcleo de simulación
-TypeScript puro, PostgreSQL con Prisma, Zod y Vitest. Ver
+Node.js LTS (probado en Node 22), TypeScript estricto, Next.js 14 + React
+18, núcleo de simulación TypeScript puro ejecutado en un Web Worker,
+PostgreSQL con Prisma 5, Zod, Vitest y Playwright. Ver
 [DEC-0008](docs/decisions/DEC-0008_simulation-first-web-architecture.md) y
-[ARC-004](docs/90-architecture/ARC-004_simulation-core-runtime-and-boundaries.md).
-Ningún archivo de este stack (`package.json`, configuración de Next.js,
-esquema de Prisma, etc.) existe todavía en el repositorio.
+[DEC-0014](docs/decisions/DEC-0014_web-runtime-foundation-and-initial-simulation-contracts.md).
+
+## Instalación y arranque de la línea web
+
+```sh
+npm install
+cp .env.example .env            # ajusta DATABASE_URL a tu PostgreSQL local
+npm run db:migrate               # aplica las migraciones de Prisma
+npm run dev                      # arranca apps/web en http://localhost:3000
+```
+
+Requiere una instancia de PostgreSQL accesible localmente (sin Docker,
+según `DEC-0014`); si no está disponible, la aplicación muestra un error
+de configuración explícito en vez de crear una partida volátil. Scripts
+raíz relevantes:
+
+- `npm run build` — compila y tipa `apps/web` (`next build`).
+- `npm run lint` — ESLint sobre `packages/*` y `next lint` sobre `apps/web`.
+- `npm run typecheck` — `tsc --noEmit` en las seis partes del monorepo.
+- `npm test` — pruebas unitarias (Vitest), sin PostgreSQL.
+- `npm run test:integration` — pruebas de integración reales contra
+  `TEST_DATABASE_URL`.
+- `npm run test:e2e` — recorrido E2E (Playwright) contra un servidor real.
 
 ### Prototipo histórico (Godot, ya no es la línea activa)
 
@@ -187,12 +209,13 @@ efecto sobre la línea activa.
 
 ## Próximo trabajo de implementación
 
-La hoja de ruta activa tras `DESIGN-004` es
-[docs/roadmap/RDM-003_simulation-first-playable-roadmap.md](docs/roadmap/RDM-003_simulation-first-playable-roadmap.md):
-inicialización técnica del laboratorio de simulación web, reloj continuo
-con seis personas, mapa cenital con niebla, trabajos y recursos, generador
-semántico inicial, y ampliación progresiva en incrementos pequeños. No se
-ha iniciado ninguna de sus entregas de implementación.
+`WEB-001` completó los tres primeros incrementos de
+[docs/roadmap/RDM-003_simulation-first-playable-roadmap.md](docs/roadmap/RDM-003_simulation-first-playable-roadmap.md)
+(fundación técnica, reloj/cohorte/estado operativo, mapa cenital con
+niebla y movimiento). El siguiente incremento es el primer bucle causal
+completo (explorar → descubrir → trabajar → recoger → transportar →
+cubrir una necesidad): trabajos por fases, prioridades efectivas y
+recursos localizados básicos. No se ha iniciado.
 
 El roadmap histórico del prototipo Godot,
 [docs/roadmap/RDM-001_first-playable-slice.md](docs/roadmap/RDM-001_first-playable-slice.md),

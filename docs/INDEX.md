@@ -56,7 +56,8 @@ que necesitas y lee solo eso y sus dependencias declaradas.
   `20-world/WLD-008`, `80-interface/UI-005` y `80-interface/UI-006`, y
   revisa `decisions/DEC-0010`.
 - **Cambio técnico/arquitectura**: lee `90-architecture/` y las decisiones en
-  `decisions/` (línea activa: `DEC-0008`).
+  `decisions/` (línea activa: `DEC-0008`; fundación del runtime web,
+  paquetes, Worker y persistencia: `DEC-0014`).
 - **Cambio de lugares, edificios o saqueo procedural**: lee
   `20-world/WLD-005` a `WLD-007`, `40-settlement/SET-007` y `catalogs/`.
 - **Cambio de terreno moldeable, accesos, transporte local o agricultura**:

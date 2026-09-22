@@ -1,0 +1,38 @@
+/** Bolsas de nombres para generación procedural no estereotipada. */
+export const FIRST_NAMES: readonly string[] = [
+  "Marta",
+  "Diego",
+  "Lucía",
+  "Hassan",
+  "Elena",
+  "Javier",
+  "Noor",
+  "Bruno",
+  "Aitana",
+  "Kofi",
+  "Sara",
+  "Mateo",
+  "Wei",
+  "Carmen",
+  "Iker",
+  "Fatima",
+];
+
+export const LAST_NAMES: readonly string[] = [
+  "Rivas",
+  "Molina",
+  "Okafor",
+  "Bertrán",
+  "Lindqvist",
+  "Domínguez",
+  "Haddad",
+  "Serra",
+  "Varela",
+  "Nakamura",
+  "Ibáñez",
+  "Correa",
+  "Salem",
+  "Otero",
+  "Vidal",
+  "Marín",
+];

@@ -6,13 +6,17 @@ real del proyecto. No sustituye a las fuentes canónicas: para reglas, consulta
 
 ## Fase actual
 
-`DESIGN-004` reinicia la **línea técnica activa** de Z-World: de un
+`DESIGN-004` reinició la **línea técnica activa** de Z-World: de un
 prototipo 3D en Godot a un laboratorio de simulación web centrado en
 mecánicas (Node.js, TypeScript, Next.js, PostgreSQL; ver
-[DEC-0008](decisions/DEC-0008_simulation-first-web-architecture.md)). Esta
-entrega es **exclusivamente documental**: no existe todavía ninguna
-aplicación Node.js/Next.js inicializada, ni código, ni pruebas ejecutables
-de la nueva línea. La hoja de ruta activa de implementación es
+[DEC-0008](decisions/DEC-0008_simulation-first-web-architecture.md)).
+`WEB-001` es la **primera entrega ejecutable** de esa línea: existe una
+aplicación Next.js real, con núcleo de simulación TypeScript, persistencia
+PostgreSQL/Prisma real y un Web Worker que ejecuta la simulación, probada
+en navegador (Chromium) contra un servidor de producción real. Ver
+[DEC-0014](decisions/DEC-0014_web-runtime-foundation-and-initial-simulation-contracts.md)
+y la sección «Última entrega de código (línea activa)» más abajo. La hoja
+de ruta activa de implementación es
 [RDM-003](roadmap/RDM-003_simulation-first-playable-roadmap.md).
 
 El prototipo histórico Godot queda preservado íntegro, sin más desarrollo
@@ -451,6 +455,57 @@ no se amplió `RDM-001` y `CHR-005`/`RDM-002` siguen `draft`. Ver
 [SET-006](40-settlement/SET-006_knowledge-assets-and-capability.md) y
 [DEC-0007](decisions/DEC-0007_layered-work-and-priorities.md).
 
+## Última entrega de código (línea activa Node.js/TypeScript)
+
+`WEB-001` — fundación web, cohorte protagonista y mapa local operativo (22
+de septiembre de 2026): primera entrega ejecutable de la línea activa,
+agrupando deliberadamente base técnica, runtime/reloj/persistencia real,
+cohorte procedural y mapa local Canvas 2D en una sola entrega coherente
+(ver
+[DEC-0014](decisions/DEC-0014_web-runtime-foundation-and-initial-simulation-contracts.md)).
+**Completada técnicamente y probada en navegador real**; pendiente de
+aceptación manual por Dennis (ver «Aceptación manual pendiente»).
+
+- Monorepo `npm workspaces` con cinco capas (`packages/contracts`,
+  `packages/catalogs`, `packages/simulation-core`, `packages/persistence`,
+  `packages/application`) y `apps/web` (Next.js/React/Canvas).
+- Núcleo TypeScript puro: PRNG `mulberry32` determinista con streams por
+  dominio, reloj continuo (Día 1 · 17:30, pausa/×1/×2/×4/×10, un día =
+  20 min reales a ×1), generación determinista de seis protagonistas
+  (calibre oculto 5/4+/4+/3+/3+/3+, cobertura colectiva estructural, red
+  de relaciones de `SCN-002`), fixture procedural determinista del sector
+  de llegada, rejilla de navegación con A* determinista y niebla de tres
+  estados.
+- Persistencia PostgreSQL/Prisma real desde el primer arranque:
+  `GameSave`/`SimulationSnapshot`/`DomainEventRecord`, creación atómica de
+  partida, revisión optimista (rechazo explícito de revisión obsoleta,
+  sin fusión silenciosa), carga con validación de esquema (error
+  explícito ante snapshot corrupto/incompatible, nunca regeneración por
+  semilla).
+- Web Worker real como runtime activo: posee el estado autoritativo,
+  aplica comandos mediante el núcleo puro, emite proyecciones sin datos
+  ocultos (nunca calibre ni potencial numérico real) y pide a la
+  orquestación que persista sin importar Prisma.
+- Next.js: inicio con crear/continuar partida, pantalla de juego con
+  reloj, seis fichas de protagonista completas (características,
+  habilidades, frase cualitativa de potencial, prioridades editables,
+  biografía, relaciones, pertenencias), Canvas con cámara (pan/zoom
+  centrado en cursor, HiDPI), niebla, movimiento directo con «Moverse
+  aquí», registro operacional y estados de guardado visibles
+  (guardado/pendiente/guardando/error/conflicto de revisión).
+- 45 pruebas unitarias/integración (vitest, las de integración contra
+  PostgreSQL real) y 2 pruebas E2E (Playwright, Chromium real, servidor de
+  producción real) en verde. Detalle completo en «Validaciones de
+  `WEB-001`» más abajo.
+
+No implementa: el primer bucle causal completo (explorar → descubrir →
+trabajar → recoger → transportar → cubrir una necesidad), designaciones de
+trabajo, necesidades que decaigan, sistema general de objetos, transporte
+de cargas, generación semántica completa, interiores/edificios editables,
+agricultura, amenazas, autonomía, aprendizaje ni narrativa dinámica; todo
+ello permanece fuera de alcance y sin fecha, según
+[RDM-003](roadmap/RDM-003_simulation-first-playable-roadmap.md).
+
 ## Última entrega de código (prototipo histórico Godot)
 
 Estas entregas pertenecen al prototipo Godot, ya no es la línea activa de
@@ -507,14 +562,16 @@ jugable. Ver
 
 ## Tecnología aprobada
 
-### Línea activa (laboratorio de simulación, sin inicializar todavía)
+### Línea activa (laboratorio de simulación, inicializada desde `WEB-001`)
 
-Node.js LTS, TypeScript estricto, Next.js + React, núcleo de simulación
-TypeScript puro, PostgreSQL desde el inicio con Prisma aislado detrás de la
-persistencia, Zod para contratos de frontera y Vitest para pruebas
-acotadas del motor (ver
-[DEC-0008](decisions/DEC-0008_simulation-first-web-architecture.md)).
-Ningún archivo de este stack existe todavía en el repositorio.
+Node.js LTS (probado en Node 22), TypeScript estricto, Next.js 14 (App
+Router) + React 18, núcleo de simulación TypeScript puro, PostgreSQL desde
+el inicio con Prisma 5 aislado detrás de la persistencia, Zod para
+contratos de frontera, Vitest para pruebas unitarias/integración y
+Playwright para el recorrido E2E (ver
+[DEC-0008](decisions/DEC-0008_simulation-first-web-architecture.md) y
+[DEC-0014](decisions/DEC-0014_web-runtime-foundation-and-initial-simulation-contracts.md)).
+Versiones exactas fijadas en `package-lock.json`.
 
 ### Prototipo histórico (Godot, ya no es la línea activa)
 
@@ -532,10 +589,32 @@ Detalle en [ARC-001](90-architecture/ARC-001_technical-direction.md) y
 
 ## Funcionalidad realmente implementada en la línea activa (Node.js/TypeScript)
 
-Ninguna. `DESIGN-004` y `DESIGN-005` son exclusivamente documentales: no
-existe aplicación Next.js, núcleo de simulación TypeScript, esquema
-PostgreSQL/Prisma, mapa Canvas 2D, generador espacial, pathfinding, niebla,
-ficha contextual, selector de equipo ni prueba Vitest en el repositorio.
+Desde `WEB-001`:
+
+- Monorepo `npm workspaces` (`apps/web`, `packages/contracts`,
+  `packages/catalogs`, `packages/simulation-core`, `packages/persistence`,
+  `packages/application`), con importaciones prohibidas hacia el núcleo
+  verificadas por la propia estructura de dependencias del build.
+- Aplicación Next.js (App Router) real: `npm run dev` la arranca; `npm run
+  build` compila y tipa las cinco capas.
+- Núcleo de simulación TypeScript puro con PRNG determinista, reloj
+  continuo, generación de cohorte, reductor de comandos, avance de
+  movimiento, fixture espacial, navegación A* y niebla.
+- Esquema PostgreSQL/Prisma real, con una migración inicial versionada y
+  repositorio con revisión optimista.
+- Web Worker real (`apps/web/workers/simulation.worker.ts`) ejecutando el
+  protocolo de `packages/application`.
+- Mapa Canvas 2D con cámara, niebla y movimiento directo; ficha de persona
+  completa; registro operacional; estados de guardado visibles.
+- 45 pruebas Vitest (unitarias e integración real contra PostgreSQL) y 2
+  pruebas Playwright E2E, todas en verde en la última ejecución registrada
+  (ver «Validaciones de `WEB-001`»).
+
+No implementa todavía: generador semántico completo (sigue usando el
+fixture determinista del sector de llegada), selector de equipo/trabajo
+contextual de `UI-006`, sistema de objetos, trabajos designables ni
+ninguna de las capacidades listadas como fuera de alcance en
+[RDM-003](roadmap/RDM-003_simulation-first-playable-roadmap.md).
 
 ## Funcionalidad realmente implementada en el prototipo histórico Godot
 
@@ -658,9 +737,12 @@ posteriores de `RDM-001`.
   (`SCN-001`, `SCN-002`, `SCN-003`), perfil numérico inicial del pueblo de
   montaña (`WLD-009`), hoja de ruta activa (`RDM-003`), catálogo máximo de
   lugares, estancias/instalaciones y ocupantes/profesiones/aficiones/rasgos
-  como horizonte de referencia (`CAT-001` a `CAT-003`), decisiones
-  `DEC-0002` a `DEC-0012` (`DEC-0001` es `deprecated`), sistema documental
-  (`DOC-001`).
+  como horizonte de referencia (`CAT-001` a `CAT-003`), primer catálogo
+  implementable de lugares y de objetos/recursos/transporte (`CAT-004`,
+  `CAT-005`), entorno mutable, aberturas/conectividad, transporte local y
+  ciclo agrícola inicial (`WLD-010`, `WLD-011`, `SET-010`, `SET-011`),
+  decisiones `DEC-0002` a `DEC-0014` (`DEC-0001` es `deprecated`), sistema
+  documental (`DOC-001`).
 - **Borrador (`draft`)**: síntesis de descubrimiento (`DISC-0001`,
   `DISC-0002`), trazabilidad del generador procedural de lugares
   (`DISC-0003`), trazabilidad de mapas local y regional e interacción
@@ -668,7 +750,7 @@ posteriores de `RDM-001`.
   resolución y capacidades (`DISC-0005`), trazabilidad del primer
   escenario de llegada (`DISC-0006`), horizonte configurable de
   amenazas (`THR-002`), horizonte de capacidades a largo plazo
-  (`RDM-002`), propuesta de subconjunto inicial de lugares (`CAT-004`),
+  (`RDM-002`),
   potencial oculto, calibre oculto y adaptación al apocalipsis (`CHR-007`,
   con el catálogo de frases de potencial, el nivel actual visible y la
   distribución mínima de calibre de la cohorte protagonista de `SCN-001`
@@ -699,7 +781,55 @@ posteriores de `RDM-001`.
   protagonista, el refugio provisional, el presupuesto del mapa, la
   amenaza inicial y las garantías de semilla de `SCN-002`, `SCN-003` y
   `WLD-009` son diseño documental, sin generador, personajes, mapa,
-  inventario ni zombis reales en código.
+  inventario ni zombis reales en código. `WEB-001` es la primera entrega
+  con código real de la línea activa, pero tampoco marca ningún documento
+  de dominio como `implemented`: construye solo el subconjunto descrito en
+  «Última entrega de código (línea activa)» de `CHR-006`, `UI-003`,
+  `UI-005`, `ARC-004` y `SCN-001`/`SCN-002`/`SCN-003`, no su alcance
+  íntegro (el generador semántico completo, el motor de resolución de
+  `ARC-006`–`ARC-008`, el sistema de objetos y el primer bucle causal
+  siguen sin implementar).
+
+## Validaciones de `WEB-001`
+
+Todas ejecutadas realmente en el entorno de implementación, no simuladas:
+
+- `npm install` — resuelve el monorepo completo (`apps/web` + 5 paquetes).
+- `npm run typecheck` — `tsc --noEmit` en las 6 partes del monorepo: **sin
+  errores**.
+- `npm run lint` — ESLint (paquetes) + `next lint` (apps/web): **sin
+  avisos**.
+- `npm test` (vitest, unidad) — **45 pruebas, 45 en verde**: PRNG/reloj,
+  garantías de cohorte (calibre, cobertura, relaciones) en 50 semillas,
+  movimiento/pathfinding/fog, protocolo de Worker.
+- `npm run test:integration` (vitest contra PostgreSQL real, base
+  `zworld_test`) — **7 pruebas, 7 en verde**: creación atómica, carga,
+  revisión optimista, conflicto de revisión, movimiento persistido a
+  mitad de ruta, snapshot corrupto/incompatible, rollback transaccional.
+- `npx prisma migrate deploy` — aplica la migración inicial desde base
+  vacía, tanto en `zworld` como en `zworld_test`.
+- `npm run build` (`next build`) — compila y tipa `apps/web`: **éxito**,
+  4 páginas generadas.
+- `npx playwright test` (Chromium real, preinstalado en el entorno,
+  contra `next start` real y PostgreSQL real) — **2 pruebas E2E, 2 en
+  verde**: recorrido crítico completo (crear partida con semilla fija,
+  seis tarjetas, reloj en Día 1 · 17:30, ficha sin calibre/potencial
+  numérico visible, pausa/×2, movimiento directo con «Moverse aquí»,
+  cambio de prioridad, guardado, recarga con continuidad exacta de
+  cohorte y prioridad) y conflicto de revisión entre dos pestañas sobre
+  la misma partida.
+- `git diff --check` — sin errores de espacio en blanco.
+- Búsqueda de `Math.random` en `packages/simulation-core` y
+  `packages/catalogs`: sin resultados.
+- Búsqueda de referencias a `src/`, `scenes/`, `project.godot` o
+  extensiones `.gd`/`.tscn`/`.tres` en `apps/` y `packages/`: sin
+  resultados (ninguna importación cruza hacia el prototipo Godot).
+
+No se pudo ejecutar en este entorno: comprobación manual en un segundo
+navegador/sistema operativo distinto del Chromium preinstalado (fuera del
+alcance de esta entrega; el guion de aceptación manual completo queda
+documentado en `prompts/WEB-001_web-foundation-cohort-local-map.md` §21
+para que Dennis lo repita).
 
 ## Validaciones automatizadas de `IMPLEMENTATION-003`
 
@@ -882,8 +1012,17 @@ Godot en el entorno de implementación (ver sección de validaciones de
 
 ## Aceptación manual pendiente
 
-Todas estas aceptaciones corresponden al prototipo histórico Godot, ya no
-es la línea activa de código.
+`WEB-001` — completada técnicamente y probada en navegador (Chromium)
+contra un servidor de producción real y PostgreSQL real, pero **la
+aceptación manual de Dennis sigue pendiente**. El guion completo de
+comprobación manual (instalación, semilla `web-001-acceptance`,
+reproducibilidad, cohorte, reloj/persistencia, mapa/niebla, movimiento,
+robustez ante fallo de guardado y multi-pestaña) está documentado en
+`prompts/WEB-001_web-foundation-cohort-local-map.md` §21. No se declara
+superada por el agente que implementó la entrega.
+
+El resto de estas aceptaciones corresponden al prototipo histórico Godot,
+ya no es la línea activa de código.
 
 `IMPLEMENTATION-001` fue aceptada manualmente por Dennis el 18 de septiembre
 de 2026. La aceptación manual de `IMPLEMENTATION-003` (lista de dieciocho
@@ -898,12 +1037,17 @@ mientras siga sin fusionarse.
 
 ## Próximo candidato de trabajo (no es un compromiso)
 
-Con el reinicio de línea activa de `DESIGN-004`, el siguiente candidato de
-implementación es el primer incremento de
-[RDM-003](roadmap/RDM-003_simulation-first-playable-roadmap.md):
-inicialización técnica del laboratorio de simulación web (proyecto Next.js
-local, núcleo de simulación TypeScript mínimo, conexión a PostgreSQL vía
-Prisma, reloj continuo y un primer estado visible). No se ha iniciado y
-requerirá su propio prompt de programación. «Defensa y vida propia» ya
-existe completada técnicamente para el prototipo Godot en el PR #10, pero
-no se retoma ni se porta automáticamente a la nueva línea de código.
+`WEB-001` completó los incrementos 1 a 3 de
+[RDM-003](roadmap/RDM-003_simulation-first-playable-roadmap.md)
+(fundación técnica, reloj/cohorte/estado operativo, y mapa/niebla/
+movimiento). El siguiente candidato de implementación es el primer bucle
+causal completo (explorar → descubrir → trabajar → recoger → transportar
+→ cubrir una necesidad), que corresponde al incremento 4 del roadmap:
+designaciones de trabajo con ratón, trabajos por fases, prioridades
+efectivas y recursos localizados básicos. No se ha iniciado y requerirá su
+propio prompt de programación; debe poder añadirse sin cambiar de stack,
+rehacer los seis protagonistas, sustituir el reloj, romper guardados
+existentes ni abandonar el modelo espacial ya construido en `WEB-001`.
+«Defensa y vida propia» sigue completada técnicamente para el prototipo
+Godot en su rama histórica, pero no se retoma ni se porta automáticamente
+a la nueva línea de código.

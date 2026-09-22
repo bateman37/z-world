@@ -4,6 +4,49 @@ Registra entregas documentales y de diseño de Z-World. No atribuye código ni
 funcionalidad implementada salvo que se indique explícitamente como
 `implemented` en la documentación afectada.
 
+## WEB-001 — Fundación web, cohorte protagonista y mapa local operativo
+
+Primera **entrega ejecutable** de la línea activa de código
+(Node.js/TypeScript/Next.js/PostgreSQL), agrupando deliberadamente base
+técnica, runtime/reloj/persistencia real, cohorte procedural y mapa local
+Canvas 2D en una sola entrega coherente y verificable en navegador (ver
+[DEC-0014](docs/decisions/DEC-0014_web-runtime-foundation-and-initial-simulation-contracts.md)).
+Reinicio limpio: no se copió, adaptó ni usó código, datos, constantes ni
+pruebas del prototipo Godot como fuente de implementación.
+
+- **Monorepo** `npm workspaces`: `apps/web` (Next.js/React/Canvas) y cinco
+  paquetes con dependencias unidireccionales (`contracts`, `catalogs`,
+  `simulation-core`, `persistence`, `application`).
+- **Núcleo determinista**: PRNG `mulberry32` con streams por dominio, sin
+  `Math.random`; reloj continuo (Día 1 · 17:30, pausa/×1/×2/×4/×10, un día
+  = 20 min reales a ×1); generación de seis protagonistas con calibre
+  oculto `5/4+/4+/3+/3+/3+`, cobertura colectiva estructural y red de
+  relaciones de `SCN-002`; fixture procedural determinista del sector de
+  llegada; navegación A* determinista; niebla de tres estados.
+- **Persistencia real**: PostgreSQL/Prisma desde el primer arranque,
+  snapshot versionado como fuente autoritativa, revisión optimista, sin
+  event sourcing integral.
+- **Web Worker real** como runtime activo, con protocolo tipado y
+  validado; React solo emite comandos y consume proyecciones sin datos
+  ocultos (nunca calibre ni potencial numérico real).
+- **Interfaz**: inicio con crear/continuar partida, pantalla de juego con
+  ficha completa de persona, Canvas con cámara/niebla/movimiento directo
+  («Moverse aquí»), registro operacional y estados de guardado visibles.
+- **Validación real**: 45 pruebas unitarias/integración (Vitest, las de
+  integración contra PostgreSQL real) y 2 pruebas E2E (Playwright,
+  Chromium real, servidor de producción real) en verde; `next build`,
+  `next lint` y `tsc --noEmit` en las seis partes del monorepo sin
+  errores.
+- Actualiza `docs/STATUS.md`, `docs/OPEN-QUESTIONS.md`,
+  `docs/roadmap/RDM-003`, `README.md`, `docs/20-world/WLD-008` (cierra la
+  contradicción sobre el estado de `CAT-004`) y crea
+  [DEC-0014](docs/decisions/DEC-0014_web-runtime-foundation-and-initial-simulation-contracts.md).
+
+No implementa el primer bucle causal completo, designaciones de trabajo,
+sistema de objetos, generador semántico completo, entorno mutable,
+amenazas, autonomía ni narrativa dinámica: todo permanece fuera de alcance
+según `RDM-003`.
+
 ## DESIGN-008 — Catálogo implementable y mundo local moldeable
 
 Entrega **exclusivamente documental** que convierte `CAT-004`, hasta ahora
