@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { AttentionMode, JobTarget, PaceMode, PriorityValue, SimulationStateV2, WorldPoint } from "@z-world/contracts";
+import type { AttentionMode, JobTarget, PaceMode, PriorityValue, SimulationStateV2, StorageItemRef, WorldPoint } from "@z-world/contracts";
 import { useSimulationWorkerV2, nextCommandIdV2 } from "@/lib/use-simulation-worker-v2";
 import { TopBar } from "@/components/top-bar";
 import { PersonList } from "@/components/person-list";
@@ -84,6 +84,7 @@ export function VillageScreen({
     attention?: AttentionMode;
     disassemblyScope?: "selective" | "destructive";
     confirmIrreversible?: boolean;
+    storageItem?: StorageItemRef;
   }) {
     if (!selectedPersonId) return;
     sendCommand({
@@ -97,6 +98,7 @@ export function VillageScreen({
       attention: params.attention,
       disassemblyScope: params.disassemblyScope,
       confirmIrreversible: params.confirmIrreversible,
+      storageItem: params.storageItem,
     });
   }
 

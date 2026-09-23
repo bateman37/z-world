@@ -21,8 +21,9 @@ import type {
   WorkerProjectionsV2,
   ZoneProjection,
 } from "@z-world/contracts";
-import { toSimulatedDayTime, furnitureLocation } from "@z-world/contracts";
+import { toSimulatedDayTime } from "@z-world/contracts";
 import { ACTION_METHODS_BY_KEY } from "@z-world/catalogs";
+import { buildInventoryProjection, buildObjectActionOptions, buildObjectKnowledge, derivePossessions, knownConsumableLots } from "./build-object-projections-v2.js";
 
 /**
  * Construye las proyecciones de solo lectura del runtime V2 (S3 §5.8):
@@ -174,7 +175,7 @@ function buildPersonSheetProjectionV2(state: SimulationStateV2, personId: string
     priorities: p.priorities,
     relationships: p.relationships,
     sharedEventInterpretationKey: p.sharedEventInterpretationKey,
-    possessions: p.possessions,
+    possessions: derivePossessions(state, personId),
     arrivalCondition: p.arrivalCondition,
     operationalState: p.operationalState,
     lastBlockReasonKey: p.lastBlockReasonKey,
@@ -331,16 +332,12 @@ function buildContextualActionsProjection(state: SimulationStateV2): readonly Co
     .map((r) => ({ target: { kind: "room", roomId: r.id } as JobTarget, labelKey: "target.room", blockedReasonKey: null }));
   if (registerTargets.length > 0) options.push({ actionKey: "register", labelKey: "action.register.label", targets: registerTargets });
 
-  const knownRoomIds = new Set(Object.values(state.world.rooms).filter((r) => discoveryByEntity.has(r.id)).map((r) => r.id));
-  const lotTargets = (family: "water" | "fresh_food" | "preserved_food"): ContextualActionTargetProjection[] =>
-    Object.values(state.resourceLots)
-      .filter((lot) => lot.family === family && lot.quantity > 0)
-      .filter((lot) => lot.location.kind === "carried_by_person" || resourceLotRoomKnown(state, lot, knownRoomIds))
-      .map((lot) => ({ target: { kind: "resource_lot", resourceLotId: lot.id } as JobTarget, labelKey: `resource.${lot.family}`, blockedReasonKey: lot.reservedByJobId ? "block.resource_reserved" : null }));
-
-  const drinkTargets = lotTargets("water");
+  // Consumibles conocidos (S6, ampliado en S7): los que lleva alguien —también dentro de su mochila o su
+  // cantimplora—, los de estancias con contenido registrado y los de un exterior a la vista.
+  const knowledge = buildObjectKnowledge(state);
+  const drinkTargets = knownConsumableLots(state, knowledge, ["water"]);
   if (drinkTargets.length > 0) options.push({ actionKey: "drink", labelKey: "action.drink.label", targets: drinkTargets });
-  const eatTargets = [...lotTargets("fresh_food"), ...lotTargets("preserved_food")];
+  const eatTargets = knownConsumableLots(state, knowledge, ["fresh_food", "preserved_food"]);
   if (eatTargets.length > 0) options.push({ actionKey: "eat", labelKey: "action.eat.label", targets: eatTargets });
 
   const restTargets: ContextualActionTargetProjection[] = Object.values(state.world.rooms)
@@ -348,50 +345,11 @@ function buildContextualActionsProjection(state: SimulationStateV2): readonly Co
     .map((r) => ({ target: { kind: "room", roomId: r.id } as JobTarget, labelKey: "target.room_rest", blockedReasonKey: null }));
   if (restTargets.length > 0) options.push({ actionKey: "rest", labelKey: "action.rest.label", targets: restTargets });
 
-  // Objetos y mobiliario reconocidos (S7, §15.7/§16 del prompt S7-S9): la
-  // sala que los contiene debe tener el facet `content` al menos
-  // `inspected` (revelado por `register`), igual que exige
-  // `ACTION_METHODS_BY_KEY.get("collect").requiredKnowledge`.
-  const roomOf = (location: { kind: string; roomId?: string }): string | null => (location.kind === "room" && location.roomId ? location.roomId : null);
-  const knownContentRoomIds = new Set(Object.values(state.world.rooms).filter((r) => hasFacetAtLeast(r.id, "content", RANK, 3)).map((r) => r.id));
-
-  const collectTargets: ContextualActionTargetProjection[] = Object.values(state.worldObjects)
-    .filter((o) => {
-      const roomId = roomOf(o.location);
-      return roomId !== null && knownContentRoomIds.has(roomId);
-    })
-    .map((o) => ({ target: { kind: "world_object", worldObjectId: o.id } as JobTarget, labelKey: `object.${o.variant}`, blockedReasonKey: o.ownerOrReservedByJobId ? "block.object_reserved" : null }));
-  if (collectTargets.length > 0) options.push({ actionKey: "collect", labelKey: "action.collect.label", targets: collectTargets });
-
-  const transformableTargets = (profileField: "repairProfileId" | "disassemblyProfileId"): ContextualActionTargetProjection[] => {
-    const fromObjects: ContextualActionTargetProjection[] = Object.values(state.worldObjects)
-      .filter((o) => o[profileField] !== null && (() => { const r = roomOf(o.location); return r !== null && knownContentRoomIds.has(r); })())
-      .map((o) => ({ target: { kind: "world_object", worldObjectId: o.id } as JobTarget, labelKey: `object.${o.variant}`, blockedReasonKey: null }));
-    const fromFurniture: ContextualActionTargetProjection[] = Object.values(state.furniture)
-      .filter((f) => f[profileField] !== null && (() => { const r = roomOf(furnitureLocation(f)); return r !== null && knownContentRoomIds.has(r); })())
-      .map((f) => ({ target: { kind: "furniture", furnitureId: f.id } as JobTarget, labelKey: `object.${f.variant || f.kind}`, blockedReasonKey: null }));
-    return [...fromObjects, ...fromFurniture];
-  };
-
-  const repairTargets = transformableTargets("repairProfileId");
-  if (repairTargets.length > 0) options.push({ actionKey: "repair", labelKey: "action.repair.label", targets: repairTargets });
-
-  const disassemblyTargets = transformableTargets("disassemblyProfileId");
-  if (disassemblyTargets.length > 0) {
-    options.push({ actionKey: "disassemble_selective", labelKey: "action.disassemble_selective.label", targets: disassemblyTargets });
-    options.push({ actionKey: "disassemble_destructive", labelKey: "action.disassemble_destructive.label", targets: disassemblyTargets });
-  }
+  // Objetos, contenedores e instalaciones de S7 (recoger, almacenar, retirar, reparar, desmontar,
+  // probar instalación, extraer agua): misma regla de conocimiento que el inventario localizado.
+  options.push(...buildObjectActionOptions(state, knowledge));
 
   return options;
-}
-
-function resourceLotRoomKnown(state: SimulationStateV2, lot: { readonly location: { readonly kind: string; readonly containerId?: string; readonly roomId?: string } }, knownRoomIds: ReadonlySet<string>): boolean {
-  if (lot.location.kind === "room" && lot.location.roomId) return knownRoomIds.has(lot.location.roomId);
-  if (lot.location.kind === "container" && lot.location.containerId) {
-    const container = state.containers[lot.location.containerId];
-    if (container && container.location.kind === "room") return knownRoomIds.has(container.location.roomId);
-  }
-  return false;
 }
 
 export function buildWorkerProjectionsV2(params: {
@@ -426,6 +384,7 @@ export function buildWorkerProjectionsV2(params: {
     zones: buildZonesProjection(state),
     designations: buildDesignationsProjection(state),
     contextualActions: buildContextualActionsProjection(state),
+    inventory: buildInventoryProjection(state, buildObjectKnowledge(state)),
     revision: params.revision,
   };
 }

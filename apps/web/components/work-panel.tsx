@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { AttentionMode, JobTarget, PaceMode, WorkerProjectionsV2 } from "@z-world/contracts";
+import type { AttentionMode, InventoryEntryProjection, JobTarget, PaceMode, StorageItemRef, WorkerProjectionsV2 } from "@z-world/contracts";
+import { toSimulatedDayTime } from "@z-world/contracts";
 import { copyKey } from "@z-world/catalogs";
 
 /**
@@ -33,6 +34,7 @@ export function WorkPanel({
     attention?: AttentionMode;
     disassemblyScope?: "selective" | "destructive";
     confirmIrreversible?: boolean;
+    storageItem?: StorageItemRef;
   }) => void;
   readonly onPauseJob: (jobId: string) => void;
   readonly onResumeJob: (jobId: string) => void;
@@ -50,7 +52,11 @@ export function WorkPanel({
 
   const needs = selectedPersonId ? (projections.needsByPerson[selectedPersonId] ?? []) : [];
   const selectedOption = projections.contextualActions.find((o) => o.actionKey === actionKey) ?? projections.contextualActions[0];
-  const targets = selectedOption?.targets ?? [];
+  // Almacenar (S7): solo lo que lleva la persona seleccionada o lo que está suelto junto al contenedor;
+  // lo que lleva otra persona exigiría transporte (S8), así que no se ofrece.
+  const targets = (selectedOption?.targets ?? []).filter(
+    (t) => selectedOption?.actionKey !== "store" || !t.storageItem || t.storageItem.holderPersonId === null || t.storageItem.holderPersonId === selectedPersonId,
+  );
   // Los dos métodos de desmontaje son irreversibles (§16.4 del prompt
   // S7-S9): la orden directa exige confirmación informada explícita, nunca
   // implícita por pulsar "Ordenar" una sola vez.
@@ -67,6 +73,7 @@ export function WorkPanel({
       teamPersonIds: [],
       disassemblyScope: selectedOption.actionKey === "disassemble_destructive" ? "destructive" : selectedOption.actionKey === "disassemble_selective" ? "selective" : undefined,
       confirmIrreversible: isIrreversibleAction ? irreversibleConfirmed : undefined,
+      storageItem: targets[targetIndex]?.storageItem ? { kind: targets[targetIndex]!.storageItem!.kind, id: targets[targetIndex]!.storageItem!.id } : undefined,
     });
     setIrreversibleConfirmed(false);
   }
@@ -146,7 +153,11 @@ export function WorkPanel({
               <select value={targetIndex} onChange={(e) => setTargetIndex(Number(e.target.value))}>
                 {targets.map((t, i) => (
                   <option key={i} value={i} disabled={t.blockedReasonKey !== null}>
-                    {copyKey(t.labelKey)}
+                    {t.storageItem
+                      ? selectedOption?.actionKey === "store"
+                        ? `${copyKey(t.storageItem.labelKey)} → ${copyKey(t.labelKey)}`
+                        : `${copyKey(t.storageItem.labelKey)} (en ${copyKey(t.labelKey)})`
+                      : copyKey(t.labelKey)}
                     {t.blockedReasonKey ? ` — ${copyKey(t.blockedReasonKey)}` : ""}
                   </option>
                 ))}
@@ -164,6 +175,8 @@ export function WorkPanel({
           </>
         )}
       </section>
+
+      <InventorySection entries={projections.inventory} personNames={Object.fromEntries(projections.personCards.map((c) => [c.personId, c.firstName]))} />
 
       <section>
         <h3>Trabajos</h3>
@@ -235,5 +248,49 @@ export function WorkPanel({
         </ul>
       </section>
     </aside>
+  );
+}
+
+function locationText(entry: InventoryEntryProjection, personNames: Readonly<Record<string, string>>): string {
+  const inside = entry.containerLabelKey ? ` · ${copyKey("location.container")} ${copyKey(entry.containerLabelKey)}` : "";
+  if (entry.locationKind === "carried") return `${copyKey("location.carried")} ${entry.holderPersonId ? (personNames[entry.holderPersonId] ?? "") : ""}${inside}`;
+  if (entry.locationKind === "exterior") return `${copyKey("location.exterior")}${inside}`;
+  return `${copyKey("location.room")}${inside}`;
+}
+
+function spoilText(simSeconds: number | null): string {
+  if (simSeconds === null) return "";
+  const t = toSimulatedDayTime(simSeconds);
+  return ` · se echa a perder hacia Día ${t.day}, ${String(t.hour).padStart(2, "0")}:${String(t.minute).padStart(2, "0")}`;
+}
+
+/**
+ * Inventario localizado conocido (S7, WEB-002 §6.3/§10.3): nunca una bolsa
+ * global. Cada línea dice dónde está realmente cada objeto o lote (quién
+ * lo lleva, en qué contenedor, en qué estancia registrada o en qué
+ * exterior), su estado reconocido y, para el alimento fresco, su banda de
+ * conservación calculada por el deterioro determinista del núcleo.
+ */
+function InventorySection({ entries, personNames }: { readonly entries: readonly InventoryEntryProjection[]; readonly personNames: Readonly<Record<string, string>> }) {
+  return (
+    <section aria-label="Inventario conocido">
+      <h3>Inventario conocido</h3>
+      {entries.length === 0 ? (
+        <p className="z-muted">Nada localizado todavía.</p>
+      ) : (
+        <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 2, fontSize: 12 }}>
+          {entries.map((entry) => (
+            <li key={entry.id} data-inventory-id={entry.id}>
+              <strong>{copyKey(entry.labelKey)}</strong>
+              {entry.quantity !== null ? ` ×${entry.quantity}${entry.unit === "liter" ? " L" : entry.unit === "kilogram" ? " kg" : ""}` : ""}
+              {entry.functionalStateKey ? ` — ${copyKey(entry.functionalStateKey)}` : ""}
+              {entry.freshness ? ` — ${copyKey(`freshness.${entry.freshness}`)}${entry.freshness !== "spoiled" ? spoilText(entry.spoilsAtSimSeconds) : ""}` : ""}
+              {entry.capacity ? ` — capacidad ${entry.capacity.used}/${entry.capacity.total}` : ""}
+              <div className="z-muted">{locationText(entry, personNames)}</div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
