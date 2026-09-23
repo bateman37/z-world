@@ -1686,3 +1686,88 @@ existentes ni abandonar el modelo espacial ya construido en `WEB-001`.
 «Defensa y vida propia» sigue completada técnicamente para el prototipo
 Godot en su rama histórica, pero no se retoma ni se porta automáticamente
 a la nueva línea de código.
+
+## S7 — Progreso parcial (Puerta A en curso, no cerrada)
+
+Rama `feat/web-002-s7-s9-objects-logistics-exploitation`, partiendo de
+`main` en `3b6a581` (S4-S6). Esta sesión abrió la Puerta A de
+`prompts/WEB-002_jobs-needs-semantic-world-exploitation.md` §6-§17
+(objetos, S7) pero **no la cerró**: S8 (logística/transporte) y S9
+(explotación de edificios) no han empezado. No se abre PR todavía, por
+instrucción expresa del prompt de subhitos S7-S9 («No abras PR parciales
+ni solicites permiso entre A, B y C salvo bloqueo real»). El siguiente
+trabajo continúa desde el mismo repositorio y la misma rama.
+
+**Hecho y verificado en esta sesión** (typecheck, lint, 196 tests unitarios
+—191 preexistentes + 5 nuevos— y build de `apps/web` en verde en cada
+commit):
+
+- Modelo profundo de objetos aditivo sobre las formas cerradas de
+  `DEC-0015`: `WorldObject`/`Furniture` ganan peso, bulto, volumen,
+  etiquetas de manipulación, capacidad/contenedor enlazado, funciones
+  activas/inactivas con motivo, portabilidad, perfiles de
+  reparación/desmontaje y procedencia; `Container` gana enlace a su
+  mueble/objeto anfitrión; `ResourceLot` gana calidad conocida,
+  procedencia y marca de deterioro. Compatible con snapshots V2
+  anteriores a S7 (todos los campos nuevos tienen `.default()` seguro).
+- Nuevo tipo de ubicación `on_object` y blanco de trabajo `container`
+  (`EntityLocation`/`JobTarget`, §6.3/§8.4).
+- Perfiles de reparación y desmontaje versionados en
+  `packages/catalogs/src/repair-disassembly-profiles.ts` (nunca una pila
+  universal `repair_materials`, CAT-005 §4.3) y catálogo de variantes de
+  objeto en `object-catalog.ts`.
+- Gramática de acciones `collect`/`store`/`retrieve_from_storage`/
+  `repair`/`disassemble_selective`/`disassemble_destructive` declarada en
+  `packages/catalogs/src/action-methods.ts`, con requisitos duros
+  específicos (`requires_transformation_profile`,
+  `requires_concrete_materials`, `requires_irreversible_confirmation`).
+- Motor de avance de trabajos (`advance-jobs.ts`) con fases reales
+  `collect` (mueve el objeto suelto a la persona ejecutora) y `prepare`
+  (reserva/consume materiales concretos para reparar; exige confirmación
+  informada antes de un desmontaje), más las consecuencias reales de
+  reparar/desmontar en `execute`: eventos `object_repaired`/
+  `object_disassembled`, lotes de recurso producidos con conservación de
+  masa según el perfil (selectivo conserva más que destructivo), y
+  pérdida permanente de función declarada.
+- Dos de los cuatro demostradores profundos exigidos por §15.6:
+  **armario/estantería** (jerarquía real `Furniture → Container →
+  Content`, se registra/almacena/repara/desmonta) y **frigorífico**
+  (identidad persistente, nunca refrigera sin electricidad, reparación
+  causal con componentes concretos, desmontaje selectivo en chapa,
+  cableado, componentes eléctricos I y motor eléctrico II — desmontarlo
+  elimina para siempre su función). Ambos materializados por el
+  generador (`generator/buildings.ts`, rol `bedroom`/`kitchen`).
+- Interfaz mínima funcional: el panel de trabajos ya genérico expone
+  recoger/reparar/desmontar sin código nuevo por acción, con casilla de
+  confirmación informada obligatoria antes de un desmontaje (§16.4).
+
+**Deuda honesta, explícita, sin arrastrar en silencio a S8/S9**:
+
+- Los otros dos demostradores de §15.6 (**bomba de agua**, **carretilla/
+  carro**) no tienen todavía generador ni comportamiento propio de S7
+  (la carretilla/carro ya existe como `TransportMeans` desde S2, pero sin
+  reparación/bloqueo/desmontaje reales).
+- `store`/`retrieve_from_storage` están declarados y tipados en el
+  catálogo de métodos, pero sin lógica de fase en `advance-jobs.ts` ni
+  proyección de UI: pedir esa acción hoy completaría fases sin mover
+  nada, así que deliberadamente no se expusieron en
+  `buildContextualActionsProjection` todavía.
+- No hay deterioro de alimento fresco, división/fusión de lotes, ni
+  catálogo completo de las catorce familias con variantes mínimas de
+  §15.1 (solo las variantes que el generador o las pertenencias
+  iniciales materializan hoy tienen entrada en `object-catalog.ts`).
+- `§15.7` (pertenencias iniciales completas de `SCN-003`: agua/comida por
+  persona, yesquero, botiquín, olla) sigue sin materializarse; S6 solo
+  garantizó agua/comida/luz/descanso a nivel de refugio, no por persona.
+- No hay integración PostgreSQL ni E2E nuevos para S7 todavía; solo
+  unitarios.
+- S8 (transporte físico, cinco métodos, fases logísticas, puntos de
+  transferencia) y S9 (cinco capas de edificio, accesos mutables,
+  habitabilidad, demolición) no han empezado en absoluto: ningún
+  contrato, generador ni comportamiento de S8/S9 existe todavía en esta
+  rama.
+
+Ninguna de estas líneas se declara cerrada. La continuación debe seguir
+completando la Puerta A (los dos demostradores restantes,
+`store`/`retrieve_from_storage`, deterioro, catálogo más completo) antes
+de abrir la Puerta B (S8), tal como exige el prompt de subhitos S7-S9.
