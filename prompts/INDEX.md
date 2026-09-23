@@ -19,4 +19,6 @@
 
 | [WEB-001_web-foundation-cohort-local-map.md](WEB-001_web-foundation-cohort-local-map.md) | Primera entrega ejecutable de la línea web: base técnica y fronteras de arquitectura, runtime/reloj/persistencia real, seis protagonistas procedurales con ficha, y mapa local Canvas 2D con niebla, navegación y movimiento directo. |
 
+| [WEB-002_jobs-needs-semantic-world-exploitation.md](WEB-002_jobs-needs-semantic-world-exploitation.md) | Incrementos 4+5 de RDM-003 (agrupados por decisión expresa): trabajos/prioridades/planificador/necesidades sobre `SimulationStateV2`, generador semántico del pueblo (ocho perfiles, cuatro programas de edificio), catorce familias de objetos, cinco capas de explotación de edificios, transporte, entorno mutable y agricultura básica. Entrega por subhitos; ver el plan de subhitos en `docs/decisions/DEC-0015` a medida que se registre. |
+
 Ver el protocolo de prompts futuros en [README.md](README.md).

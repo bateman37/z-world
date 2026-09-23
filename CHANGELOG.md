@@ -4,6 +4,36 @@ Registra entregas documentales y de diseño de Z-World. No atribuye código ni
 funcionalidad implementada salvo que se indique explícitamente como
 `implemented` en la documentación afectada.
 
+## WEB-002 (subhito S1) — Esqueleto de SimulationStateV2 y migración V1→V2
+
+Primer subhito de `WEB-002` (incrementos 4+5 de `RDM-003`, agrupados por
+decisión expresa), ejecutado por instrucción de Dennis de dividir la
+especificación maestra en subhitos verificables en varias sesiones (ver
+[DEC-0015](docs/decisions/DEC-0015_simulation-state-v2-skeleton-and-v1-migration.md)).
+No es una regeneración desde el prototipo Godot ni introduce ningún
+cambio visible en la aplicación jugable.
+
+- **Forma completa de `SimulationStateV2`** en `packages/contracts`:
+  ubicación única por entidad (`EntityLocation`), entidades espaciales
+  (lugares, edificios, plantas, estancias, aberturas, cierres,
+  obstrucciones, anclajes, perímetros), objetos/contenedores/recursos/
+  transporte, agricultura, historial de lugares, trabajos/designaciones/
+  reservas y necesidades — todas validadas con Zod, la mayoría con
+  colecciones vacías hasta los subhitos que las pueblan.
+- **Migración determinista V1→V2** (`migrateV1ToV2`): traducción
+  estructural del fixture y la cohorte existentes, con toda aproximación
+  registrada explícitamente en `migration.degradations`; nunca invoca el
+  generador semántico real.
+- **Invariantes relacionales** (`validateSimulationStateV2Invariants`)
+  adicionales a Zod: cantidades no negativas, contención sin ciclos ni
+  huérfanos, exclusividad de reserva, reservas referenciando trabajos
+  reales.
+- **Persistencia no destructiva** (`saveMigratedV2Snapshot`): el
+  snapshot V2 migrado se guarda como fila adicional, transaccional e
+  idempotente, sin tocar el snapshot V1 vigente.
+- 18 pruebas unitarias y 3 de integración PostgreSQL nuevas, todas en
+  verde junto con las 45 pruebas y 2 E2E ya existentes de `WEB-001`.
+
 ## WEB-001 — Fundación web, cohorte protagonista y mapa local operativo
 
 Primera **entrega ejecutable** de la línea activa de código

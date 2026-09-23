@@ -178,6 +178,56 @@ export async function saveSnapshot(
   });
 }
 
+/**
+ * Persiste el resultado de una migración V1→V2 (S1 de WEB-002, esqueleto)
+ * como un snapshot adicional, sin tocar el snapshot vigente ni la
+ * revisión de la partida: el snapshot V1 original nunca se destruye ni
+ * se sobrescribe, porque todavía es la única forma que el Worker sabe
+ * cargar (§25.1). Idempotente: si ya existe un snapshot con el mismo
+ * `reason` para esta partida, no crea uno nuevo.
+ */
+export async function saveMigratedV2Snapshot(
+  prisma: PrismaClient,
+  params: {
+    readonly gameSaveId: string;
+    readonly state: { readonly schemaVersion: number; readonly clock: { readonly elapsedSimSeconds: number } };
+    readonly reason: string;
+  },
+): Promise<{ readonly snapshotId: string; readonly created: boolean }> {
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.simulationSnapshot.findFirst({
+      where: { gameSaveId: params.gameSaveId, reason: params.reason },
+    });
+    if (existing) {
+      return { snapshotId: existing.id, created: false };
+    }
+
+    const current = await tx.gameSave.findUnique({ where: { id: params.gameSaveId } });
+    if (!current) {
+      throw new CorruptOrIncompatibleSnapshotError(params.gameSaveId, "la partida no existe.");
+    }
+
+    const highestRevision = await tx.simulationSnapshot.aggregate({
+      where: { gameSaveId: params.gameSaveId },
+      _max: { revision: true },
+    });
+    const nextRevision = (highestRevision._max.revision ?? current.revision) + 1;
+
+    const snapshot = await tx.simulationSnapshot.create({
+      data: {
+        gameSaveId: params.gameSaveId,
+        revision: nextRevision,
+        schemaVersion: params.state.schemaVersion,
+        reason: params.reason,
+        state: params.state as unknown as object,
+        simSeconds: params.state.clock.elapsedSimSeconds,
+      },
+    });
+
+    return { snapshotId: snapshot.id, created: true };
+  });
+}
+
 export async function listGames(prisma: PrismaClient): Promise<readonly GameSaveSummary[]> {
   const rows = await prisma.gameSave.findMany({
     orderBy: { lastUsedAt: "desc" },
