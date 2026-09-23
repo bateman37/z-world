@@ -285,6 +285,11 @@ function buildDesignationsProjection(state: SimulationStateV2): readonly Designa
   return Object.values(state.designations).map((d) => ({ id: d.id, kind: d.kind, cancelled: d.cancelled, generatedJobCount: d.generatedJobIds.length }));
 }
 
+/** Etiqueta de una estancia ya observada por su función visible (S7: distinguir el dormitorio de la cocina al registrar), o genérica si no tiene programa. */
+function roomLabelKey(room: { readonly programRoleKey: string | null }): string {
+  return room.programRoleKey ? `room_role.${room.programRoleKey}` : "target.room";
+}
+
 /**
  * Acciones contextuales legítimamente disponibles (§10.3 de WEB-002): una
  * acción conocida pero bloqueada aparece con motivo causal; una no
@@ -324,12 +329,12 @@ function buildContextualActionsProjection(state: SimulationStateV2): readonly Co
 
   const inspectTargets: ContextualActionTargetProjection[] = Object.values(state.world.rooms)
     .filter((r) => hasFacetAtLeast(r.id, "rooms", RANK, 2))
-    .map((r) => ({ target: { kind: "room", roomId: r.id } as JobTarget, labelKey: "target.room", blockedReasonKey: null }));
+    .map((r) => ({ target: { kind: "room", roomId: r.id } as JobTarget, labelKey: roomLabelKey(r), blockedReasonKey: null }));
   if (inspectTargets.length > 0) options.push({ actionKey: "inspect", labelKey: "action.inspect.label", targets: inspectTargets });
 
   const registerTargets: ContextualActionTargetProjection[] = Object.values(state.world.rooms)
     .filter((r) => hasFacetAtLeast(r.id, "rooms", RANK, 2))
-    .map((r) => ({ target: { kind: "room", roomId: r.id } as JobTarget, labelKey: "target.room", blockedReasonKey: null }));
+    .map((r) => ({ target: { kind: "room", roomId: r.id } as JobTarget, labelKey: roomLabelKey(r), blockedReasonKey: null }));
   if (registerTargets.length > 0) options.push({ actionKey: "register", labelKey: "action.register.label", targets: registerTargets });
 
   // Consumibles conocidos (S6, ampliado en S7): los que lleva alguien —también dentro de su mochila o su

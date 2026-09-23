@@ -54,8 +54,9 @@ export function WorkPanel({
   const selectedOption = projections.contextualActions.find((o) => o.actionKey === actionKey) ?? projections.contextualActions[0];
   // Almacenar (S7): solo lo que lleva la persona seleccionada o lo que está suelto junto al contenedor;
   // lo que lleva otra persona exigiría transporte (S8), así que no se ofrece.
+  // Retirar: igual, solo de contenedores de estancia o de la mochila de la propia persona seleccionada.
   const targets = (selectedOption?.targets ?? []).filter(
-    (t) => selectedOption?.actionKey !== "store" || !t.storageItem || t.storageItem.holderPersonId === null || t.storageItem.holderPersonId === selectedPersonId,
+    (t) => !t.storageItem || t.storageItem.holderPersonId === null || t.storageItem.holderPersonId === selectedPersonId,
   );
   // Los dos métodos de desmontaje son irreversibles (§16.4 del prompt
   // S7-S9): la orden directa exige confirmación informada explícita, nunca

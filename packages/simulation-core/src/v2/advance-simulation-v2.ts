@@ -108,10 +108,13 @@ export function advanceSimulationV2(state: SimulationStateV2, elapsedRealSeconds
     const order = currentPerson.public.activeMovementOrder;
     const distanceToAdvance = BASE_WALK_SPEED_METERS_PER_SIM_SECOND_V2 * simSecondsToAdvance;
     // Redondeo a 6 decimales (S7): lo que se persiste vuelve idéntico de PostgreSQL `jsonb` (ver `generator/round-state.ts`).
-    const travelledDistanceMeters = round6(Math.min(order.totalDistanceMeters, order.travelledDistanceMeters + distanceToAdvance));
+    // Se decide la llegada con el valor sin redondear (redondear podría dejar
+    // el recorrido a una millonésima del final y no llegar nunca).
+    const rawTravelled = Math.min(order.totalDistanceMeters, order.travelledDistanceMeters + distanceToAdvance);
+    const reachedDestination = rawTravelled >= order.totalDistanceMeters;
+    const travelledDistanceMeters = reachedDestination ? order.totalDistanceMeters : round6(rawTravelled);
     const rawPosition = pointAlongPath(order.path, travelledDistanceMeters);
     const position = { x: round6(rawPosition.x), y: round6(rawPosition.y) };
-    const reachedDestination = travelledDistanceMeters >= order.totalDistanceMeters;
 
     const previousLocation = currentPerson.location;
     const nextLocation = locationAtCheckpoint(order.locationCheckpoints, travelledDistanceMeters, position);
