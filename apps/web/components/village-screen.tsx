@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import type { PriorityValue, SimulationStateV2, WorldPoint } from "@z-world/contracts";
+import type { AttentionMode, JobTarget, PaceMode, PriorityValue, SimulationStateV2, WorldPoint } from "@z-world/contracts";
 import { useSimulationWorkerV2, nextCommandIdV2 } from "@/lib/use-simulation-worker-v2";
 import { TopBar } from "@/components/top-bar";
 import { PersonList } from "@/components/person-list";
 import { PersonSheetPanel } from "@/components/person-sheet-panel";
 import { VillageMapCanvas } from "@/components/village-map-canvas";
 import { OperationalLog } from "@/components/operational-log";
+import { WorkPanel } from "@/components/work-panel";
 
 /**
  * Laboratorio jugable del pueblo semántico V2 (S3 de WEB-002 §5.9):
@@ -75,6 +76,20 @@ export function VillageScreen({
   const selectedCard = projections.personCards.find((c) => c.personId === selectedPersonId);
   const canCancel = selectedCard?.operationalState === "moving";
 
+  function handleOrderContextualAction(params: { actionKey: string; target: JobTarget; teamPersonIds: readonly string[]; pace?: PaceMode; attention?: AttentionMode }) {
+    if (!selectedPersonId) return;
+    sendCommand({
+      commandId: nextCommandIdV2(),
+      type: "order_contextual_action",
+      personId: selectedPersonId,
+      teamPersonIds: [...params.teamPersonIds],
+      actionKey: params.actionKey,
+      target: params.target,
+      pace: params.pace,
+      attention: params.attention,
+    });
+  }
+
   return (
     <div style={{ display: "grid", gridTemplateRows: "auto 1fr auto", height: "100vh" }}>
       <TopBar
@@ -84,7 +99,7 @@ export function VillageScreen({
         onSetSpeed={(speed) => sendCommand({ commandId: nextCommandIdV2(), type: "set_speed", speed })}
         onManualSave={requestManualSave}
       />
-      <div style={{ display: "grid", gridTemplateColumns: "220px 1fr 320px", minHeight: 0 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "220px 1fr 320px 300px", minHeight: 0 }}>
         <PersonList
           personCards={projections.personCards}
           selectedPersonId={selectedPersonId}
@@ -111,6 +126,20 @@ export function VillageScreen({
           )}
           <PersonSheetPanel sheet={selectedSheet} onUpdatePriority={handleUpdatePriority} />
         </div>
+        <WorkPanel
+          projections={projections}
+          selectedPersonId={selectedPersonId}
+          onOrderContextualAction={handleOrderContextualAction}
+          onPauseJob={(jobId) => sendCommand({ commandId: nextCommandIdV2(), type: "pause_job", jobId })}
+          onResumeJob={(jobId) => sendCommand({ commandId: nextCommandIdV2(), type: "resume_job", jobId })}
+          onCancelJob={(jobId) => sendCommand({ commandId: nextCommandIdV2(), type: "cancel_job", jobId })}
+          onDrawZone={(polygon, policy) => sendCommand({ commandId: nextCommandIdV2(), type: "draw_zone", zoneId: nextCommandIdV2(), polygon: [...polygon], policy })}
+          onDeleteZone={(zoneId) => sendCommand({ commandId: nextCommandIdV2(), type: "delete_zone", zoneId })}
+          onCreateAreaDesignation={(polygon) =>
+            sendCommand({ commandId: nextCommandIdV2(), type: "create_area_designation", designationId: nextCommandIdV2(), kind: "systematic_recon", polygon: [...polygon] })
+          }
+          onCancelDesignation={(designationId) => sendCommand({ commandId: nextCommandIdV2(), type: "cancel_designation", designationId })}
+        />
       </div>
       <OperationalLog entries={projections.operationalLog} />
     </div>

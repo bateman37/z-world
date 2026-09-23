@@ -12,8 +12,18 @@ import { NEEDS_TUNING } from "@z-world/catalogs";
 
 export type NeedActivity = "idle" | "moving" | "working";
 
+/**
+ * Redondea a 6 decimales tras acotar a `[0, 100]`. No es una decisión de
+ * balance: sin este redondeo, la acumulación de sumas/restas en coma
+ * flotante produce valores como `54.983666666666664` que un guardado y
+ * recarga a través de JSON/JSONB (PostgreSQL) puede reconstruir como
+ * `54.98366666666666` — un valor distinto en bits aunque idéntico a efectos
+ * de juego — y rompe la igualdad exacta exigida entre estado guardado y
+ * recargado (§10 de WEB-002: "recarga a mitad no remuestrea ni duplica
+ * consecuencias").
+ */
 function clamp(value: number): number {
-  return Math.max(0, Math.min(100, value));
+  return Math.round(Math.max(0, Math.min(100, value)) * 1_000_000) / 1_000_000;
 }
 
 export function withValue(need: NeedState, nextValue: number): NeedState {

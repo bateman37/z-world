@@ -1,20 +1,28 @@
 import type {
+  ContextualActionOptionProjection,
+  ContextualActionTargetProjection,
+  DesignationProjection,
   DiscoveryRecord,
   DomainEventV2,
   FogMaskProjection,
   GameSummaryProjection,
+  JobProjection,
+  JobTarget,
   MapEntitiesProjectionV2,
   MovementProjection,
   OperationalLogEntryProjection,
   PersonCardProjection,
+  PersonNeedProjection,
   PersonSheetProjection,
   SaveStatus,
   SimulationStateV2,
   VisibilityState,
   VisiblePlaceProjection,
   WorkerProjectionsV2,
+  ZoneProjection,
 } from "@z-world/contracts";
 import { toSimulatedDayTime } from "@z-world/contracts";
+import { ACTION_METHODS } from "@z-world/catalogs";
 
 /**
  * Construye las proyecciones de solo lectura del runtime V2 (S3 §5.8):
@@ -227,6 +235,114 @@ export function toOperationalLogEntryV2(event: DomainEventV2): OperationalLogEnt
   };
 }
 
+function buildNeedsProjection(state: SimulationStateV2): Readonly<Record<string, readonly PersonNeedProjection[]>> {
+  const result: Record<string, readonly PersonNeedProjection[]> = {};
+  for (const id of state.peopleOrder) {
+    const person = state.people[id];
+    if (!person) continue;
+    result[id] = person.needs.map((n) => ({ dimension: n.dimension, band: n.band }));
+  }
+  return result;
+}
+
+function buildJobsProjection(state: SimulationStateV2): readonly JobProjection[] {
+  const def = new Map(ACTION_METHODS.map((m) => [m.key, m]));
+  return Object.values(state.jobs)
+    .sort((a, b) => (a.createdAtSimSeconds - b.createdAtSimSeconds) || (a.id < b.id ? -1 : 1))
+    .map((job) => ({
+      id: job.id,
+      actionKey: job.actionKey,
+      labelKey: def.get(job.actionKey)?.labelKey ?? job.actionKey,
+      effectivePriority: job.effectivePriority,
+      state: job.state,
+      phaseKind: job.phases[job.currentPhaseIndex]?.kind ?? null,
+      progressRatio: job.progressRatio,
+      assignedPersonIds: job.assignments.map((a) => a.personId),
+      blockReasonKey: job.blockReasonKey,
+      directOrder: job.directOrder,
+      target: job.target,
+    }));
+}
+
+function buildZonesProjection(state: SimulationStateV2): readonly ZoneProjection[] {
+  return Object.values(state.workZones).map((z) => ({ id: z.id, policy: z.policy, polygon: z.polygon }));
+}
+
+function buildDesignationsProjection(state: SimulationStateV2): readonly DesignationProjection[] {
+  return Object.values(state.designations).map((d) => ({ id: d.id, kind: d.kind, cancelled: d.cancelled, generatedJobCount: d.generatedJobIds.length }));
+}
+
+/**
+ * Acciones contextuales legítimamente disponibles (§10.3 de WEB-002): una
+ * acción conocida pero bloqueada aparece con motivo causal; una no
+ * reconocida simplemente no aparece en la lista de blancos. Filtrado
+ * conservador y honesto para este alcance: no expone contenido, riesgo ni
+ * dificultad — solo qué blanco existe y si hoy es viable.
+ */
+function buildContextualActionsProjection(state: SimulationStateV2): readonly ContextualActionOptionProjection[] {
+  const discoveryByEntity = new Map<string, DiscoveryRecord[]>();
+  for (const record of state.discoveries) {
+    const list = discoveryByEntity.get(record.entityId) ?? [];
+    list.push(record);
+    discoveryByEntity.set(record.entityId, list);
+  }
+  const hasFacetAtLeast = (entityId: string, facet: DiscoveryRecord["facet"], rankOf: Record<string, number>, minRank: number): boolean => {
+    const record = (discoveryByEntity.get(entityId) ?? []).find((r) => r.facet === facet);
+    return record !== undefined && (rankOf[record.state] ?? 0) >= minRank;
+  };
+  const RANK: Record<string, number> = { unknown: 0, sighted: 1, observed: 2, inspected: 3, exploited: 4 };
+
+  const options: ContextualActionOptionProjection[] = [];
+
+  const recognizeTargets: ContextualActionTargetProjection[] = Object.values(state.world.places)
+    .filter((p) => hasFacetAtLeast(p.id, "exterior", RANK, 1))
+    .map((p) => ({ target: { kind: "place", placeId: p.id } as JobTarget, labelKey: `place.${p.profileId}`, blockedReasonKey: null }));
+  if (recognizeTargets.length > 0) options.push({ actionKey: "recognize", labelKey: "action.recognize.label", targets: recognizeTargets });
+
+  const observeTargets: ContextualActionTargetProjection[] = Object.values(state.world.places)
+    .filter((p) => hasFacetAtLeast(p.id, "exterior", RANK, 1))
+    .map((p) => ({ target: { kind: "place", placeId: p.id } as JobTarget, labelKey: `place.${p.profileId}`, blockedReasonKey: null }));
+  if (observeTargets.length > 0) options.push({ actionKey: "observe", labelKey: "action.observe.label", targets: observeTargets });
+
+  const inspectTargets: ContextualActionTargetProjection[] = Object.values(state.world.rooms)
+    .filter((r) => hasFacetAtLeast(r.id, "rooms", RANK, 2))
+    .map((r) => ({ target: { kind: "room", roomId: r.id } as JobTarget, labelKey: "target.room", blockedReasonKey: null }));
+  if (inspectTargets.length > 0) options.push({ actionKey: "inspect", labelKey: "action.inspect.label", targets: inspectTargets });
+
+  const registerTargets: ContextualActionTargetProjection[] = Object.values(state.world.rooms)
+    .filter((r) => hasFacetAtLeast(r.id, "rooms", RANK, 2))
+    .map((r) => ({ target: { kind: "room", roomId: r.id } as JobTarget, labelKey: "target.room", blockedReasonKey: null }));
+  if (registerTargets.length > 0) options.push({ actionKey: "register", labelKey: "action.register.label", targets: registerTargets });
+
+  const knownRoomIds = new Set(Object.values(state.world.rooms).filter((r) => discoveryByEntity.has(r.id)).map((r) => r.id));
+  const lotTargets = (family: "water" | "fresh_food" | "preserved_food"): ContextualActionTargetProjection[] =>
+    Object.values(state.resourceLots)
+      .filter((lot) => lot.family === family && lot.quantity > 0)
+      .filter((lot) => lot.location.kind === "carried_by_person" || resourceLotRoomKnown(state, lot, knownRoomIds))
+      .map((lot) => ({ target: { kind: "resource_lot", resourceLotId: lot.id } as JobTarget, labelKey: `resource.${lot.family}`, blockedReasonKey: lot.reservedByJobId ? "block.resource_reserved" : null }));
+
+  const drinkTargets = lotTargets("water");
+  if (drinkTargets.length > 0) options.push({ actionKey: "drink", labelKey: "action.drink.label", targets: drinkTargets });
+  const eatTargets = [...lotTargets("fresh_food"), ...lotTargets("preserved_food")];
+  if (eatTargets.length > 0) options.push({ actionKey: "eat", labelKey: "action.eat.label", targets: eatTargets });
+
+  const restTargets: ContextualActionTargetProjection[] = Object.values(state.world.rooms)
+    .filter((r) => discoveryByEntity.has(r.id))
+    .map((r) => ({ target: { kind: "room", roomId: r.id } as JobTarget, labelKey: "target.room_rest", blockedReasonKey: null }));
+  if (restTargets.length > 0) options.push({ actionKey: "rest", labelKey: "action.rest.label", targets: restTargets });
+
+  return options;
+}
+
+function resourceLotRoomKnown(state: SimulationStateV2, lot: { readonly location: { readonly kind: string; readonly containerId?: string; readonly roomId?: string } }, knownRoomIds: ReadonlySet<string>): boolean {
+  if (lot.location.kind === "room" && lot.location.roomId) return knownRoomIds.has(lot.location.roomId);
+  if (lot.location.kind === "container" && lot.location.containerId) {
+    const container = state.containers[lot.location.containerId];
+    if (container && container.location.kind === "room") return knownRoomIds.has(container.location.roomId);
+  }
+  return false;
+}
+
 export function buildWorkerProjectionsV2(params: {
   readonly state: SimulationStateV2;
   readonly gameSaveId: string;
@@ -254,6 +370,11 @@ export function buildWorkerProjectionsV2(params: {
     fog: buildFogProjection(state),
     movements: buildMovementsProjection(state),
     operationalLog: params.operationalLog,
+    needsByPerson: buildNeedsProjection(state),
+    jobs: buildJobsProjection(state),
+    zones: buildZonesProjection(state),
+    designations: buildDesignationsProjection(state),
+    contextualActions: buildContextualActionsProjection(state),
     revision: params.revision,
   };
 }

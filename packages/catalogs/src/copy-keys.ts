@@ -96,6 +96,69 @@ export const COPY_KEYS: Readonly<Record<string, string>> = {
   "landmark.distant_silo": "Silo distante",
   "landmark.old_signpost": "Poste de señalización antiguo",
   "structure.shelter_candidate": "Posible refugio",
+
+  // Acciones activas del motor de resolución (S4-S6, WEB-002 §5.2/§10).
+  "action.recognize.label": "Reconocer",
+  "action.observe.label": "Observar",
+  "action.inspect.label": "Inspeccionar",
+  "action.register.label": "Registrar",
+  "action.drink.label": "Beber",
+  "action.eat.label": "Comer",
+  "action.rest.label": "Descansar",
+  "target.room": "Estancia conocida",
+  "target.room_rest": "Descansar aquí (soporte disponible en la estancia)",
+  "resource.water": "Agua",
+  "resource.fresh_food": "Alimento fresco",
+  "resource.preserved_food": "Alimento conservado",
+
+  // Motivos de bloqueo de trabajos (S4-S6, WEB-002 §5.9/§11.2).
+  "block.target_no_longer_exists": "El objetivo ya no existe.",
+  "block.no_resource_lot_selected": "No se ha seleccionado ningún recurso.",
+  "block.resource_exhausted": "El recurso se ha agotado.",
+  "block.resource_reserved": "Ya está reservado por otro trabajo.",
+  "block.requirement_failed": "No se cumple un requisito necesario.",
+  "block.target_unreachable": "No hay ruta conocida hasta el objetivo.",
+  "block.no_known_route": "No hay ruta conocida hasta el objetivo.",
+  "block.severe_outcome": "El intento salió mal y hay que volver a intentarlo con un cambio real.",
+  "block.critical_need_autoprotection": "Interrumpido: una necesidad crítica exige atención inmediata.",
+  "block.no_known_solution_for_hydration": "No se conoce ninguna fuente de agua accesible.",
+  "block.no_known_solution_for_nutrition": "No se conoce ningún alimento accesible.",
+  "block.no_known_solution_for_rest": "No se conoce ningún lugar de descanso accesible.",
+
+  // Registro operacional — trabajos y necesidades.
+  "log.job_created": "Se creó un trabajo.",
+  "log.job_state_changed": "Un trabajo cambió de estado.",
+  "log.job_phase_changed": "Un trabajo avanzó de fase.",
+  "log.job_assignment_changed": "Cambió la asignación de un trabajo.",
+  "log.reservation_created": "Se reservó un recurso para un trabajo.",
+  "log.reservation_released": "Se liberó una reserva.",
+  "log.work_episode_created": "Se resolvió un intento incierto.",
+  "log.need_changed": "Una necesidad cambió de estado.",
+  "log.consumption_happened": "Se consumió un recurso.",
+  "log.rest_progressed": "Progresó un descanso.",
+  "log.systemic_intention_created": "Se generó una intención por necesidad crítica.",
+  "log.work_interrupted": "Un trabajo se interrumpió.",
+  "log.zone_changed": "Cambió una zona.",
+  "log.designation_changed": "Cambió una designación.",
+
+  // Perfiles de lugar (CAT-004) usados como etiqueta de blanco contextual.
+  "place.RES-10": "Casa familiar mediana",
+  "place.RES-17": "Cabaña",
+  "place.COM-02": "Supermercado pequeño",
+  "place.TAL-01": "Taller mecánico",
+  "place.ENV-01": "Fuente local de agua",
+  "place.ENV-02": "Campo o parcela abierta",
+  "place.ENV-03": "Bosque o matorral",
+  "place.ENV-04": "Carretera o camino",
+
+  // Necesidades (etiquetas y bandas cualitativas).
+  "need.hydration": "Hidratación",
+  "need.nutrition": "Nutrición",
+  "need.rest": "Descanso",
+  "need.band.stable": "Estable",
+  "need.band.in_need": "Con necesidad",
+  "need.band.urgent": "Urgente",
+  "need.band.critical": "Crítica",
 };
 
 export function copyKey(key: string | null | undefined): string {
