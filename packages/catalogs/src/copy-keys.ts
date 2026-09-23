@@ -105,6 +105,7 @@ export const COPY_KEYS: Readonly<Record<string, string>> = {
   "action.drink.label": "Beber",
   "action.eat.label": "Comer",
   "action.rest.label": "Descansar",
+  "target.unidentified_place": "Lugar sin identificar",
   "target.room": "Estancia conocida",
   "target.room_rest": "Descansar aquí (soporte disponible en la estancia)",
   "resource.water": "Agua",

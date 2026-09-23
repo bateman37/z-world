@@ -294,14 +294,19 @@ function buildContextualActionsProjection(state: SimulationStateV2): readonly Co
 
   const options: ContextualActionOptionProjection[] = [];
 
+  // El perfil (`place.RES-10`, etc.) nunca se muestra en `recognize`/`observe`:
+  // ambos actúan precisamente antes de que el perfil se considere observado
+  // (§5.5/§10.3 de WEB-002 — el visor ya oculta `profileId` hasta entonces,
+  // ver `VisiblePlaceProjection`), así que el blanco se etiqueta de forma
+  // genérica por posición hasta que la propia acción lo revele.
   const recognizeTargets: ContextualActionTargetProjection[] = Object.values(state.world.places)
-    .filter((p) => hasFacetAtLeast(p.id, "exterior", RANK, 1))
-    .map((p) => ({ target: { kind: "place", placeId: p.id } as JobTarget, labelKey: `place.${p.profileId}`, blockedReasonKey: null }));
+    .filter((p) => hasFacetAtLeast(p.id, "exterior", RANK, 1) && !hasFacetAtLeast(p.id, "exterior", RANK, 2))
+    .map((p) => ({ target: { kind: "place", placeId: p.id } as JobTarget, labelKey: "target.unidentified_place", blockedReasonKey: null }));
   if (recognizeTargets.length > 0) options.push({ actionKey: "recognize", labelKey: "action.recognize.label", targets: recognizeTargets });
 
   const observeTargets: ContextualActionTargetProjection[] = Object.values(state.world.places)
-    .filter((p) => hasFacetAtLeast(p.id, "exterior", RANK, 1))
-    .map((p) => ({ target: { kind: "place", placeId: p.id } as JobTarget, labelKey: `place.${p.profileId}`, blockedReasonKey: null }));
+    .filter((p) => hasFacetAtLeast(p.id, "exterior", RANK, 1) && !hasFacetAtLeast(p.id, "exterior", RANK, 2))
+    .map((p) => ({ target: { kind: "place", placeId: p.id } as JobTarget, labelKey: "target.unidentified_place", blockedReasonKey: null }));
   if (observeTargets.length > 0) options.push({ actionKey: "observe", labelKey: "action.observe.label", targets: observeTargets });
 
   const inspectTargets: ContextualActionTargetProjection[] = Object.values(state.world.rooms)
