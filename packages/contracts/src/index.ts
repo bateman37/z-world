@@ -22,3 +22,6 @@ export * from "./place-history-v2.js";
 export * from "./work-v2.js";
 export * from "./needs-v2.js";
 export * from "./state-v2.js";
+export * from "./events-v2.js";
+export * from "./projections-v2.js";
+export * from "./worker-protocol-v2.js";

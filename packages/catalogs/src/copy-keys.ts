@@ -88,6 +88,9 @@ export const COPY_KEYS: Readonly<Record<string, string>> = {
   "log.movement_blocked": "Movimiento bloqueado.",
   "log.movement_cancelled": "Movimiento cancelado.",
   "log.priority_changed": "Prioridad actualizada.",
+  "log.room_entered": "Entró en una estancia.",
+  "log.room_exited": "Salió de una estancia.",
+  "log.discovery_upgraded": "Se descubrió algo nuevo.",
 
   // Puntos de interés del mapa.
   "landmark.distant_silo": "Silo distante",

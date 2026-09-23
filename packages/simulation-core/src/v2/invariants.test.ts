@@ -144,4 +144,122 @@ describe("validateSimulationStateV2Invariants", () => {
     expect(report.ok).toBe(false);
     expect(report.violations.some((v) => v.code === "closure_as_portable_object")).toBe(true);
   });
+
+  // --- Invariantes nuevas de S3 (runtime jugable, navegación, descubrimiento) ---
+
+  it("detecta una posición de persona fuera de los límites del mundo", () => {
+    const state = baseState();
+    const [firstPersonId] = state.peopleOrder;
+    const person = state.people[firstPersonId!]!;
+    const withOutOfBounds: SimulationStateV2 = {
+      ...state,
+      people: { ...state.people, [firstPersonId!]: { ...person, public: { ...person.public, position: { x: 999999, y: 0 } } } },
+    };
+    const report = validateSimulationStateV2Invariants(withOutOfBounds);
+    expect(report.ok).toBe(false);
+    expect(report.violations.some((v) => v.code === "person_position_outside_bounds")).toBe(true);
+  });
+
+  it("detecta divergencia entre `location.point` y `public.position` cuando `location` es exterior", () => {
+    const state = baseState();
+    const [firstPersonId] = state.peopleOrder;
+    const person = state.people[firstPersonId!]!;
+    const withDivergence: SimulationStateV2 = {
+      ...state,
+      people: {
+        ...state.people,
+        [firstPersonId!]: { ...person, location: { kind: "world_point", point: { x: person.public.position.x + 50, y: person.public.position.y } } },
+      },
+    };
+    const report = validateSimulationStateV2Invariants(withDivergence);
+    expect(report.ok).toBe(false);
+    expect(report.violations.some((v) => v.code === "position_location_divergence")).toBe(true);
+  });
+
+  it("detecta una orden activa cuyo destino no coincide con el final de su ruta", () => {
+    const state = baseState();
+    const [firstPersonId] = state.peopleOrder;
+    const person = state.people[firstPersonId!]!;
+    const withBadOrder: SimulationStateV2 = {
+      ...state,
+      people: {
+        ...state.people,
+        [firstPersonId!]: {
+          ...person,
+          public: {
+            ...person.public,
+            activeMovementOrder: {
+              commandId: "cmd-x",
+              destination: { x: 500, y: 500 },
+              path: [person.public.position, { x: 1, y: 1 }],
+              totalDistanceMeters: 10,
+              travelledDistanceMeters: 0,
+              startedAtSimSeconds: 0,
+            },
+          },
+        },
+      },
+    };
+    const report = validateSimulationStateV2Invariants(withBadOrder);
+    expect(report.ok).toBe(false);
+    expect(report.violations.some((v) => v.code === "movement_destination_mismatch")).toBe(true);
+  });
+
+  it("detecta una abertura que declara conectar con el exterior sin conectar ninguna estancia", () => {
+    const state = baseState();
+    const withBadOpening: SimulationStateV2 = {
+      ...state,
+      world: {
+        ...state.world,
+        openings: {
+          ...state.world.openings,
+          "opening-bad": {
+            id: "opening-bad",
+            position: { x: 0, y: 0 },
+            connectsRoomId: null,
+            connectsOtherRoomId: null,
+            connectsToExterior: true,
+            widthClass: "normal",
+            installedClosureId: null,
+          },
+        },
+      },
+    };
+    const report = validateSimulationStateV2Invariants(withBadOpening);
+    expect(report.ok).toBe(false);
+    expect(report.violations.some((v) => v.code === "exterior_opening_without_room")).toBe(true);
+  });
+
+  it("detecta un registro de descubrimiento duplicado para la misma entidad y faceta", () => {
+    const state = baseState();
+    const withDuplicate: SimulationStateV2 = {
+      ...state,
+      discoveries: [
+        { entityId: "some-place", facet: "exterior", state: "sighted" },
+        { entityId: "some-place", facet: "exterior", state: "observed" },
+      ],
+    };
+    const report = validateSimulationStateV2Invariants(withDuplicate);
+    expect(report.ok).toBe(false);
+    expect(report.violations.some((v) => v.code === "duplicate_discovery_record")).toBe(true);
+  });
+
+  it("detecta un registro de descubrimiento que referencia una estancia inexistente", () => {
+    const state = baseState();
+    const withOrphanDiscovery: SimulationStateV2 = {
+      ...state,
+      discoveries: [{ entityId: "no-such-room", facet: "rooms", state: "observed" }],
+    };
+    const report = validateSimulationStateV2Invariants(withOrphanDiscovery);
+    expect(report.ok).toBe(false);
+    expect(report.violations.some((v) => v.code === "orphan_discovery_room")).toBe(true);
+  });
+
+  it("detecta una niebla con dimensiones incoherentes con los límites del mundo", () => {
+    const state = baseState();
+    const withBadFog: SimulationStateV2 = { ...state, fog: { ...state.fog, columns: state.fog.columns + 5 } };
+    const report = validateSimulationStateV2Invariants(withBadFog);
+    expect(report.ok).toBe(false);
+    expect(report.violations.some((v) => v.code === "fog_cell_count_mismatch" || v.code === "fog_dimensions_mismatch")).toBe(true);
+  });
 });

@@ -5,18 +5,18 @@ import { VillageScreen } from "@/components/village-screen";
 export const dynamic = "force-dynamic";
 
 /**
- * Visor del pueblo semántico V2 (S2 de WEB-002 §9.1 del encargo): consume
- * directamente `SimulationStateV2` generado por el generador real y
- * persistido con `createGameV2Action`. Deliberadamente de solo lectura por
- * ahora: el motor de resolución de acciones, el planificador y las
- * necesidades jugables llegan en subhitos posteriores (S4 en adelante);
- * este visor demuestra que la aplicación arranca sobre el nuevo estado y
- * que el mapa puede representarlo, no la interfaz completa de explotación.
+ * Runtime jugable del pueblo semántico V2 (S3 de WEB-002 §5.9): consume
+ * `SimulationStateV2` generado por S2 y lo ejecuta con un Worker propio
+ * (`WorkerSessionV2`), no un visor estático. Reloj, movimiento, navegación,
+ * niebla y descubrimiento progresivo son reales sobre este pueblo; el motor
+ * de resolución D/B, los trabajos, las necesidades causales y la
+ * explotación de edificios siguen llegando en subhitos posteriores (S4 en
+ * adelante).
  */
 export default async function VillagePage({ params }: { readonly params: { readonly gameSaveId: string } }) {
   try {
     const { state, revision } = await loadGameV2Action(params.gameSaveId);
-    return <VillageScreen gameSaveId={params.gameSaveId} state={state} revision={revision} />;
+    return <VillageScreen gameSaveId={params.gameSaveId} initialState={state} initialRevision={revision} />;
   } catch (error) {
     const message = error instanceof Error ? error.message : "No se pudo cargar el pueblo por un error desconocido.";
     return (

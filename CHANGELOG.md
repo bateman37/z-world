@@ -4,6 +4,61 @@ Registra entregas documentales y de diseño de Z-World. No atribuye código ni
 funcionalidad implementada salvo que se indique explícitamente como
 `implemented` en la documentación afectada.
 
+## WEB-002 (subhito S3) — Runtime jugable V2, navegación y descubrimiento progresivo
+
+Tercer subhito de `WEB-002`, sobre el generador semántico aceptado en S2
+(ver [DEC-0017](docs/decisions/DEC-0017_v2-playable-runtime-navigation-and-discovery.md)).
+Elimina la fractura entre `/game/[id]` (Worker real, pero sobre
+`SimulationStateV1`) y `/village/[id]` (visor de solo lectura de
+`SimulationStateV2`): una partida generada por S2 se abre ahora como una
+simulación V2 realmente activa — reloj, movimiento, navegación, niebla y
+descubrimiento reales, no una imagen estática del mundo.
+
+- **Protocolo Worker V2 versionado**
+  (`packages/contracts/src/worker-protocol-v2.ts`,
+  `WORKER_PROTOCOL_VERSION_V2 = 2`): variante discriminada de la de V1,
+  nunca una mutación; un mensaje de la versión equivocada se rechaza
+  explícitamente. `WorkerSessionV2`
+  (`packages/application/src/worker-session-v2.ts`) es una clase separada,
+  estructuralmente análoga a `WorkerSession` de V1, sin modificarla.
+- **`location: EntityLocation` como autoridad única de posición**:
+  `public.position` (heredado de V1) pasa a ser una proyección derivada,
+  sincronizada en una sola frontera dentro de `advanceSimulationV2`.
+  `MovementOrder` gana el campo aditivo opcional `locationCheckpoints`.
+- **Navegación híbrida exterior/interior**
+  (`packages/simulation-core/src/v2/{navigation-v2,pathfinding-v2,room-graph}.ts`):
+  rejilla exterior de 600×600 celdas con cajas delimitadoras por entidad
+  y A* con montículo binario, más un grafo de accesos por edificio para
+  interiores — sin rejilla de alta resolución sobre los ~9 km². Corrige
+  un defecto real de S2: el generador nunca rellenaba
+  `Building.activeFloorId`, dejando cualquier edificio generado
+  inaccesible.
+- **Descubrimiento progresivo comunitario**
+  (`packages/simulation-core/src/v2/discovery.ts`): silueta, exterior
+  reconocido, estructura de edificio, aberturas y estancias se descubren
+  de forma causal por proximidad o presencia física real, nunca por la
+  cámara ni de golpe; conocimiento monótono.
+- **Proyecciones V2 filtradas por descubrimiento**
+  (`packages/application/src/build-projections-v2.ts`): un lugar solo
+  observado (no aún "reconocido") aparece sin perfil; estancias/
+  aberturas/edificios exigen su propio descubrimiento. Nunca se envía
+  `SimulationStateV2` íntegro a React.
+- **`/village/[gameSaveId]` es ahora el laboratorio jugable real**
+  (`VillageScreen`/`VillageMapCanvas`), reutilizando sin cambios
+  `TopBar`/`PersonList`/`PersonSheetPanel`/`OperationalLog` de `WEB-001`.
+- **Seis invariantes nuevas** en `validateSimulationStateV2Invariants`
+  (posición dentro de límites, coherencia posición/ubicación, coherencia
+  de órdenes activas, aberturas exteriores con estancia real,
+  descubrimientos válidos, forma de la niebla).
+- **Dos defectos reales corregidos**, encontrados por las propias
+  pruebas E2E de este subhito: el límite de 1 MB de las Server Actions
+  de Next.js rechazaba en silencio todo guardado V2 (snapshot ~1,2 MB;
+  ahora 10 MB), y `WorkerSessionV2` podía disparar guardados solapados
+  con la misma revisión esperada (ahora se coalescen).
+- 28 pruebas unitarias nuevas, 3 de integración PostgreSQL nuevas y 1
+  E2E nueva, todas en verde junto con las 113 pruebas unitarias, 15 de
+  integración y 3 E2E ya existentes de S1/S2/`WEB-001`.
+
 ## WEB-002 (subhito S2) — Generador semántico determinista del pueblo
 
 Segundo subhito de `WEB-002`, sobre el esqueleto aceptado de S1 (ver

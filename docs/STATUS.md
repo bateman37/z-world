@@ -22,9 +22,11 @@ extiende esa fundación con trabajos/necesidades y el generador semántico
 del pueblo (incrementos 4+5), ejecutado por subhitos verificables. S1
 (esqueleto de `SimulationStateV2` y migración V1→V2,
 [DEC-0015](decisions/DEC-0015_simulation-state-v2-skeleton-and-v1-migration.md))
-y S2 (generador semántico determinista del pueblo,
-[DEC-0016](decisions/DEC-0016_semantic-village-generator.md)) están
-completados técnicamente; quedan S3 a S11 sin fecha.
+S2 (generador semántico determinista del pueblo,
+[DEC-0016](decisions/DEC-0016_semantic-village-generator.md)) y S3
+(runtime jugable V2, navegación y descubrimiento progresivo,
+[DEC-0017](decisions/DEC-0017_v2-playable-runtime-navigation-and-discovery.md))
+están completados técnicamente; quedan S4 a S11 sin fecha.
 
 El prototipo histórico Godot queda preservado íntegro, sin más desarrollo
 activo. Su historial de entregas de código:
@@ -464,6 +466,69 @@ no se amplió `RDM-001` y `CHR-005`/`RDM-002` siguen `draft`. Ver
 
 ## Última entrega de código (línea activa Node.js/TypeScript)
 
+`WEB-002` (subhito S3) — runtime jugable V2, navegación y descubrimiento
+progresivo (23 de septiembre de 2026): tercer subhito de `WEB-002`, sobre
+el generador semántico aceptado en S2 (ver
+[DEC-0017](decisions/DEC-0017_v2-playable-runtime-navigation-and-discovery.md)).
+**Completado técnicamente.** Elimina la fractura entre `/game/[id]` (Worker
+real, pero sobre `SimulationStateV1`/fixture) y `/village/[id]` (visor de
+solo lectura de `SimulationStateV2`): una partida generada por S2 se abre
+ahora como una simulación V2 realmente activa.
+
+- Protocolo Worker V2 versionado (`WORKER_PROTOCOL_VERSION_V2 = 2`,
+  `packages/contracts/src/worker-protocol-v2.ts`), variante discriminada
+  de la de V1, nunca confundible en silencio con ella;
+  `WorkerSessionV2` (`packages/application/`) es una clase separada,
+  estructuralmente análoga a `WorkerSession` de V1 sin modificarla.
+- `location: EntityLocation` es la única autoridad de posición;
+  `public.position` (heredado de V1) es una proyección derivada
+  sincronizada en una sola frontera dentro de `advanceSimulationV2`;
+  `MovementOrder` gana el campo aditivo opcional `locationCheckpoints`.
+- Navegación híbrida: rejilla exterior de 600×600 celdas con cajas
+  delimitadoras por entidad y A* con montículo binario
+  (`navigation-v2.ts`, `pathfinding-v2.ts`), más un grafo de accesos por
+  edificio (`room-graph.ts`) para interiores — sin rejilla de alta
+  resolución sobre los ~9 km². Corrige un defecto real de S2 (el
+  generador nunca rellenaba `Building.activeFloorId`, dejando cualquier
+  edificio generado inaccesible sin este arreglo).
+- Descubrimiento progresivo comunitario (`discovery.ts`): silueta,
+  exterior reconocido, estructura de edificio, aberturas y estancias se
+  descubren de forma causal por proximidad o presencia física real, nunca
+  por la cámara ni de golpe; conocimiento monótono.
+- Proyecciones V2 filtradas por descubrimiento
+  (`build-projections-v2.ts`): un lugar solo observado (no aún
+  "reconocido") aparece sin perfil; estancias/aberturas/edificios exigen
+  su propio descubrimiento. Nunca se envía `SimulationStateV2` íntegro a
+  React.
+- `/village/[gameSaveId]` (`VillageScreen`) es ahora el laboratorio
+  jugable real: reloj/pausa/velocidades, selección, movimiento con
+  ratón, cancelación, niebla, entrada/salida de edificios, registro
+  operacional — reutilizando sin cambios `TopBar`/`PersonList`/
+  `PersonSheetPanel`/`OperationalLog` de WEB-001.
+- Dos defectos reales encontrados y corregidos por las propias pruebas
+  E2E de este subhito: el límite de cuerpo de 1 MB de las Server Actions
+  de Next.js rechazaba en silencio todo guardado V2 (snapshot ~1,2 MB;
+  ahora 10 MB), y `WorkerSessionV2` podía disparar dos guardados
+  solapados con la misma revisión esperada (ahora se coalescen).
+- `validateSimulationStateV2Invariants` ampliado con seis comprobaciones
+  nuevas (posición dentro de límites, coherencia posición/ubicación,
+  coherencia de órdenes activas, aberturas exteriores con estancia real,
+  descubrimientos válidos, forma de la niebla).
+- 28 pruebas unitarias nuevas, 3 de integración PostgreSQL nuevas y 1 E2E
+  nueva, sumadas a las 113 pruebas unitarias, 15 de integración y 3 E2E
+  ya existentes (141 unitarias, 18 de integración y 4 E2E en total),
+  todas en verde.
+
+No implementa: fórmula común de resolución directa/D/B, acciones activas
+de reconocer/observar/inspeccionar/registrar, trabajos/designaciones/
+planificador, necesidades causales, objetos profundos/saqueo/transporte,
+explotación de edificios, agricultura ni terreno mutable (deliberadamente
+fuera de alcance de S3) — todo ello permanece en los subhitos S4 a S11,
+sin fecha, según
+[RDM-003](roadmap/RDM-003_simulation-first-playable-roadmap.md). Los
+detalles técnicos completos están en
+[DEC-0017](decisions/DEC-0017_v2-playable-runtime-navigation-and-discovery.md).
+
 `WEB-002` (subhito S2) — generador semántico determinista del pueblo (23
 de septiembre de 2026): segundo subhito de `WEB-002`, sobre el esqueleto
 de `SimulationStateV2` aceptado en S1 (ver
@@ -733,43 +798,100 @@ que produce directamente un `SimulationStateV2` jugable (terreno, vías,
 hidrología, ocho perfiles de lugar con contenido, escenario inicial
 completo); persistencia real de partidas V2
 (`createGameV2`/`loadGameV2`/`saveSnapshotV2`); botón «Generar pueblo
-(WEB-002 S2)» en la pantalla de inicio y visor de solo lectura en
-`/village/[gameSaveId]` que sí lee y muestra `SimulationStateV2` real en
-producción — ver «Cómo generar y verificar un pueblo manualmente» más
-abajo. El Worker, el motor de resolución de acciones y la interfaz
-jugable completa (movimiento, trabajos, necesidades) siguen operando
-exclusivamente sobre `SimulationStateV1` en `/game/[gameSaveId]`: ese
-motor para `SimulationStateV2` es responsabilidad de S4 en adelante, no
-de S2.
+(WEB-002 S2)» en la pantalla de inicio.
 
-## Cómo generar y verificar un pueblo manualmente (`WEB-002` S2)
+Desde `WEB-002` S3, además: `/village/[gameSaveId]` dejó de ser un visor
+de solo lectura — un Web Worker real (`WorkerSessionV2`) posee el estado
+`SimulationStateV2` autoritativo de la sesión, igual que V1 posee el
+suyo en `/game/[gameSaveId]`. Reloj/pausa/velocidades, selección,
+movimiento directo con ruta real (navegación híbrida exterior/interior),
+cancelación, niebla causada por la posición real, descubrimiento
+progresivo comunitario, entrada/salida de estancias y guardado real
+funcionan sobre el pueblo generado — ver «Cómo jugar el runtime V2
+manualmente» más abajo. El motor común de resolución directa/D/B, los
+trabajos y las necesidades causales siguen sin implementarse sobre
+`SimulationStateV2`: eso es responsabilidad de S4 en adelante, no de S3.
 
-1. Con PostgreSQL accesible según `DATABASE_URL` (ver `.env.example`) y
-   las migraciones aplicadas (`npm run db:migrate --workspace
-   packages/persistence` o `npx prisma migrate deploy` dentro de
-   `packages/persistence`), levanta la aplicación (`npm run dev` o `npm
-   run build && npm start --workspace apps/web`).
-2. En la pantalla de inicio, escribe una semilla (o déjala vacía para
-   que se genere una) y pulsa «Generar pueblo (WEB-002 S2)». La partida
-   se crea con `createGameV2Action` y navega a `/village/[gameSaveId]`.
-3. El panel lateral muestra la semilla, `generatorVersion`
-   (`web-002-semantic-v1`), el recuento de cada uno de los ocho perfiles
-   generados, los seis protagonistas, las garantías del escenario
-   (medios de transporte, parcelas de cultivo candidatas, fuentes de
-   agua) y cualquier degradación explícita registrada por el generador.
-   El Canvas dibuja terreno, vías, edificios (coloreados por perfil,
-   semitransparentes si están colapsados/sin interior), fuentes de agua
-   y a los seis protagonistas en el punto de llegada; admite zoom
-   (rueda) y paneo (arrastrar).
-4. Recargar la página (`F5`) recupera exactamente la misma partida desde
-   PostgreSQL, sin regenerarla: la semilla, el `generatorVersion` y el
-   contenido mostrado no cambian.
-5. Para verificar por código en vez de a ojo: `packages/simulation-core/
-   src/v2/create-initial-state-v2.test.ts` y `generator/index.test.ts`
-   cubren determinismo/variación/invariantes/coherencia; `packages/
-   persistence/src/repository-v2.integration.test.ts` cubre la
-   persistencia real; `e2e/village-generation.spec.ts` cubre el
-   recorrido completo en navegador.
+## Cómo jugar el runtime V2 manualmente (`WEB-002` S3)
+
+Guion exacto para que Dennis compruebe en navegador el runtime jugable
+real sobre el pueblo generado (sustituye y amplía la comprobación de
+solo generación de S2; esa comprobación sigue siendo válida como pasos
+1-2 de esta misma lista).
+
+1. **Actualizar, instalar y arrancar**: `git pull`, `npm install` desde
+   la raíz del repositorio, y con PostgreSQL accesible según
+   `DATABASE_URL` (ver `.env.example`), `npm run dev` (o `npm run build
+   && npm start --workspace apps/web`).
+2. **Base de datos**: si ya existe una instancia de PostgreSQL con la
+   base de datos creada, solo hace falta aplicar migraciones pendientes
+   (`npx prisma migrate deploy` dentro de `packages/persistence`, o `npm
+   run db:migrate --workspace packages/persistence`); si no existe la
+   base de datos todavía, créala primero (`createdb zworld` o
+   equivalente) y luego aplica las migraciones. El esquema de tablas no
+   cambió en S3 (mismo `GameSave`/`SimulationSnapshot`/`DomainEventRecord`
+   genéricos en JSON que S1/S2).
+3. **Generar una partida V2**: en la pantalla de inicio
+   (`http://localhost:3000`), escribe una semilla (o déjala vacía) y
+   pulsa «Generar pueblo (WEB-002 S2)». Navega automáticamente a
+   `/village/[gameSaveId]`.
+4. **URL que debe abrirse**: `/village/[gameSaveId]` — ya no es un
+   visor de solo lectura: es el mismo tipo de pantalla jugable que
+   `/game/[gameSaveId]` (reloj, lista de protagonistas, mapa Canvas,
+   ficha de persona, registro operacional), pero sobre el pueblo
+   semántico completo.
+5. **Controles de cámara**: rueda del ratón para zoom (centrado en el
+   cursor), arrastrar con el botón central para desplazar la vista. La
+   cámara nunca revela nada por sí sola: lo que se ve oscurecido sigue
+   oculto aunque la cámara pase por encima.
+6. **Selección y movimiento**: clic izquierdo sobre una persona (en el
+   panel lateral o en el mapa) para seleccionarla; clic derecho sobre un
+   punto del mapa abre «Moverse aquí». Si el punto es válido y conocido,
+   la persona calcula una ruta real y empieza a desplazarse (visible como
+   una línea discontinua y el estado «Desplazándose» en su tarjeta).
+   Mientras se desplaza, aparece un botón «Cancelar orden de movimiento»
+   junto a su ficha.
+7. **Pausa y velocidades**: los botones «Pausa», «×1», «×2», «×4» y
+   «×10» de la barra superior cambian la velocidad del reloj en
+   cualquier momento; en pausa, las órdenes se aceptan pero no avanzan
+   hasta reanudar.
+8. **Comportamiento de la niebla**: solo se revela alrededor de la
+   posición real de los protagonistas (radio ~25 m), nunca por mover la
+   cámara. Intentar mover a alguien hacia un punto todavía oculto se
+   rechaza con «Orden de movimiento rechazada» en el registro
+   operacional, sin revelar qué hay allí.
+9. **Entrada a edificio**: al ordenar movimiento hacia el interior de un
+   edificio cuyo acceso ya se conoce (una vez la niebla ha revelado su
+   entorno), la persona atraviesa la puerta y aparece «Entró en una
+   estancia» en el registro operacional; su marcador en el mapa cambia
+   de color. No todos los edificios están igual de cerca del punto de
+   llegada en toda semilla: si el primero que se prueba está lejos,
+   aproxima primero a la persona caminando y vuelve a intentarlo una vez
+   el edificio se haya revelado.
+10. **Guardado y recarga**: cualquier orden aceptada, cancelación,
+    cambio de prioridad, entrada/salida de estancia o cambio de
+    velocidad dispara un guardado automático (insignia «Guardando…» →
+    «Guardado» en la esquina superior derecha); también existe un botón
+    «Guardar» manual. Recargar la página (`F5`) recupera exactamente la
+    misma partida desde PostgreSQL: reloj, posiciones, niebla,
+    descubrimientos y órdenes activas se conservan tal cual, sin
+    regenerar el pueblo.
+11. **Resultado esperado en cada paso**: seis protagonistas visibles
+    desde el arranque; reloj en Día 1 · 17:30 al crear la partida; el
+    reloj avanza solo con velocidad > 0; una orden válida siempre
+    produce una ruta visible y progreso real; un destino oculto se
+    rechaza sin revelarlo; la niebla y los descubrimientos solo crecen
+    con el movimiento real, nunca con la cámara; tras recargar, nada de
+    lo anterior se pierde ni se repite ni se regenera.
+
+Para verificar por código en vez de a ojo: `packages/simulation-core/
+src/v2/{navigation-v2,pathfinding-v2,apply-command-v2,
+advance-simulation-v2,discovery}.test.ts` cubren navegación/movimiento/
+descubrimiento; `packages/application/src/{worker-session-v2,
+build-projections-v2}.test.ts` cubren el protocolo y el filtrado de
+proyecciones; `packages/persistence/src/worker-runtime-v2.integration.test.ts`
+cubre la persistencia real del runtime; `e2e/village-runtime.spec.ts`
+cubre el recorrido jugable completo en navegador (Chromium real).
 
 ## Funcionalidad realmente implementada en el prototipo histórico Godot
 
@@ -944,6 +1066,67 @@ posteriores de `RDM-001`.
   íntegro (el generador semántico completo, el motor de resolución de
   `ARC-006`–`ARC-008`, el sistema de objetos y el primer bucle causal
   siguen sin implementar).
+
+## Validaciones de `WEB-002` (subhito S3)
+
+Validación completa desde el estado limpio del monorepo (23 de
+septiembre de 2026), tras el runtime jugable V2, ejecutada realmente en
+el entorno de implementación:
+
+- `npm run typecheck` (las seis capas): sin errores.
+- `npm run lint` (`lint:packages` + `lint --workspace apps/web`): sin
+  advertencias ni errores.
+- `npx vitest run` (raíz del monorepo): **141 pruebas unitarias en
+  verde** — las 113 de S1/S2/`WEB-001` sin modificar más 28 nuevas:
+  `navigation-v2.test.ts` (4: transitabilidad de terreno/edificios,
+  bloqueo de agua y coste reducido de carretera, tamaño de rejilla
+  acotado sobre ~9 km²), `pathfinding-v2.test.ts` (8: ruta directa
+  exterior, destino no transitable, resolución de ancla exterior/
+  interior, ruta híbrida exterior→estancia, estancia→estancia,
+  estancia→exterior, determinismo), `apply-command-v2.test.ts` (9:
+  aceptación/rechazo de movimiento exterior e interior, límites del
+  mundo, niebla oculta, orden duplicada, ausencia de ruta, cancelación,
+  pausa/velocidad, prioridad), `advance-simulation-v2.test.ts` (6:
+  avance nulo en pausa, sincronía `location`/`position`, finalización de
+  orden, entrada a estancia con `room_entered`, ausencia de niebla desde
+  el interior, determinismo), `discovery.test.ts` (6: silueta/observado
+  por distancia, acceso por proximidad, estancia por presencia física,
+  monotonicidad), `invariants.test.ts` (7 nuevas: posición dentro de
+  límites, coherencia posición/ubicación, coherencia de orden activa,
+  abertura exterior sin estancia, descubrimiento duplicado/huérfano,
+  forma de la niebla) y `worker-session-v2.test.ts`/
+  `build-projections-v2.test.ts` en `packages/application` (protocolo
+  V2, coalescencia de guardados, filtrado de proyecciones por
+  descubrimiento, ausencia de `caliberTier`).
+- `npm run test:integration` (PostgreSQL real, `zworld_test`): **18
+  pruebas en verde** — las 15 de S1/S2/`WEB-001` sin modificar más 3
+  nuevas (`worker-runtime-v2.integration.test.ts`): guardado/recarga
+  exacta tras una orden de movimiento y avance real producidos por el
+  reductor/avance puro (no un estado editado a mano), control optimista
+  de revisión, y conservación de semilla/`generatorVersion` a través de
+  varios guardados sucesivos.
+- `npm run build`: compila y tipa correctamente.
+- `npm run test:e2e` (Playwright, Chromium real, `next start` real,
+  PostgreSQL real): **4 pruebas en verde** — las 3 ya existentes sin
+  modificación funcional (`village-generation.spec.ts` se actualizó
+  para reflejar que `/village/[id]` ya no es un visor de solo lectura,
+  sin cambiar lo que verifica) más 1 nueva
+  (`village-runtime.spec.ts`): reloj/pausa/velocidades, selección,
+  movimiento válido con ruta real, cancelación, bloqueo por destino
+  oculto, entrada a un edificio real (semilla `probe-seed-92`,
+  verificada de antemano para tener un edificio navegable a ~16 m del
+  punto de llegada — ver DEC-0017), guardado/recarga sin regenerar, y
+  ausencia de texto de perfiles de lugar no descubiertos en la interfaz.
+  Repetida tres veces seguidas sin fallos para descartar inestabilidad.
+- Dos defectos reales de la propia entrega, encontrados por estas
+  mismas pruebas E2E y corregidos antes de cerrar el subhito (detalle en
+  DEC-0017): el límite de 1 MB de las Server Actions de Next.js
+  bloqueaba en silencio todo guardado V2, y `WorkerSessionV2` podía
+  disparar guardados solapados con revisión obsoleta.
+
+No se ejecutó ninguna aceptación manual nueva por parte de Dennis para
+S3 (ver «Aceptación manual pendiente» y el guion «Cómo jugar el runtime
+V2 manualmente» más arriba, escrito para que la ejecute).
 
 ## Validaciones de `WEB-002` (subhito S2)
 
@@ -1245,10 +1428,11 @@ Godot en el entorno de implementación (ver sección de validaciones de
 
 ## Aceptación manual pendiente
 
-`WEB-002` S1 y S2 — completados técnicamente, sin lista de aceptación
-manual formal propia todavía; ver «Cómo generar y verificar un pueblo
-manualmente» más arriba para reproducir S2 a mano. No se declaran
-superados por el agente que implementó la entrega.
+`WEB-002` S1, S2 y S3 — completados técnicamente, sin lista de
+aceptación manual formal propia todavía; ver «Cómo jugar el runtime V2
+manualmente» más arriba para reproducir S3 (incluye reproducir la
+generación de S2) a mano. No se declaran superados por el agente que
+implementó la entrega.
 
 `WEB-001` — completada técnicamente y probada en navegador (Chromium)
 contra un servidor de producción real y PostgreSQL real, pero **la
@@ -1283,12 +1467,13 @@ necesidades y generador semántico/explotación de lugares) en una única
 especificación maestra, por instrucción expresa de Dennis, ejecutada por
 subhitos en varias sesiones (ver
 [DEC-0015](decisions/DEC-0015_simulation-state-v2-skeleton-and-v1-migration.md)).
-S1 (esqueleto de `SimulationStateV2` y migración V1→V2) está completado
-técnicamente. El siguiente candidato de implementación es S2 —
-generador semántico reproducible del pueblo—, que sigue sin iniciarse.
-No se ha iniciado ningún subhito posterior a S1; cada uno requiere su
-propia sesión y debe dejar el repositorio funcionando, probado y
-documentado antes de continuar al siguiente, sin cambiar de stack,
+S1 (esqueleto de `SimulationStateV2` y migración V1→V2), S2 (generador
+semántico reproducible del pueblo) y S3 (runtime jugable V2, navegación
+y descubrimiento progresivo) están completados técnicamente. El
+siguiente candidato de implementación es S4 — motor común de resolución
+directa/D/B—, que sigue sin iniciarse. Cada subhito requiere su propia
+sesión y debe dejar el repositorio funcionando, probado y documentado
+antes de continuar al siguiente, sin cambiar de stack,
 rehacer los seis protagonistas, sustituir el reloj, romper guardados
 existentes ni abandonar el modelo espacial ya construido en `WEB-001`.
 «Defensa y vida propia» sigue completada técnicamente para el prototipo

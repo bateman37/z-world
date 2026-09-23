@@ -1,8 +1,13 @@
 import type { CausalSequenceCounters } from "@z-world/contracts";
 
-export function nextEventId(sequences: CausalSequenceCounters): {
+/**
+ * Genérico sobre el tipo exacto de `sequences` (V1 usa `CausalSequenceCounters`
+ * tal cual; V2 añade `nextEntityOrdinal` — ver `state-v2.ts`) para que el
+ * campo adicional nunca se pierda al reconstruir el objeto por spread.
+ */
+export function nextEventId<S extends CausalSequenceCounters>(sequences: S): {
   eventId: string;
-  sequences: CausalSequenceCounters;
+  sequences: S;
 } {
   const eventId = `evt-${sequences.nextDomainEventSequence}`;
   return {

@@ -28,6 +28,7 @@ cerradas. No es una fuente canónica de reglas.
 | [DISC-0005](DISC-0005_resolution-engine-closure-traceability.md) | `draft` | Trazabilidad de `DESIGN-006`: cierre de `P01`–`P22`, acuerdos previos preservados, correcciones, fórmulas descartadas, ejemplos no normativos y preguntas de otros sistemas que siguen abiertas. |
 | [DISC-0006](DISC-0006_first-arrival-scenario-traceability.md) | `draft` | Trazabilidad de `DESIGN-007`: decisiones cerradas, elementos procedurales, invariantes, cifras de presupuesto, opciones descartadas y preguntas que permanecen abiertas del primer escenario de llegada. |
 | [DISC-0007](DISC-0007_implementable-catalog-and-mutable-world-traceability.md) | `draft` | Trazabilidad de `DESIGN-008`: decisiones `P01`–`P24` cerradas, matriz de reconciliación, interpretaciones descartadas y registro de los 76 casos de validación documental del catálogo implementable y el mundo local moldeable. |
+| [DISC-0008](DISC-0008_web-002-implementation-traceability.md) | `draft` | Matriz de trazabilidad viva de la implementación de `WEB-002` por subhito (S1-S11): qué bloque de requisitos cubre cada uno, su estado real y su evidencia. Se actualiza en cada subhito, por instrucción expresa de Dennis. |
 
 ## Dependencias con otros dominios
 

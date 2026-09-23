@@ -73,6 +73,17 @@ export interface ArrivalCondition {
   readonly notableHardshipKey: string;
 }
 
+/**
+ * Punto de la ruta en el que la ubicación lógica de la persona cambia
+ * (exterior ↔ estancia), expresado como distancia acumulada recorrida.
+ * Campo aditivo usado solo por el runtime V2 (S3 de WEB-002): V1 nunca lo
+ * rellena, así que las órdenes V1 siguen siendo válidas sin él.
+ */
+export interface MovementLocationCheckpoint {
+  readonly afterDistanceMeters: number;
+  readonly location: { readonly kind: "exterior" } | { readonly kind: "room"; readonly roomId: string };
+}
+
 export interface MovementOrder {
   readonly commandId: string;
   readonly destination: WorldPoint;
@@ -80,6 +91,7 @@ export interface MovementOrder {
   readonly totalDistanceMeters: number;
   readonly travelledDistanceMeters: number;
   readonly startedAtSimSeconds: number;
+  readonly locationCheckpoints?: readonly MovementLocationCheckpoint[];
 }
 
 /** Hechos públicos de una persona: todo lo que puede llegar a presentación. */
@@ -170,6 +182,17 @@ export const personPublicFactsSchema = z.object({
       totalDistanceMeters: z.number().nonnegative(),
       travelledDistanceMeters: z.number().nonnegative(),
       startedAtSimSeconds: z.number().int().nonnegative(),
+      locationCheckpoints: z
+        .array(
+          z.object({
+            afterDistanceMeters: z.number().nonnegative(),
+            location: z.discriminatedUnion("kind", [
+              z.object({ kind: z.literal("exterior") }),
+              z.object({ kind: z.literal("room"), roomId: z.string() }),
+            ]),
+          }),
+        )
+        .optional(),
     })
     .nullable(),
   lastBlockReasonKey: z.string().nullable(),
