@@ -4,6 +4,58 @@ Registra entregas documentales y de diseño de Z-World. No atribuye código ni
 funcionalidad implementada salvo que se indique explícitamente como
 `implemented` en la documentación afectada.
 
+## WEB-002 (subhitos S4-S6) — Motor de resolución, trabajos planificados y necesidades causales
+
+Tres subhitos entregados juntos, por decisión expresa de Dennis, sobre el
+runtime jugable aceptado en S3 (ver
+[DEC-0018](docs/decisions/DEC-0018_resolution-engine-planned-work-and-causal-needs.md)).
+Cierra el primer bucle causal completo de la entrega: explorar → crear un
+trabajo → viajar → resolver por el motor común (directo/D/B) → consecuencia
+persistente → necesidad cubierta.
+
+- **Motor común de resolución** (`packages/simulation-core/src/v2/resolution/`):
+  una sola tubería (`advance-jobs.ts`) para las siete acciones activas
+  mínimas — reconocer, observar, inspeccionar, registrar, beber, comer,
+  descansar —, capacidad efectiva exacta (medias de característica/
+  habilidad, perfiles `70/30`/`50/50`/`30/70`, capacidad "universal" para
+  métodos sin ninguna declarada), modelo D (`±8 %`, muestra única
+  persistente) y modelo B (campana truncada determinista, bandas exactas
+  `excepcional`/`favorable`/`incierto`/`deficiente recuperable`/`grave`).
+  Catálogo activo versionado en `packages/catalogs/src/action-methods.ts`.
+- **Trabajos, planificador y zonas** (`packages/simulation-core/src/v2/jobs/`):
+  máquina de estados de `Job` con transiciones legales explícitas,
+  planificador determinista (prioridad personal → urgencia → zona →
+  distancia → antigüedad → ID estable, sin azar ni información oculta),
+  reservas de lote de recurso, zonas `habitual`/`precaution`/`forbidden`,
+  y designación por área ejecutable (`systematic_recon`, reconocimiento
+  sistemático de lugares ya avistados dentro de un polígono).
+- **Necesidades causales** (`packages/simulation-core/src/v2/needs/`,
+  `packages/catalogs/src/needs-tuning.ts`): hidratación/nutrición/descanso
+  evolucionan por tiempo, movimiento y trabajo activo (sin doble
+  contabilización), se recuperan bebiendo/comiendo/descansando
+  físicamente desde un recurso real y localizado, y una necesidad crítica
+  interrumpe de forma segura un trabajo incompatible y genera una
+  intención sistémica solo si existe una solución ya conocida y
+  accesible — nunca materializa un recurso.
+- **Proyecciones e interfaz**: `WorkerProjectionsV2` gana necesidades,
+  trabajos, zonas, designaciones y acciones contextuales legítimamente
+  disponibles (nunca un secreto no descubierto); `WorkPanel` en
+  `/village/[gameSaveId]` permite ordenar una acción contextual, pausar/
+  reanudar/cancelar un trabajo y crear/borrar zonas y designaciones.
+- **Tres defectos reales corregidos**, encontrados por las propias
+  pruebas de este subhito: beber/comer/descansar sufrían además el coste
+  genérico de "trabajo activo" sobre sí mismos (doble contabilización);
+  los valores de necesidad acumulaban ruido de coma flotante que rompía
+  la igualdad exacta tras un guardado/recarga real en PostgreSQL; y la
+  etiqueta de un blanco de reconocer/observar filtraba el perfil real de
+  un lugar solo avistado, no observado (detectado por el E2E de S3 ya
+  existente). Además, los catorce eventos causales nuevos no disparaban
+  guardado automático hasta corregirlo explícitamente.
+- 50 pruebas unitarias/integración nuevas del motor y 1 E2E nueva, todas
+  en verde junto con las 141 pruebas unitarias, 18 de integración
+  PostgreSQL real y 4 E2E ya existentes de S1-S3/`WEB-001` (total 191
+  unitarias, 18 integración, 5 E2E).
+
 ## WEB-002 (subhito S3) — Runtime jugable V2, navegación y descubrimiento progresivo
 
 Tercer subhito de `WEB-002`, sobre el generador semántico aceptado en S2
