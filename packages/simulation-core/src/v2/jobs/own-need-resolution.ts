@@ -1,4 +1,5 @@
 import type { JobTarget, NeedDimension, ResourceLot, SimulationStateV2 } from "@z-world/contracts";
+import { valuesById } from "../ordered.js";
 
 /**
  * Resuelve un blanco concreto y conocido para la autoprotección mínima por
@@ -26,7 +27,7 @@ export function resolveOwnNeedTarget(state: SimulationStateV2, personId: string,
   // donde la persona ya se encuentra (§14.5/§7.5 del prompt de subhitos).
   if (person.location.kind === "room") {
     const currentRoomId = person.location.roomId;
-    const restFurniture = Object.values(state.furniture).find((f) => f.roomId === currentRoomId && isRestKind(f.kind));
+    const restFurniture = valuesById(state.furniture).find((f) => f.roomId === currentRoomId && isRestKind(f.kind));
     return restFurniture ? { kind: "furniture", furnitureId: restFurniture.id } : { kind: "room", roomId: currentRoomId };
   }
   return { kind: "area", polygon: [person.public.position] };

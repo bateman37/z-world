@@ -6,6 +6,7 @@ import type { NavigationIndexV2 } from "./room-graph.js";
 import { ACTION_METHODS_BY_KEY } from "@z-world/catalogs";
 import { createJob } from "./jobs/job-factory.js";
 import { releaseJobReservations } from "./jobs/reservations.js";
+import { valuesById } from "./ordered.js";
 import { transitionJob } from "./jobs/job-transitions.js";
 
 export interface ApplyCommandV2Result {
@@ -451,7 +452,7 @@ function applyCreateAreaDesignation(
   if (command.kind === "systematic_recon") {
     const def = ACTION_METHODS_BY_KEY.get("observe");
     if (def) {
-      for (const place of Object.values(nextState.world.places)) {
+      for (const place of valuesById(nextState.world.places)) {
         const exteriorRecord = nextState.discoveries.find((d) => d.entityId === place.id && d.facet === "exterior");
         if (!exteriorRecord || exteriorRecord.state !== "sighted") continue; // solo objetivos ya conocidos (sighted), nunca desconocidos ni ya observados (§6.8).
         if (!pointInPolygon(place.position, command.polygon)) continue;

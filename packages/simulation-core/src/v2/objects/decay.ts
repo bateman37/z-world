@@ -1,5 +1,6 @@
 import type { DomainEventV2, FreshnessBand, ResourceLot, SimulationStateV2 } from "@z-world/contracts";
 import { DECAY_TUNING_BY_FAMILY, type DecayTuning } from "@z-world/catalogs";
+import { valuesById } from "../ordered.js";
 import { nextEventId } from "../../sequences.js";
 
 /**
@@ -58,7 +59,7 @@ export function applyResourceDecay(state: SimulationStateV2): { readonly state: 
   let sequences = state.sequences;
   const events: DomainEventV2[] = [];
 
-  for (const lot of Object.values(state.resourceLots)) {
+  for (const lot of valuesById(state.resourceLots)) {
     const tuning = DECAY_TUNING_BY_FAMILY.get(lot.family);
     if (!tuning) continue;
     let next: ResourceLot = lot;

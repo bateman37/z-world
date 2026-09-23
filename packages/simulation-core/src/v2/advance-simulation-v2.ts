@@ -9,6 +9,10 @@ import { advanceJobs } from "./jobs/advance-jobs.js";
 import { applyResourceDecay } from "./objects/decay.js";
 import { declineNeedsForElapsedSimMinutes, declineNeedsForMovement, needOf } from "./needs/evolve-needs.js";
 
+function round6(value: number): number {
+  return Math.round(value * 1_000_000) / 1_000_000;
+}
+
 /** Misma velocidad base provisional que V1 (DEC-0014); no se recalibra en S3. */
 export const BASE_WALK_SPEED_METERS_PER_SIM_SECOND_V2 = 1.4;
 
@@ -103,8 +107,10 @@ export function advanceSimulationV2(state: SimulationStateV2, elapsedRealSeconds
 
     const order = currentPerson.public.activeMovementOrder;
     const distanceToAdvance = BASE_WALK_SPEED_METERS_PER_SIM_SECOND_V2 * simSecondsToAdvance;
-    const travelledDistanceMeters = Math.min(order.totalDistanceMeters, order.travelledDistanceMeters + distanceToAdvance);
-    const position = pointAlongPath(order.path, travelledDistanceMeters);
+    // Redondeo a 6 decimales (S7): lo que se persiste vuelve idéntico de PostgreSQL `jsonb` (ver `generator/round-state.ts`).
+    const travelledDistanceMeters = round6(Math.min(order.totalDistanceMeters, order.travelledDistanceMeters + distanceToAdvance));
+    const rawPosition = pointAlongPath(order.path, travelledDistanceMeters);
+    const position = { x: round6(rawPosition.x), y: round6(rawPosition.y) };
     const reachedDestination = travelledDistanceMeters >= order.totalDistanceMeters;
 
     const previousLocation = currentPerson.location;

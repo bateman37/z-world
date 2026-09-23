@@ -24,12 +24,10 @@ export interface CreateJobResult {
   readonly sequences: SimulationStateV2["sequences"];
 }
 
-let jobCounter = 0;
 
-/** Genera un ID de trabajo determinista a partir de las secuencias causales del estado, nunca de `Date.now()`/`Math.random()` (§6.1 de WEB-002: prohibido en núcleo). */
+/** Genera un ID de trabajo determinista a partir de la secuencia causal del estado (el evento `job_created` consume ese mismo número), nunca de `Date.now()`/`Math.random()` ni de un contador global de módulo (§6.1 de WEB-002; corregido en S7). */
 function nextJobId(state: SimulationStateV2): string {
-  jobCounter += 1;
-  return `job-${state.sequences.nextDomainEventSequence}-${jobCounter}`;
+  return `job-s${state.sequences.nextDomainEventSequence}`;
 }
 
 /**

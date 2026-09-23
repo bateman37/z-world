@@ -1,3 +1,4 @@
+import { valuesById } from "./ordered.js";
 import type { SemanticWorldV2, WorldPoint } from "@z-world/contracts";
 
 /**
@@ -94,7 +95,7 @@ export function buildWalkabilityGridV2(
   const costMultiplier = new Float32Array(columns * rows).fill(1);
   const grid: WalkabilityGridV2 = { resolutionMeters, columns, rows, originX: bounds.minX, originY: bounds.minY, walkable, costMultiplier };
 
-  for (const area of Object.values(world.terrainAreas)) {
+  for (const area of valuesById(world.terrainAreas)) {
     const areaBounds = boundsOf(area.polygon);
     const { colStart, colEnd, rowStart, rowEnd } = cellRangeForBounds(areaBounds, grid);
     for (let row = rowStart; row <= rowEnd; row++) {
@@ -111,7 +112,7 @@ export function buildWalkabilityGridV2(
     }
   }
 
-  for (const line of Object.values(world.linearFeatures)) {
+  for (const line of valuesById(world.linearFeatures)) {
     const halfWidth = Math.max(1, line.widthMeters / 2);
     const linePoints = line.polyline;
     let lineMinX = Infinity;
@@ -159,7 +160,7 @@ export function buildWalkabilityGridV2(
     }
   }
 
-  for (const building of Object.values(world.buildings)) {
+  for (const building of valuesById(world.buildings)) {
     const buildingBounds = boundsOf(building.footprint);
     const { colStart, colEnd, rowStart, rowEnd } = cellRangeForBounds(buildingBounds, grid);
     for (let row = rowStart; row <= rowEnd; row++) {

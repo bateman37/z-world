@@ -1,10 +1,10 @@
 import type { DomainEventV2, Job, JobPhaseKind, Reservation, ReservationTargetKind, SimulationStateV2 } from "@z-world/contracts";
+import { valuesById } from "../ordered.js";
 import { nextEventId } from "../../sequences.js";
 
-let reservationCounter = 0;
+/** ID derivado solo de la secuencia causal (el evento `reservation_created` consume ese número): determinista entre ejecuciones y recargas (S7; antes usaba un contador global de módulo). */
 function nextReservationId(state: SimulationStateV2): string {
-  reservationCounter += 1;
-  return `reservation-${state.sequences.nextDomainEventSequence}-${reservationCounter}`;
+  return `reservation-s${state.sequences.nextDomainEventSequence}`;
 }
 
 export interface ReserveResult {
@@ -111,7 +111,7 @@ export function releaseJobReservations(state: SimulationStateV2, jobId: string):
   let worldObjects = state.worldObjects;
   const remainingReservations = { ...state.reservations };
 
-  for (const reservation of Object.values(state.reservations)) {
+  for (const reservation of valuesById(state.reservations)) {
     if (reservation.jobId !== jobId) continue;
     delete remainingReservations[reservation.id];
     if (reservation.targetKind === "resource_lot") {

@@ -1,5 +1,6 @@
 import type { DiscoveryRecord, DomainEventV2, KnowledgeState, SemanticWorldV2, SimulationStateV2, WorldPoint } from "@z-world/contracts";
 import type { NavigationIndexV2 } from "./room-graph.js";
+import { valuesById } from "./ordered.js";
 import { nextEventId } from "../sequences.js";
 
 /**
@@ -102,7 +103,7 @@ export function updateDiscoveryV2(
   }
 
   for (const observer of outdoorPositions) {
-    for (const place of Object.values(world.places)) {
+    for (const place of valuesById(world.places)) {
       const dist = distance(observer, place.position);
       if (dist <= DISCOVERY_SIGHT_RADIUS_METERS) emit("place", place.id, "exterior", "sighted");
       if (dist <= DISCOVERY_OBSERVE_RADIUS_METERS) {
@@ -110,7 +111,7 @@ export function updateDiscoveryV2(
         if (place.buildingId) emit("building", place.buildingId, "structure", "observed");
       }
     }
-    for (const opening of Object.values(world.openings)) {
+    for (const opening of valuesById(world.openings)) {
       if (!opening.connectsToExterior) continue;
       if (distance(observer, opening.position) <= DISCOVERY_ACCESS_RADIUS_METERS) {
         emit("opening", opening.id, "accesses", "observed");
@@ -129,7 +130,7 @@ function revealCurrentRoom(
   const room = world.rooms[roomId];
   if (!room) return;
   emit("room", roomId, "rooms", "observed");
-  for (const opening of Object.values(world.openings)) {
+  for (const opening of valuesById(world.openings)) {
     if (opening.connectsRoomId === roomId || opening.connectsOtherRoomId === roomId) {
       emit("opening", opening.id, "accesses", "observed");
     }

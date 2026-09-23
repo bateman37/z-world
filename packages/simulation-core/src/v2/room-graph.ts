@@ -1,4 +1,5 @@
 import type { SemanticWorldV2, WorldPoint } from "@z-world/contracts";
+import { valuesById } from "./ordered.js";
 import { buildWalkabilityGridV2, nearestWalkableCellV2, cellToWorldCenterV2, type WalkabilityGridV2 } from "./navigation-v2.js";
 
 /**
@@ -38,7 +39,7 @@ function distance(a: WorldPoint, b: WorldPoint): number {
 export function isOpeningPassable(openingId: string, world: SemanticWorldV2): boolean {
   const opening = world.openings[openingId];
   if (!opening) return false;
-  for (const obstruction of Object.values(world.obstructions)) {
+  for (const obstruction of valuesById(world.obstructions)) {
     if (obstruction.openingId === openingId) return false;
   }
   if (!opening.installedClosureId) return true;
@@ -88,10 +89,10 @@ function buildBuildingNavIndex(buildingId: string, world: SemanticWorldV2, grid:
   // generado inaccesible por una desincronización entre ambos campos.
   const floor =
     (building.activeFloorId ? world.floors[building.activeFloorId] : undefined) ??
-    Object.values(world.floors).find((f) => f.buildingId === buildingId && f.active);
+    valuesById(world.floors).find((f) => f.buildingId === buildingId && f.active);
   if (!floor || !floor.active) return null;
 
-  const roomsOnFloor = Object.values(world.rooms).filter((room) => room.floorId === floor.id);
+  const roomsOnFloor = valuesById(world.rooms).filter((room) => room.floorId === floor.id);
   const rooms: Record<string, { centroid: WorldPoint; edges: RoomGraphEdge[] }> = {};
   for (const room of roomsOnFloor) {
     rooms[room.id] = { centroid: centroidOf(room.polygon), edges: [] };
@@ -99,7 +100,7 @@ function buildBuildingNavIndex(buildingId: string, world: SemanticWorldV2, grid:
 
   const exteriorBridges: ExteriorBridge[] = [];
 
-  for (const opening of Object.values(world.openings)) {
+  for (const opening of valuesById(world.openings)) {
     const roomA = opening.connectsRoomId ? rooms[opening.connectsRoomId] : undefined;
     if (!roomA) continue;
     if (!isOpeningPassable(opening.id, world)) continue;
@@ -135,7 +136,7 @@ export function buildNavigationIndexV2(world: SemanticWorldV2, grid: Walkability
   const buildings: Record<string, BuildingNavIndex> = {};
   const roomToBuilding: Record<string, string> = {};
 
-  for (const buildingId of Object.keys(world.buildings)) {
+  for (const buildingId of Object.keys(world.buildings).sort()) {
     const index = buildBuildingNavIndex(buildingId, world, grid);
     if (!index) continue;
     buildings[buildingId] = index;

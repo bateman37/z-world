@@ -1,5 +1,6 @@
 import type { BulkClass, Container, EntityLocation, HandlingTag, ResourceLot, SimulationStateV2, StorageItemRef, WorldObject, WorldPoint } from "@z-world/contracts";
 import { furnitureLocation } from "@z-world/contracts";
+import { valuesById } from "../ordered.js";
 import { OBJECT_CATALOG_BY_VARIANT } from "@z-world/catalogs";
 
 /**
@@ -217,7 +218,7 @@ export function liquidCapacityOf(obj: Pick<WorldObject, "variant" | "functionalS
 /** Litros de agua que ya contiene un recipiente (lotes `on_object` sobre él). */
 export function liquidHeldBy(state: SimulationStateV2, objectId: string): number {
   let total = 0;
-  for (const lot of Object.values(state.resourceLots)) {
+  for (const lot of valuesById(state.resourceLots)) {
     if (lot.family === "water" && lot.location.kind === "on_object" && lot.location.objectId === objectId) total += lot.quantity;
   }
   return total;

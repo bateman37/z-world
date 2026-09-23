@@ -50,6 +50,7 @@ import { releaseJobReservations, reserveExclusiveTarget, reserveResourceLot, typ
 import { resolveOwnNeedTarget } from "./own-need-resolution.js";
 import { createJob } from "./job-factory.js";
 import { transitionJob } from "./job-transitions.js";
+import { jobsInOrder, valuesById } from "../ordered.js";
 import {
   applyHydrationRecovery,
   applyNutritionRecovery,
@@ -64,10 +65,26 @@ export interface AdvanceJobsResult {
   readonly events: readonly DomainEventV2[];
 }
 
-let episodeCounter = 0;
+/**
+ * ID de episodio derivado solo de la secuencia causal del estado (el
+ * evento `work_episode_created` consume ese mismo número justo después, así
+ * que es único). Antes de S7 incluía un contador global de módulo, que
+ * hacía divergir los IDs entre dos ejecuciones idénticas (p. ej. seguir en
+ * memoria frente a seguir tras recargar): corregido sin tocar IDs ya
+ * persistidos, que conservan su forma antigua.
+ */
 function nextEpisodeId(state: SimulationStateV2): string {
-  episodeCounter += 1;
-  return `episode-${state.sequences.nextDomainEventSequence}-${episodeCounter}`;
+  return `episode-s${state.sequences.nextDomainEventSequence}`;
+}
+
+/**
+ * Redondeo a 6 decimales en los límites causales que se persisten (S7):
+ * PostgreSQL `jsonb` no devuelve exactamente un `double` de 17 cifras
+ * significativas, así que un episodio o un progreso sin redondear diverge
+ * al recargar. Mismo criterio que `generator/round-state.ts`.
+ */
+function round6(value: number): number {
+  return Math.round(value * 1_000_000) / 1_000_000;
 }
 
 interface Ctx {
@@ -123,7 +140,7 @@ function isPersonFreeForPlanning(person: PersonStateV2): boolean {
 }
 
 function assignIdlePeople(ctx: Ctx): void {
-  const openJobs = Object.values(ctx.state.jobs).filter(
+  const openJobs = jobsInOrder(ctx.state.jobs).filter(
     (job) => (job.state === "proposed" || job.state === "available") && job.assignments.length < job.desiredTeamSize,
   );
   if (openJobs.length === 0) return;
@@ -135,7 +152,7 @@ function assignIdlePeople(ctx: Ctx): void {
     // Órdenes directas: la persona solicitada tiene precedencia absoluta
     // sobre el planificador general (§11.9/§6.9 del prompt de subhitos), pero
     // `Nunca` sigue excluyendo incluso una orden directa silenciosa (§11.7).
-    const directJob = Object.values(ctx.state.jobs).find(
+    const directJob = jobsInOrder(ctx.state.jobs).find(
       (job) =>
         job.directOrder &&
         job.requestedPersonIds.includes(personId) &&
@@ -148,7 +165,7 @@ function assignIdlePeople(ctx: Ctx): void {
     // Un trabajo de orden directa con personas solicitadas explícitamente
     // (§11.9) no lo puebla el planificador con cualquier otra persona libre:
     // solo lo toman las solicitadas.
-    const currentOpenJobs = Object.values(ctx.state.jobs).filter(
+    const currentOpenJobs = jobsInOrder(ctx.state.jobs).filter(
       (job) =>
         (job.state === "proposed" || job.state === "available") &&
         job.assignments.length < job.desiredTeamSize &&
@@ -286,7 +303,7 @@ function markPhaseActive(job: Job, index: number): Job {
 
 /** Reevalúa trabajos `blocked` ante el estado actual, nunca por sondeo del mundo entero (§11.2: "se reevalúa por eventos pertinentes"). Sin ejecutor asignado, vuelve a quedar disponible para el planificador; con ejecutor, retoma si sus requisitos duros ya se cumplen. */
 function reviveBlockedJobs(ctx: Ctx): void {
-  for (const job of Object.values(ctx.state.jobs)) {
+  for (const job of jobsInOrder(ctx.state.jobs)) {
     const current = ctx.state.jobs[job.id];
     if (!current || current.state !== "blocked") continue;
     const def = ACTION_METHODS_BY_KEY.get(current.actionKey);
@@ -336,7 +353,7 @@ function phaseBlockerStillApplies(state: SimulationStateV2, job: Job, executorId
 // --- Progreso de fases --------------------------------------------------
 
 function progressActiveJobs(ctx: Ctx): void {
-  for (const job of Object.values(ctx.state.jobs)) {
+  for (const job of jobsInOrder(ctx.state.jobs)) {
     if (job.state !== "in_progress") continue;
     const current = ctx.state.jobs[job.id];
     if (!current || current.state !== "in_progress") continue;
@@ -697,7 +714,7 @@ const WORK_SITE_REACH_METERS = 6;
 function findWorkSiteResourceLots(state: SimulationStateV2, targetLocation: Job["location"], executorId: string, family: ResourceLot["family"]): ResourceLot[] {
   const targetRoomId = resolveRoomId(state, targetLocation);
   const targetPoint = targetRoomId ? null : locationWorldPoint(state, targetLocation);
-  return Object.values(state.resourceLots)
+  return valuesById(state.resourceLots)
     .filter((lot) => lot.family === family && lot.quantity > 0 && !lot.reservedByJobId)
     .filter((lot) => {
       const holder = resolveHolderPersonId(state, lot.location);
@@ -787,7 +804,7 @@ function resolveModelDExecution(ctx: Ctx, jobId: string, def: ActionMethodDefini
 
   if (job.workRateVariation === null) {
     const stream = new PrngStream(ctx.state.prng.resolution);
-    const variation = sampleVariationD(stream);
+    const variation = round6(sampleVariationD(stream));
     ctx.state = { ...ctx.state, prng: { ...ctx.state.prng, resolution: stream.snapshot() } };
     job = { ...job, workRateVariation: variation };
     putJob(ctx, job);
@@ -810,8 +827,8 @@ function resolveModelDExecution(ctx: Ctx, jobId: string, def: ActionMethodDefini
     }
   }
 
-  const remaining = Math.max(0, job.workRemainingUnits - elapsedMinutes);
-  const progressRatio = def.baseWorkUnits > 0 ? Math.min(1, 1 - remaining / def.baseWorkUnits) : 1;
+  const remaining = round6(Math.max(0, job.workRemainingUnits - elapsedMinutes));
+  const progressRatio = round6(def.baseWorkUnits > 0 ? Math.min(1, 1 - remaining / def.baseWorkUnits) : 1);
   putJob(ctx, { ...ctx.state.jobs[jobId]!, workRemainingUnits: remaining, progressRatio });
   if (remaining <= 0) {
     applyConsequences(ctx, ctx.state.jobs[jobId]!, def, executorId, "favorable");
@@ -832,13 +849,13 @@ function resolveModelBExecution(ctx: Ctx, jobId: string, def: ActionMethodDefini
 
   const capacityEffective = computeEffectiveCapacity(executor.public, def);
   const difficultyEffective = def.difficulty;
-  const marginPrevious = isUniversalCapacity(capacityEffective) ? 10 - difficultyEffective : capacityEffective - difficultyEffective;
+  const marginPrevious = round6(isUniversalCapacity(capacityEffective) ? 10 - difficultyEffective : capacityEffective - difficultyEffective);
 
   const stream = new PrngStream(ctx.state.prng.resolution);
-  const variationB = sampleVariationB(stream);
+  const variationB = round6(sampleVariationB(stream));
   ctx.state = { ...ctx.state, prng: { ...ctx.state.prng, resolution: stream.snapshot() } };
 
-  const marginFinal = marginPrevious + variationB;
+  const marginFinal = round6(marginPrevious + variationB);
   const band = bandForMargin(marginFinal);
 
   const episodeId = nextEpisodeId(ctx.state);
@@ -847,7 +864,7 @@ function resolveModelBExecution(ctx: Ctx, jobId: string, def: ActionMethodDefini
     jobId,
     phase: "execute",
     executorPersonId: executorId,
-    capacityEffective: isUniversalCapacity(capacityEffective) ? 10 : capacityEffective,
+    capacityEffective: isUniversalCapacity(capacityEffective) ? 10 : round6(capacityEffective),
     difficultyEffective,
     marginPrevious,
     variationB,
@@ -921,7 +938,7 @@ function applyInstallationTestConsequences(ctx: Ctx, job: Job): void {
 /** Recipientes de líquido con hueco que la persona lleva o que están al pie de la instalación, en orden estable. */
 function waterVesselsFor(state: SimulationStateV2, pump: WorldObject, executorId: string): { obj: WorldObject; free: number }[] {
   const pumpPoint = locationWorldPoint(state, pump.location);
-  return Object.values(state.worldObjects)
+  return valuesById(state.worldObjects)
     .filter((o) => o.id !== pump.id)
     .map((o) => ({ obj: o, capacity: liquidCapacityOf(o) }))
     .filter((v): v is { obj: WorldObject; capacity: number } => v.capacity !== null)
@@ -962,7 +979,7 @@ function applyDrawWaterConsequences(ctx: Ctx, job: Job, executorId: string): voi
     if (remaining <= 0) break;
     const liters = Math.min(free, remaining);
     remaining -= liters;
-    const existing = Object.values(ctx.state.resourceLots).find((lot) => lot.family === "water" && lot.location.kind === "on_object" && lot.location.objectId === obj.id);
+    const existing = valuesById(ctx.state.resourceLots).find((lot) => lot.family === "water" && lot.location.kind === "on_object" && lot.location.objectId === obj.id);
     let lotId: string;
     if (existing) {
       lotId = existing.id;
@@ -1247,7 +1264,7 @@ function emitNeedChangedIfBandShifted(ctx: Ctx, personId: string, dimension: Nee
 function applyWorkNeedDecline(ctx: Ctx): void {
   const elapsedMinutes = ctx.simSecondsToAdvance / 60;
   const SELF_CARE_ACTION_KEYS = new Set(["drink", "eat", "rest"]);
-  for (const job of Object.values(ctx.state.jobs)) {
+  for (const job of jobsInOrder(ctx.state.jobs)) {
     if (job.state !== "in_progress") continue;
     // Beber/comer/descansar ya declaran su propio efecto sobre necesidades
     // (consumo/recuperación): aplicarles también el coste genérico de
