@@ -2,16 +2,21 @@ import type {
   ActionMethodDefinition,
   DiscoveryFacet,
   DomainEventV2,
+  Furniture,
   Job,
+  JobTarget,
   KnowledgeState,
   NeedDimension,
   OutcomeBand,
   PersonStateV2,
+  ResourceLot,
   SimulationStateV2,
   WorkEpisode,
+  WorldObject,
 } from "@z-world/contracts";
-import { bandForMargin, needBandFor } from "@z-world/contracts";
-import { ACTION_METHODS_BY_KEY } from "@z-world/catalogs";
+import { bandForMargin, needBandFor, furnitureLocation } from "@z-world/contracts";
+import { ACTION_METHODS_BY_KEY, DISASSEMBLY_PROFILES_BY_ID, REPAIR_PROFILES_BY_ID } from "@z-world/catalogs";
+import { resolveTransformationProfileId } from "./eligibility.js";
 import { nextEventId } from "../../sequences.js";
 import type { NavigationIndexV2 } from "../room-graph.js";
 import { findPathV2, resolveNavAnchor } from "../pathfinding-v2.js";
@@ -340,6 +345,14 @@ function progressJob(ctx: Ctx, jobId: string): void {
       startInternalMove(ctx, executorId, destination, jobId);
       return;
     }
+    case "collect": {
+      progressCollectPhase(ctx, jobId, executorId);
+      return;
+    }
+    case "prepare": {
+      progressPreparePhase(ctx, jobId);
+      return;
+    }
     case "execute": {
       progressExecutePhase(ctx, jobId, def, executorId);
       return;
@@ -351,6 +364,122 @@ function progressJob(ctx: Ctx, jobId: string): void {
       completePhase(ctx, jobId);
       return;
   }
+}
+
+/** Fase `collect` de §11.3/§15.7 (S7): mueve el objeto suelto a la persona ejecutora en un único límite causal, nunca por teletransporte silencioso. */
+function progressCollectPhase(ctx: Ctx, jobId: string, executorId: string): void {
+  const job = ctx.state.jobs[jobId];
+  if (!job) return;
+  if (job.target.kind !== "world_object") {
+    // El mobiliario pesado exige un método de transporte de S8 (porte
+    // coordinado, carretilla, carro), todavía sin implementar: bloquear con
+    // motivo causal es más honesto que fingir una recogida a pulso.
+    blockJob(ctx, jobId, "block.requires_transport_method");
+    return;
+  }
+  const obj = ctx.state.worldObjects[job.target.worldObjectId];
+  if (!obj) {
+    failJobCausally(ctx, jobId, "block.target_no_longer_exists");
+    return;
+  }
+  ctx.state = { ...ctx.state, worldObjects: { ...ctx.state.worldObjects, [obj.id]: { ...obj, location: { kind: "carried_by_person", personId: executorId }, ownerOrReservedByJobId: null } } };
+  const eventId = withNextEventId(ctx);
+  emit(ctx, { type: "object_collected", eventId, simSeconds: ctx.state.clock.elapsedSimSeconds, causedByCommandId: null, objectId: obj.id, entityKind: "world_object", personId: executorId, jobId });
+  completePhase(ctx, jobId);
+}
+
+/**
+ * Fase `prepare` (S7 §16.2/§16.4): para `repair`, reserva y consume las
+ * familias de recurso concretas de la receta en un único límite causal, sin
+ * pila universal; para `disassemble_*`, exige la confirmación informada del
+ * coste irreversible antes de tocar nada. Otros métodos que declaren
+ * `prepare` sin lógica propia simplemente la completan (documentado como
+ * deuda si llegara a ocurrir).
+ */
+function progressPreparePhase(ctx: Ctx, jobId: string): void {
+  const job = ctx.state.jobs[jobId];
+  if (!job) return;
+
+  if (job.actionKey === "disassemble_selective" || job.actionKey === "disassemble_destructive") {
+    if (!job.irreversibleConfirmed) {
+      blockJob(ctx, jobId, "block.irreversible_not_confirmed");
+      return;
+    }
+    completePhase(ctx, jobId);
+    return;
+  }
+
+  if (job.actionKey === "repair") {
+    const profileId = resolveTransformationProfileId(ctx.state, job.target, "repair");
+    const profile = profileId ? REPAIR_PROFILES_BY_ID.get(profileId) : undefined;
+    if (!profile) {
+      blockJob(ctx, jobId, "block.no_transformation_profile");
+      return;
+    }
+    const roomId = transformTargetRoomId(ctx.state, job.target);
+    const consumed: { lotId: string; quantity: number }[] = [];
+    for (const requirement of profile.requirements) {
+      const available = findCoLocatedResourceLots(ctx.state, roomId, requirement.resourceFamily);
+      let remaining = requirement.quantity;
+      for (const lot of available) {
+        if (remaining <= 0) break;
+        const take = Math.min(remaining, lot.quantity);
+        consumed.push({ lotId: lot.id, quantity: take });
+        remaining -= take;
+      }
+      if (remaining > 0) {
+        blockJob(ctx, jobId, "block.missing_materials");
+        return;
+      }
+    }
+    for (const { lotId, quantity } of consumed) {
+      consumeResourceLotQuantity(ctx, lotId, quantity, jobId);
+    }
+    completePhase(ctx, jobId);
+    return;
+  }
+
+  completePhase(ctx, jobId);
+}
+
+function transformTargetRoomId(state: SimulationStateV2, target: JobTarget): string | null {
+  if (target.kind === "world_object") {
+    const obj = state.worldObjects[target.worldObjectId];
+    return obj && obj.location.kind === "room" ? obj.location.roomId : null;
+  }
+  if (target.kind === "furniture") {
+    const furniture = state.furniture[target.furnitureId];
+    if (!furniture) return null;
+    const location = furnitureLocation(furniture);
+    return location.kind === "room" ? location.roomId : null;
+  }
+  return null;
+}
+
+function findCoLocatedResourceLots(state: SimulationStateV2, roomId: string | null, family: ResourceLot["family"]): ResourceLot[] {
+  if (!roomId) return [];
+  return Object.values(state.resourceLots).filter((lot) => lot.family === family && lot.quantity > 0 && !lot.reservedByJobId && lotRoomId(state, lot) === roomId);
+}
+
+function lotRoomId(state: SimulationStateV2, lot: ResourceLot): string | null {
+  if (lot.location.kind === "room") return lot.location.roomId;
+  if (lot.location.kind === "container") {
+    const container = state.containers[lot.location.containerId];
+    return container && container.location.kind === "room" ? container.location.roomId : null;
+  }
+  return null;
+}
+
+function consumeResourceLotQuantity(ctx: Ctx, lotId: string, quantity: number, jobId: string): void {
+  const lot = ctx.state.resourceLots[lotId];
+  if (!lot) return;
+  const nextQuantity = lot.quantity - quantity;
+  ctx.state = {
+    ...ctx.state,
+    resourceLots: nextQuantity <= 0 ? removeKey(ctx.state.resourceLots, lotId) : { ...ctx.state.resourceLots, [lotId]: { ...lot, quantity: nextQuantity } },
+  };
+  const eventId = withNextEventId(ctx);
+  emit(ctx, { type: "resource_lot_consumed", eventId, simSeconds: ctx.state.clock.elapsedSimSeconds, causedByCommandId: null, resourceLotId: lotId, jobId, quantity });
 }
 
 function startInternalMove(ctx: Ctx, personId: string, destination: { x: number; y: number }, jobId: string): void {
@@ -445,7 +574,10 @@ function resolveModelDExecution(ctx: Ctx, jobId: string, def: ActionMethodDefini
   const remaining = Math.max(0, job.workRemainingUnits - elapsedMinutes);
   const progressRatio = def.baseWorkUnits > 0 ? Math.min(1, 1 - remaining / def.baseWorkUnits) : 1;
   putJob(ctx, { ...ctx.state.jobs[jobId]!, workRemainingUnits: remaining, progressRatio });
-  if (remaining <= 0) completePhase(ctx, jobId);
+  if (remaining <= 0) {
+    applyConsequences(ctx, ctx.state.jobs[jobId]!, def, executorId, "favorable");
+    completePhase(ctx, jobId);
+  }
 }
 
 function restSupportTier(job: Job): RestSupportTier {
@@ -498,7 +630,7 @@ function resolveModelBExecution(ctx: Ctx, jobId: string, def: ActionMethodDefini
   completePhase(ctx, jobId);
 }
 
-function applyConsequences(ctx: Ctx, job: Job, def: ActionMethodDefinition, executorId: string, _band: OutcomeBand): void {
+function applyConsequences(ctx: Ctx, job: Job, def: ActionMethodDefinition, executorId: string, band: OutcomeBand): void {
   for (const reveal of def.revealsKnowledge) {
     const entityId = discoveryEntityIdForTarget(job.target);
     if (!entityId) continue;
@@ -513,6 +645,123 @@ function applyConsequences(ctx: Ctx, job: Job, def: ActionMethodDefinition, exec
   if (job.actionKey === "eat" && job.target.kind === "resource_lot") {
     consumeResourceLot(ctx, job, executorId, job.target.resourceLotId, "nutrition", 1);
   }
+  if (job.actionKey === "repair") {
+    applyRepairConsequences(ctx, job, band);
+  }
+  if (job.actionKey === "disassemble_selective" || job.actionKey === "disassemble_destructive") {
+    applyDisassemblyConsequences(ctx, job);
+  }
+}
+
+/** Objeto o mueble transformable referenciado por un `JobTarget` (S7 §16). `null` si el blanco no es transformable o ya no existe. */
+function resolveTransformEntity(state: SimulationStateV2, target: JobTarget): { kind: "world_object"; entity: WorldObject } | { kind: "furniture"; entity: Furniture } | null {
+  if (target.kind === "world_object") {
+    const entity = state.worldObjects[target.worldObjectId];
+    return entity ? { kind: "world_object", entity } : null;
+  }
+  if (target.kind === "furniture") {
+    const entity = state.furniture[target.furnitureId];
+    return entity ? { kind: "furniture", entity } : null;
+  }
+  return null;
+}
+
+function putTransformEntity(ctx: Ctx, resolved: { kind: "world_object"; entity: WorldObject } | { kind: "furniture"; entity: Furniture }): void {
+  if (resolved.kind === "world_object") {
+    ctx.state = { ...ctx.state, worldObjects: { ...ctx.state.worldObjects, [resolved.entity.id]: resolved.entity } };
+  } else {
+    ctx.state = { ...ctx.state, furniture: { ...ctx.state.furniture, [resolved.entity.id]: resolved.entity } };
+  }
+}
+
+/** Resultado de una reparación (§16.2): completa/provisional/parcial según la banda del episodio; nunca eleva la calidad original ni recupera una función irreparable por sí sola. */
+function applyRepairConsequences(ctx: Ctx, job: Job, band: OutcomeBand): void {
+  const resolved = resolveTransformEntity(ctx.state, job.target);
+  if (!resolved) return;
+  const profileId = resolveTransformationProfileId(ctx.state, job.target, "repair");
+  const profile = profileId ? REPAIR_PROFILES_BY_ID.get(profileId) : undefined;
+  if (!profile) return;
+  if (resolved.entity.functionalState === "irreparable") return; // una reparación nunca recupera automáticamente una función declarada irreparable (§16.2).
+
+  const outcome: "complete" | "provisional" | "partial" = band === "exceptional" || band === "favorable" ? "complete" : band === "uncertain" ? "provisional" : "partial";
+  const functionalStateAfter = outcome === "complete" ? profile.bestCaseFunctionalState : outcome === "provisional" ? "degraded" : resolved.entity.functionalState;
+
+  putTransformEntity(ctx, { ...resolved, entity: { ...resolved.entity, functionalState: functionalStateAfter, condition: Math.min(1, resolved.entity.condition + (outcome === "partial" ? 0.05 : 0.25)) } } as typeof resolved);
+
+  const eventId = withNextEventId(ctx);
+  emit(ctx, {
+    type: "object_repaired",
+    eventId,
+    simSeconds: ctx.state.clock.elapsedSimSeconds,
+    causedByCommandId: null,
+    objectId: resolved.entity.id,
+    entityKind: resolved.kind,
+    jobId: job.id,
+    outcome,
+    functionalStateAfter,
+  });
+}
+
+/**
+ * Resultado de un desmontaje (§16.3/§16.9): produce lotes de recurso
+ * localizados según el perfil y el alcance elegido (nunca más de lo
+ * declarado, conservación de masa), y elimina para siempre las funciones
+ * del perfil. El objeto/mueble no desaparece: queda marcado `parts_only`
+ * como evidencia física de lo ocurrido, coherente con §21 (capas de
+ * edificio) para el caso de mobiliario/instalación.
+ */
+function applyDisassemblyConsequences(ctx: Ctx, job: Job): void {
+  const resolved = resolveTransformEntity(ctx.state, job.target);
+  if (!resolved) return;
+  const profileId = resolveTransformationProfileId(ctx.state, job.target, job.actionKey);
+  const profile = profileId ? DISASSEMBLY_PROFILES_BY_ID.get(profileId) : undefined;
+  if (!profile) return;
+  const scope = job.disassemblyScope ?? "selective";
+
+  const location = resolved.kind === "world_object" ? resolved.entity.location : furnitureLocation(resolved.entity);
+  const producedResourceLotIds: string[] = [];
+  for (const output of profile.outputs) {
+    const quantity = scope === "selective" ? output.selectiveQuantity : output.destructiveQuantity;
+    if (quantity <= 0) continue;
+    const lotId = `resource-lot-${ctx.state.sequences.nextEntityOrdinal}`;
+    ctx.state = { ...ctx.state, sequences: { ...ctx.state.sequences, nextEntityOrdinal: ctx.state.sequences.nextEntityOrdinal + 1 } };
+    const lot: ResourceLot = {
+      id: lotId,
+      family: output.resourceFamily,
+      quantity,
+      unit: output.resourceFamily === "water" ? "liter" : "kilogram",
+      location,
+      condition: scope === "selective" ? 0.8 : 0.5,
+      reservedByJobId: null,
+      qualityKnown: true,
+      quality: scope === "selective" ? 0.8 : 0.5,
+      provenance: `disassembled_from:${resolved.entity.id}`,
+      decayStartedAtSimSeconds: null,
+    };
+    ctx.state = { ...ctx.state, resourceLots: { ...ctx.state.resourceLots, [lotId]: lot } };
+    producedResourceLotIds.push(lotId);
+  }
+
+  const remainingInactive = { ...resolved.entity.inactiveFunctionReasons };
+  for (const fn of profile.functionsLost) remainingInactive[fn] = "disassembled";
+  putTransformEntity(ctx, {
+    ...resolved,
+    entity: { ...resolved.entity, functionalState: "parts_only", functions: [], inactiveFunctionReasons: remainingInactive, capacityUnits: null },
+  } as typeof resolved);
+
+  const eventId = withNextEventId(ctx);
+  emit(ctx, {
+    type: "object_disassembled",
+    eventId,
+    simSeconds: ctx.state.clock.elapsedSimSeconds,
+    causedByCommandId: null,
+    objectId: resolved.entity.id,
+    entityKind: resolved.kind,
+    jobId: job.id,
+    scope,
+    producedResourceLotIds,
+    functionsLost: [...profile.functionsLost],
+  });
 }
 
 function discoveryEntityIdForTarget(target: Job["target"]): string | null {

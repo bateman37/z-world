@@ -18,6 +18,13 @@ export const ENTITY_LOCATION_KINDS = [
   "transfer_point",
   "work_site",
   "field_edge",
+  /**
+   * Contenido físicamente dentro/sobre una `Furniture` o `WorldObject` que
+   * actúa como contenedor (armario, estantería...) sin pasar por un
+   * `Container` propio. Añadido en S7 (§8.4 del prompt S7-S9) de forma
+   * aditiva: ninguna partida anterior a S7 usa este tipo.
+   */
+  "on_object",
 ] as const;
 export type EntityLocationKind = (typeof ENTITY_LOCATION_KINDS)[number];
 
@@ -31,7 +38,8 @@ export type EntityLocation =
   | { readonly kind: "installed_at_opening"; readonly openingId: string }
   | { readonly kind: "transfer_point"; readonly transferPointId: string }
   | { readonly kind: "work_site"; readonly jobId: string }
-  | { readonly kind: "field_edge"; readonly parcelId: string };
+  | { readonly kind: "field_edge"; readonly parcelId: string }
+  | { readonly kind: "on_object"; readonly objectId: string };
 
 export const entityLocationSchema: z.ZodType<EntityLocation> = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("world_point"), point: worldPointSchema }),
@@ -44,6 +52,7 @@ export const entityLocationSchema: z.ZodType<EntityLocation> = z.discriminatedUn
   z.object({ kind: z.literal("transfer_point"), transferPointId: z.string() }),
   z.object({ kind: z.literal("work_site"), jobId: z.string() }),
   z.object({ kind: z.literal("field_edge"), parcelId: z.string() }),
+  z.object({ kind: z.literal("on_object"), objectId: z.string() }),
 ]);
 
 /** Extrae el ID de la entidad contenedora referenciada, si la ubicación lo tiene. */
@@ -69,6 +78,8 @@ export function locationReferenceId(location: EntityLocation): string | null {
       return location.jobId;
     case "field_edge":
       return location.parcelId;
+    case "on_object":
+      return location.objectId;
     default: {
       const exhaustive: never = location;
       throw new Error(`Ubicación no reconocida: ${JSON.stringify(exhaustive)}`);

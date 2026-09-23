@@ -71,6 +71,10 @@ export const orderContextualActionCommandSchema = z.object({
   target: jobTargetSchema,
   pace: z.enum(PACE_MODES).optional(),
   attention: z.enum(ATTENTION_MODES).optional(),
+  /** Alcance de desmontaje elegido, solo relevante para `disassemble_*` (§16.3, S7). */
+  disassemblyScope: z.enum(["selective", "destructive"]).optional(),
+  /** Confirmación informada del coste irreversible del método (§16.4, S7). Un método `irreversible` sin esto queda bloqueado, nunca se ejecuta en silencio. */
+  confirmIrreversible: z.boolean().optional(),
 });
 
 export const pauseJobCommandSchema = z.object({ ...baseCommandFields, type: z.literal("pause_job"), jobId: z.string().min(1) });

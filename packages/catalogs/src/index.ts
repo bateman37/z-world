@@ -7,3 +7,5 @@ export * from "./validate.js";
 export * from "./place-profiles.js";
 export * from "./action-methods.js";
 export * from "./needs-tuning.js";
+export * from "./repair-disassembly-profiles.js";
+export * from "./object-catalog.js";

@@ -2,9 +2,11 @@ import { z } from "zod";
 import { entityLocationSchema, type EntityLocation } from "./location-v2.js";
 
 /**
- * Objetos, contenedores y recursos mínimos de WEB-002 §6.3/§15. Forma
- * esquelética (S1): el catálogo de 14 familias y los cuatro demostradores
- * profundos llegan con comportamiento real en S7.
+ * Objetos, contenedores y recursos de WEB-002 §6.3/§15 (S7 — `DEC-0019`).
+ * S1 dejó una forma esquelética; S7 la profundiza de forma aditiva sobre las
+ * formas ya cerradas de `DEC-0015`: ningún campo existente cambia de tipo o
+ * de nombre, y todo campo nuevo tiene un `.default()` seguro para que un
+ * snapshot generado antes de S7 siga cargando (§5.1 del prompt S7-S9).
  */
 
 export const FUNCTIONAL_STATES = [
@@ -19,35 +21,18 @@ export const FUNCTIONAL_STATES = [
 export type FunctionalState = (typeof FUNCTIONAL_STATES)[number];
 export const functionalStateSchema = z.enum(FUNCTIONAL_STATES);
 
-export interface Furniture {
-  readonly id: string;
-  readonly roomId: string;
-  readonly kind: string;
-  readonly condition: number;
-  readonly functionalState: FunctionalState;
-}
+/** Etiquetas de manipulación de §15.2/§18.2, comunes a objetos y cargas. */
+export const HANDLING_TAGS = ["liquid", "fragile", "long", "bulky", "contaminating", "keep_upright"] as const;
+export type HandlingTag = (typeof HANDLING_TAGS)[number];
+export const handlingTagSchema = z.enum(HANDLING_TAGS);
 
-export const furnitureSchema = z.object({
-  id: z.string(),
-  roomId: z.string(),
-  kind: z.string(),
-  condition: z.number().min(0).max(1),
-  functionalState: functionalStateSchema,
-});
+export const BULK_CLASSES = ["small", "medium", "large", "bulky"] as const;
+export type BulkClass = (typeof BULK_CLASSES)[number];
+export const bulkClassSchema = z.enum(BULK_CLASSES);
 
-export interface Container {
-  readonly id: string;
-  readonly location: EntityLocation;
-  readonly capacityUnits: number;
-  readonly contentIds: readonly string[];
-}
-
-export const containerSchema = z.object({
-  id: z.string(),
-  location: entityLocationSchema,
-  capacityUnits: z.number().nonnegative(),
-  contentIds: z.array(z.string()),
-});
+export const PORTABILITY_KINDS = ["handheld", "two_person", "fixed", "vehicle_required"] as const;
+export type PortabilityKind = (typeof PORTABILITY_KINDS)[number];
+export const portabilityKindSchema = z.enum(PORTABILITY_KINDS);
 
 /** Las catorce familias de objeto completo de CAT-005 (§15.1). */
 export const WORLD_OBJECT_FAMILIES = [
@@ -66,6 +51,122 @@ export const WORLD_OBJECT_FAMILIES = [
   "human_transport",
 ] as const;
 export type WorldObjectFamily = (typeof WORLD_OBJECT_FAMILIES)[number];
+export const worldObjectFamilySchema = z.enum(WORLD_OBJECT_FAMILIES);
+
+/**
+ * Receta de reparación versionada (§15.2/§16.2). Referenciada por ID desde
+ * `WorldObject.repairProfileId`/`Furniture.repairProfileId`; los datos viven
+ * en `packages/catalogs` (`repair-profiles.ts`), nunca en el estado.
+ */
+export interface RepairRequirement {
+  readonly resourceFamily: ResourceFamily;
+  readonly quantity: number;
+}
+export const repairRequirementSchema = z.object({
+  resourceFamily: z.string(),
+  quantity: z.number().positive(),
+});
+
+/**
+ * Receta de desmontaje/desguace versionada (§16.3/§SET-009 §3.4). Un
+ * `DisassemblyProfile` declara los productos posibles de cada modo; el
+ * motor de resolución decide cuánto de cada uno se recupera según
+ * condición, conocimiento y herramientas, nunca más de lo declarado
+ * (conservación de masa, §6.4 y §16.9 del prompt maestro).
+ */
+export interface DisassemblyOutput {
+  readonly resourceFamily: ResourceFamily;
+  readonly selectiveQuantity: number;
+  readonly destructiveQuantity: number;
+}
+export const disassemblyOutputSchema = z.object({
+  resourceFamily: z.string(),
+  selectiveQuantity: z.number().nonnegative(),
+  destructiveQuantity: z.number().nonnegative(),
+});
+
+export interface Furniture {
+  readonly id: string;
+  readonly roomId: string;
+  readonly kind: string;
+  readonly condition: number;
+  readonly functionalState: FunctionalState;
+  /** Familia CAT-005 cuando esta pieza de mobiliario/instalación representa una de las catorce (§6.1 del prompt S7-S9: "reparte correctamente entre WorldObject, Furniture..."). `null` para mobiliario decorativo sin comportamiento propio. */
+  readonly family: WorldObjectFamily | null;
+  readonly variant: string;
+  readonly weightKg: number;
+  readonly bulk: BulkClass;
+  readonly quality: number;
+  /** Capacidad útil del contenedor que esta pieza representa (armario, estantería...), o `null` si no contiene nada. */
+  readonly capacityUnits: number | null;
+  /** `Container` real que materializa el contenido, cuando `capacityUnits` no es `null`. */
+  readonly containerId: string | null;
+  /**
+   * Ubicación física real tras un trabajo de traslado. `null` mientras la
+   * pieza sigue en su `roomId` original (compatibilidad con partidas
+   * anteriores a S7, que nunca mueven mobiliario); usar `furnitureLocation()`
+   * para resolver la ubicación efectiva.
+   */
+  readonly movedToLocation: EntityLocation | null;
+  readonly handlingTags: readonly HandlingTag[];
+  readonly functions: readonly string[];
+  readonly inactiveFunctionReasons: Readonly<Record<string, string>>;
+  readonly repairProfileId: string | null;
+  readonly disassemblyProfileId: string | null;
+  readonly provenance: string | null;
+  readonly knownEvidenceIds: readonly string[];
+}
+
+export const furnitureSchema = z.object({
+  id: z.string(),
+  roomId: z.string(),
+  kind: z.string(),
+  condition: z.number().min(0).max(1),
+  functionalState: functionalStateSchema,
+  family: worldObjectFamilySchema.nullable().default(null),
+  variant: z.string().default(""),
+  weightKg: z.number().nonnegative().default(40),
+  bulk: bulkClassSchema.default("bulky"),
+  quality: z.number().min(0).max(1).default(0.6),
+  capacityUnits: z.number().nonnegative().nullable().default(null),
+  containerId: z.string().nullable().default(null),
+  movedToLocation: entityLocationSchema.nullable().default(null),
+  handlingTags: z.array(handlingTagSchema).default([]),
+  functions: z.array(z.string()).default([]),
+  inactiveFunctionReasons: z.record(z.string(), z.string()).default({}),
+  repairProfileId: z.string().nullable().default(null),
+  disassemblyProfileId: z.string().nullable().default(null),
+  provenance: z.string().nullable().default(null),
+  knownEvidenceIds: z.array(z.string()).default([]),
+});
+
+/** Ubicación efectiva de una `Furniture`, compatible con partidas anteriores a S7 (§9.5 de `DEC-0019`). */
+export function furnitureLocation(furniture: Pick<Furniture, "roomId" | "movedToLocation">): EntityLocation {
+  return furniture.movedToLocation ?? { kind: "room", roomId: furniture.roomId };
+}
+
+export interface Container {
+  readonly id: string;
+  readonly location: EntityLocation;
+  readonly capacityUnits: number;
+  readonly contentIds: readonly string[];
+  /** `Furniture` que materializa físicamente este contenedor (armario, estantería...), si aplica. */
+  readonly hostFurnitureId: string | null;
+  /** `WorldObject` que materializa físicamente este contenedor (mochila, caja...), si aplica. A lo sumo uno de los dos hosts está poblado. */
+  readonly hostWorldObjectId: string | null;
+  /** Restricción de compatibilidad de contenido por etiqueta de manipulación (§6.4: "compatibilidades de contención"). `null` = acepta cualquier etiqueta. */
+  readonly acceptedHandlingTags: readonly HandlingTag[] | null;
+}
+
+export const containerSchema = z.object({
+  id: z.string(),
+  location: entityLocationSchema,
+  capacityUnits: z.number().nonnegative(),
+  contentIds: z.array(z.string()),
+  hostFurnitureId: z.string().nullable().default(null),
+  hostWorldObjectId: z.string().nullable().default(null),
+  acceptedHandlingTags: z.array(handlingTagSchema).nullable().default(null),
+});
 
 export interface WorldObject {
   readonly id: string;
@@ -74,23 +175,51 @@ export interface WorldObject {
   readonly location: EntityLocation;
   readonly ownerOrReservedByJobId: string | null;
   readonly weightKg: number;
-  readonly bulk: "small" | "medium" | "large" | "bulky";
+  readonly bulk: BulkClass;
   readonly condition: number;
   readonly quality: number;
   readonly functionalState: FunctionalState;
+  readonly handlingTags: readonly HandlingTag[];
+  readonly volumeLiters: number;
+  /** Capacidad útil si este objeto puede contener otros (mochila, caja, botella), o `null`. */
+  readonly capacityUnits: number | null;
+  /** `Container` real que materializa el contenido, cuando `capacityUnits` no es `null`. */
+  readonly containerId: string | null;
+  readonly functions: readonly string[];
+  readonly inactiveFunctionReasons: Readonly<Record<string, string>>;
+  readonly portability: PortabilityKind;
+  readonly minOperators: number;
+  readonly repairProfileId: string | null;
+  readonly disassemblyProfileId: string | null;
+  readonly provenance: string | null;
+  readonly missingParts: readonly string[];
+  readonly knownEvidenceIds: readonly string[];
 }
 
 export const worldObjectSchema = z.object({
   id: z.string(),
-  family: z.enum(WORLD_OBJECT_FAMILIES),
+  family: worldObjectFamilySchema,
   variant: z.string(),
   location: entityLocationSchema,
   ownerOrReservedByJobId: z.string().nullable(),
   weightKg: z.number().nonnegative(),
-  bulk: z.enum(["small", "medium", "large", "bulky"]),
+  bulk: bulkClassSchema,
   condition: z.number().min(0).max(1),
   quality: z.number().min(0).max(1),
   functionalState: functionalStateSchema,
+  handlingTags: z.array(handlingTagSchema).default([]),
+  volumeLiters: z.number().nonnegative().default(0),
+  capacityUnits: z.number().nonnegative().nullable().default(null),
+  containerId: z.string().nullable().default(null),
+  functions: z.array(z.string()).default([]),
+  inactiveFunctionReasons: z.record(z.string(), z.string()).default({}),
+  portability: portabilityKindSchema.default("handheld"),
+  minOperators: z.number().int().positive().default(1),
+  repairProfileId: z.string().nullable().default(null),
+  disassemblyProfileId: z.string().nullable().default(null),
+  provenance: z.string().nullable().default(null),
+  missingParts: z.array(z.string()).default([]),
+  knownEvidenceIds: z.array(z.string()).default([]),
 });
 
 /** Familias de recursos localizados de §15.3 (subconjunto activo, no el horizonte). */
@@ -117,6 +246,12 @@ export interface ResourceLot {
   readonly location: EntityLocation;
   readonly condition: number;
   readonly reservedByJobId: string | null;
+  /** Calidad conocida por la comunidad (p. ej. potabilidad del agua), separada de `condition` (§15.4/§8.6). `true` = calidad conocida y fiable para consumo/uso. */
+  readonly qualityKnown: boolean;
+  readonly quality: number;
+  readonly provenance: string | null;
+  /** Instante de simulación (segundos) desde el que este lote empezó a deteriorarse, o `null` si no aplica deterioro (§15.6). */
+  readonly decayStartedAtSimSeconds: number | null;
 }
 
 export const resourceLotSchema = z.object({
@@ -127,6 +262,10 @@ export const resourceLotSchema = z.object({
   location: entityLocationSchema,
   condition: z.number().min(0).max(1),
   reservedByJobId: z.string().nullable(),
+  qualityKnown: z.boolean().default(true),
+  quality: z.number().min(0).max(1).default(1),
+  provenance: z.string().nullable().default(null),
+  decayStartedAtSimSeconds: z.number().int().nonnegative().nullable().default(null),
 });
 
 /** Los cinco métodos activos de transporte (§18.1). */

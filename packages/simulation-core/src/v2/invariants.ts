@@ -320,6 +320,11 @@ function checkEntityLocationsResolve(state: SimulationStateV2, violations: Invar
       case "field_edge":
         if (!state.world.parcels[location.parcelId]) violations.push({ code: "orphan_location_parcel", message: `${ownerLabel} referencia una parcela inexistente: ${location.parcelId}.` });
         return;
+      case "on_object":
+        if (!state.worldObjects[location.objectId] && !state.furniture[location.objectId]) {
+          violations.push({ code: "orphan_location_object", message: `${ownerLabel} referencia un objeto/mueble contenedor inexistente: ${location.objectId}.` });
+        }
+        return;
       default: {
         const exhaustive: never = location;
         throw new Error(`Ubicación no reconocida: ${JSON.stringify(exhaustive)}`);
@@ -333,6 +338,9 @@ function checkEntityLocationsResolve(state: SimulationStateV2, violations: Invar
   for (const transport of Object.values(state.transportMeans)) check(`Transporte ${transport.id}`, transport.location);
   for (const bundle of Object.values(state.loadBundles)) check(`Carga ${bundle.id}`, bundle.location);
   for (const container of Object.values(state.containers)) check(`Contenedor ${container.id}`, container.location);
+  for (const item of Object.values(state.furniture)) {
+    if (item.movedToLocation) check(`Mueble ${item.id}`, item.movedToLocation);
+  }
 }
 
 /**

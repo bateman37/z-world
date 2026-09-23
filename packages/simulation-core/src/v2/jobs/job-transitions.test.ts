@@ -32,6 +32,8 @@ function baseJob(overrides: Partial<Job> = {}): Job {
     workRemainingUnits: 1,
     workRateVariation: null,
     directOrder: true,
+    disassemblyScope: null,
+    irreversibleConfirmed: false,
     createdAtSimSeconds: 0,
     updatedAtSimSeconds: 0,
     ...overrides,

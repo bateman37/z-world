@@ -104,6 +104,10 @@ export function materializeScenarioGuarantees(
       location: { kind: "field_edge", parcelId: nearestParcel.id },
       condition: 0.6 + prng.nextFloat() * 0.3,
       reservedByJobId: null,
+      qualityKnown: true,
+      quality: 1,
+      provenance: "generated",
+      decayStartedAtSimSeconds: null,
     });
     extraWorldObjects.push({
       id: ids.next("object"),
@@ -116,6 +120,19 @@ export function materializeScenarioGuarantees(
       condition: 0.5 + prng.nextFloat() * 0.4,
       quality: 0.4,
       functionalState: "functional",
+      handlingTags: ["long"],
+      volumeLiters: 3,
+      capacityUnits: null,
+      containerId: null,
+      functions: [],
+      inactiveFunctionReasons: {},
+      portability: "handheld",
+      minOperators: 1,
+      repairProfileId: null,
+      disassemblyProfileId: null,
+      provenance: "generated",
+      missingParts: [],
+      knownEvidenceIds: [],
     });
   } else {
     degradations.push("No se generó ninguna parcela ENV-02 cercana al refugio: no hay candidata de cultivo demostrable en esta semilla.");
@@ -144,6 +161,10 @@ export function materializeScenarioGuarantees(
       location: { kind: "container", containerId: waterContainerId },
       condition: 0.7 + prng.nextFloat() * 0.3,
       reservedByJobId: null,
+      qualityKnown: true,
+      quality: 1,
+      provenance: "generated",
+      decayStartedAtSimSeconds: null,
     },
     {
       id: foodLotId,
@@ -153,6 +174,10 @@ export function materializeScenarioGuarantees(
       location: { kind: "container", containerId: waterContainerId },
       condition: 0.6 + prng.nextFloat() * 0.3,
       reservedByJobId: null,
+      qualityKnown: true,
+      quality: 1,
+      provenance: "generated",
+      decayStartedAtSimSeconds: null,
     },
   );
   extraWorldObjects.push({
@@ -166,12 +191,28 @@ export function materializeScenarioGuarantees(
     condition: 0.6,
     quality: 0.5,
     functionalState: "functional",
+    handlingTags: ["liquid", "bulky"],
+    volumeLiters: 12,
+    capacityUnits: null,
+    containerId: null,
+    functions: [],
+    inactiveFunctionReasons: {},
+    portability: "handheld",
+    minOperators: 1,
+    repairProfileId: null,
+    disassemblyProfileId: null,
+    provenance: "generated",
+    missingParts: [],
+    knownEvidenceIds: [],
   });
   extraContainers.push({
     id: waterContainerId,
     location: shelterStorageRoom ? { kind: "room", roomId: shelterStorageRoom.id } : { kind: "world_point", point: shelter.position },
     capacityUnits: 12,
     contentIds: [waterVesselId, waterLotId, foodLotId],
+    hostFurnitureId: null,
+    hostWorldObjectId: null,
+    acceptedHandlingTags: null,
   });
   extraWorldObjects.push(
     {
@@ -185,6 +226,19 @@ export function materializeScenarioGuarantees(
       condition: 0.6,
       quality: 0.5,
       functionalState: "functional",
+      handlingTags: ["fragile"],
+      volumeLiters: 2,
+      capacityUnits: null,
+      containerId: null,
+      functions: ["illumination"],
+      inactiveFunctionReasons: {},
+      portability: "handheld",
+      minOperators: 1,
+      repairProfileId: null,
+      disassemblyProfileId: null,
+      provenance: "generated",
+      missingParts: [],
+      knownEvidenceIds: [],
     },
     {
       id: restId,
@@ -197,6 +251,19 @@ export function materializeScenarioGuarantees(
       condition: 0.5,
       quality: 0.4,
       functionalState: "functional",
+      handlingTags: [],
+      volumeLiters: 15,
+      capacityUnits: null,
+      containerId: null,
+      functions: ["rest"],
+      inactiveFunctionReasons: {},
+      portability: "handheld",
+      minOperators: 1,
+      repairProfileId: null,
+      disassemblyProfileId: null,
+      provenance: "generated",
+      missingParts: [],
+      knownEvidenceIds: [],
     },
   );
   extraContainers.push({
@@ -204,6 +271,9 @@ export function materializeScenarioGuarantees(
     location: shelterStorageRoom ? { kind: "room", roomId: shelterStorageRoom.id } : { kind: "world_point", point: shelter.position },
     capacityUnits: 15,
     contentIds: [lightId, restId],
+    hostFurnitureId: null,
+    hostWorldObjectId: null,
+    acceptedHandlingTags: null,
   });
 
   return {

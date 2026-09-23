@@ -22,6 +22,7 @@ export const ACTION_TARGET_KINDS = [
   "resource_lot",
   "furniture",
   "world_object",
+  "container",
   "area",
   "own_need",
 ] as const;
@@ -44,6 +45,12 @@ export const HARD_REQUIREMENT_KINDS = [
   "requires_shared_location_or_reach",
   "requires_capacity_at_least",
   "requires_known_method",
+  /** El objetivo debe tener un `repairProfileId`/`disassemblyProfileId` real (§16.2). */
+  "requires_transformation_profile",
+  /** El objetivo debe declarar al menos una familia de recurso en su receta de reparación/desmontaje concreta, nunca una pila universal (§15.5/CAT-005 §4.3). */
+  "requires_concrete_materials",
+  /** Una orden directa de un método marcado `irreversible` exige `Job.irreversibleConfirmed` (§16.4). */
+  "requires_irreversible_confirmation",
 ] as const;
 export type HardRequirementKind = (typeof HARD_REQUIREMENT_KINDS)[number];
 
@@ -108,6 +115,13 @@ export interface ActionMethodDefinition {
   readonly phases: readonly JobPhaseKind[];
   readonly paceApplies: boolean;
   readonly attentionApplies: boolean;
+  /**
+   * `true` para métodos cuya consecuencia no admite deshacer sin más
+   * (desguace destructivo, demolición...). Exige `requires_irreversible_confirmation`
+   * entre los requisitos duros y `Job.irreversibleConfirmed` antes de
+   * ejecutar (§16.4 del prompt S7-S9). `false` en el resto de métodos.
+   */
+  readonly irreversible: boolean;
 }
 
 export const actionMethodDefinitionSchema = z.object({
@@ -135,6 +149,7 @@ export const actionMethodDefinitionSchema = z.object({
   phases: z.array(z.enum(JOB_PHASE_KINDS)).min(1),
   paceApplies: z.boolean(),
   attentionApplies: z.boolean(),
+  irreversible: z.boolean().default(false),
 });
 
 /** Bandas internas exactas del modelo B (§12.6), nunca mostradas al jugador. */

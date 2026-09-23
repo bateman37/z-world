@@ -201,6 +201,19 @@ function migratePeopleAndPossessions(
         condition: 0.8,
         quality: 0.5,
         functionalState: "functional",
+        handlingTags: possession.isMeleeOrImprovisedWeapon ? ["long"] : [],
+        volumeLiters: possession.isMeleeOrImprovisedWeapon ? 1 : 30,
+        capacityUnits: possession.isMeleeOrImprovisedWeapon ? null : 15,
+        containerId: null,
+        functions: [],
+        inactiveFunctionReasons: {},
+        portability: "handheld",
+        minOperators: 1,
+        repairProfileId: null,
+        disassemblyProfileId: null,
+        provenance: "migrated_from_v1",
+        missingParts: [],
+        knownEvidenceIds: [],
       };
     }
 

@@ -167,6 +167,85 @@ export const designationChangedEventSchema = z.object({
   kind: z.enum(DESIGNATION_KINDS).nullable(),
 });
 
+/**
+ * Eventos de objetos, contenedores y recursos de S7 (§22.2 del prompt
+ * S7-S9). Representan límites causales de la cadena
+ * descubrir→recoger→almacenar→reparar/desmontar, nunca telemetría por tick.
+ */
+export const OBJECT_LOCATION_ENTITY_KINDS = ["world_object", "furniture"] as const;
+export type ObjectLocationEntityKind = (typeof OBJECT_LOCATION_ENTITY_KINDS)[number];
+
+export const objectCollectedEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("object_collected"),
+  objectId: z.string(),
+  entityKind: z.enum(OBJECT_LOCATION_ENTITY_KINDS),
+  personId: z.string(),
+  jobId: z.string(),
+});
+
+export const objectStoredEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("object_stored"),
+  objectId: z.string(),
+  entityKind: z.enum(OBJECT_LOCATION_ENTITY_KINDS),
+  containerId: z.string(),
+  jobId: z.string(),
+});
+
+export const objectRetrievedEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("object_retrieved"),
+  objectId: z.string(),
+  entityKind: z.enum(OBJECT_LOCATION_ENTITY_KINDS),
+  containerId: z.string(),
+  jobId: z.string(),
+});
+
+export const objectRepairedEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("object_repaired"),
+  objectId: z.string(),
+  entityKind: z.enum(OBJECT_LOCATION_ENTITY_KINDS),
+  jobId: z.string(),
+  outcome: z.enum(["complete", "provisional", "partial", "blocked"]),
+  functionalStateAfter: z.string(),
+});
+
+export const objectDisassembledEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("object_disassembled"),
+  objectId: z.string(),
+  entityKind: z.enum(OBJECT_LOCATION_ENTITY_KINDS),
+  jobId: z.string(),
+  scope: z.enum(["selective", "destructive"]),
+  producedResourceLotIds: z.array(z.string()),
+  functionsLost: z.array(z.string()),
+});
+
+export const resourceLotConsumedEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("resource_lot_consumed"),
+  resourceLotId: z.string(),
+  jobId: z.string(),
+  quantity: z.number().positive(),
+});
+
+export const resourceLotSplitEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("resource_lot_split"),
+  sourceResourceLotId: z.string(),
+  newResourceLotId: z.string(),
+  quantity: z.number().positive(),
+});
+
+export const resourceLotMergedEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("resource_lot_merged"),
+  survivingResourceLotId: z.string(),
+  mergedResourceLotId: z.string(),
+});
+
 export const domainEventV2Schema = z.discriminatedUnion("type", [
   gameCreatedEventSchema,
   speedOrPauseChangedEventSchema,
@@ -194,6 +273,14 @@ export const domainEventV2Schema = z.discriminatedUnion("type", [
   workInterruptedEventSchema,
   zoneChangedEventSchema,
   designationChangedEventSchema,
+  objectCollectedEventSchema,
+  objectStoredEventSchema,
+  objectRetrievedEventSchema,
+  objectRepairedEventSchema,
+  objectDisassembledEventSchema,
+  resourceLotConsumedEventSchema,
+  resourceLotSplitEventSchema,
+  resourceLotMergedEventSchema,
 ]);
 
 export type DomainEventV2 = z.infer<typeof domainEventV2Schema>;

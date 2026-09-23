@@ -187,6 +187,7 @@ export type JobTarget =
   | { readonly kind: "resource_lot"; readonly resourceLotId: string }
   | { readonly kind: "furniture"; readonly furnitureId: string }
   | { readonly kind: "world_object"; readonly worldObjectId: string }
+  | { readonly kind: "container"; readonly containerId: string }
   | { readonly kind: "area"; readonly polygon: readonly WorldPoint[] }
   | { readonly kind: "own_need"; readonly personId: string; readonly dimension: NeedDimension };
 
@@ -198,6 +199,7 @@ export const jobTargetSchema: z.ZodType<JobTarget> = z.discriminatedUnion("kind"
   z.object({ kind: z.literal("resource_lot"), resourceLotId: z.string() }),
   z.object({ kind: z.literal("furniture"), furnitureId: z.string() }),
   z.object({ kind: z.literal("world_object"), worldObjectId: z.string() }),
+  z.object({ kind: z.literal("container"), containerId: z.string() }),
   z.object({ kind: z.literal("area"), polygon: z.array(worldPointSchema) }),
   z.object({ kind: z.literal("own_need"), personId: z.string(), dimension: z.enum(NEED_DIMENSIONS) }),
 ]);
@@ -241,6 +243,18 @@ export interface Job {
   /** Variación determinista del modelo D (§12.5), muestreada una sola vez la primera vez que el trabajo progresa y nunca remuestreada. `null` hasta entonces o si el método no usa modelo D. */
   readonly workRateVariation: number | null;
   readonly directOrder: boolean;
+  /**
+   * Alcance del desmontaje para métodos `disassemble_*` (§16.3/§16.9): a lo
+   * sumo la reparación/desmontaje conserva lo que el perfil declara.
+   * `null` cuando el método no es un desmontaje.
+   */
+  readonly disassemblyScope: "selective" | "destructive" | null;
+  /**
+   * `true` si una orden directa ya confirmó el coste irreversible del
+   * método (§16.4 del prompt S7-S9). Un método marcado `irreversible` en su
+   * `ActionMethodDefinition` nunca progresa de fase `prepare` sin esto.
+   */
+  readonly irreversibleConfirmed: boolean;
   readonly createdAtSimSeconds: number;
   readonly updatedAtSimSeconds: number;
 }
@@ -273,11 +287,21 @@ export const jobSchema = z.object({
   workRemainingUnits: z.number().nonnegative(),
   workRateVariation: z.number().min(-0.08).max(0.08).nullable(),
   directOrder: z.boolean(),
+  disassemblyScope: z.enum(["selective", "destructive"]).nullable().default(null),
+  irreversibleConfirmed: z.boolean().default(false),
   createdAtSimSeconds: z.number().int().nonnegative(),
   updatedAtSimSeconds: z.number().int().nonnegative(),
 });
 
-export const RESERVATION_TARGET_KINDS = ["world_object", "resource_lot", "transport_means", "person", "room"] as const;
+export const RESERVATION_TARGET_KINDS = [
+  "world_object",
+  "resource_lot",
+  "transport_means",
+  "person",
+  "room",
+  "furniture",
+  "container",
+] as const;
 export type ReservationTargetKind = (typeof RESERVATION_TARGET_KINDS)[number];
 
 export const RESERVATION_RELEASE_POLICIES = ["on_job_end", "on_phase_end", "manual"] as const;

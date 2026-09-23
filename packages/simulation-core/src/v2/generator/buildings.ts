@@ -19,6 +19,18 @@ import type {
   WorldPoint,
 } from "@z-world/contracts";
 import { BUILDING_PROGRAMS_BY_PROFILE, type RoomProgramRole } from "@z-world/catalogs";
+import { REPAIR_PROFILES_BY_ID, DISASSEMBLY_PROFILES_BY_ID } from "@z-world/catalogs";
+
+const WARDROBE_REPAIR_PROFILE_ID = "repair.storage_furniture.wardrobe_shelf.v1";
+const WARDROBE_DISASSEMBLY_PROFILE_ID = "disassembly.storage_furniture.wardrobe_shelf.v1";
+const FRIDGE_REPAIR_PROFILE_ID = "repair.technical_appliance.fridge.v1";
+const FRIDGE_DISASSEMBLY_PROFILE_ID = "disassembly.technical_appliance.fridge.v1";
+if (!REPAIR_PROFILES_BY_ID.has(WARDROBE_REPAIR_PROFILE_ID) || !REPAIR_PROFILES_BY_ID.has(FRIDGE_REPAIR_PROFILE_ID)) {
+  throw new Error("Perfil de reparación de demostrador S7 no encontrado en el catálogo.");
+}
+if (!DISASSEMBLY_PROFILES_BY_ID.has(WARDROBE_DISASSEMBLY_PROFILE_ID) || !DISASSEMBLY_PROFILES_BY_ID.has(FRIDGE_DISASSEMBLY_PROFILE_ID)) {
+  throw new Error("Perfil de desmontaje de demostrador S7 no encontrado en el catálogo.");
+}
 import type { PrngStream } from "../../prng.js";
 import type { IdAllocator } from "./id-allocator.js";
 import { centroidOf, distance } from "./geometry-helpers.js";
@@ -65,7 +77,7 @@ const LOOT_BAND_POOL: readonly LootPressureBand[] = ["nearly_intact", "lightly_l
 const FURNITURE_BY_ROLE: Record<RoomProgramRole, readonly string[]> = {
   entry_distributor: ["furniture.coat_rack", "furniture.shoe_bench"],
   common_space: ["furniture.sofa", "furniture.low_table"],
-  kitchen: ["furniture.kitchen_counter", "furniture.stove"],
+  kitchen: ["furniture.kitchen_counter", "furniture.stove", "furniture.fridge"],
   bathroom: ["furniture.sink", "furniture.tub"],
   bedroom: ["furniture.bed", "furniture.wardrobe"],
   domestic_storage: ["furniture.storage_shelf", "furniture.trunk"],
@@ -116,6 +128,81 @@ function contentFor(role: RoomProgramRole): { readonly resourceFamilies: readonl
     default:
       return { resourceFamilies: [], objectFamilies: [] };
   }
+}
+
+/**
+ * Valores por defecto de S7 para mobiliario sin comportamiento profundo
+ * propio (mesa, sofá, mostrador...): siguen existiendo como `Furniture`
+ * genérica compatible con la ficha contextual de §24 aunque no tengan
+ * familia CAT-005 concreta ni perfiles de transformación.
+ */
+function makeFurniture(base: { id: string; roomId: string; kind: string; condition: number; functionalState: Furniture["functionalState"] }): Furniture {
+  return {
+    ...base,
+    family: null,
+    variant: "",
+    weightKg: 40,
+    bulk: "bulky",
+    quality: 0.5,
+    capacityUnits: null,
+    containerId: null,
+    movedToLocation: null,
+    handlingTags: [],
+    functions: [],
+    inactiveFunctionReasons: {},
+    repairProfileId: null,
+    disassemblyProfileId: null,
+    provenance: "generated",
+    knownEvidenceIds: [],
+  };
+}
+
+function makeWorldObject(base: {
+  id: string;
+  family: WorldObject["family"];
+  variant: string;
+  location: WorldObject["location"];
+  weightKg: number;
+  bulk: WorldObject["bulk"];
+  condition: number;
+  quality: number;
+  functionalState: WorldObject["functionalState"];
+}): WorldObject {
+  return {
+    ...base,
+    ownerOrReservedByJobId: null,
+    handlingTags: [],
+    volumeLiters: 0,
+    capacityUnits: null,
+    containerId: null,
+    functions: [],
+    inactiveFunctionReasons: {},
+    portability: "handheld",
+    minOperators: 1,
+    repairProfileId: null,
+    disassemblyProfileId: null,
+    provenance: "generated",
+    missingParts: [],
+    knownEvidenceIds: [],
+  };
+}
+
+function makeResourceLot(base: {
+  id: string;
+  family: ResourceLot["family"];
+  quantity: number;
+  unit: ResourceLot["unit"];
+  location: ResourceLot["location"];
+  condition: number;
+}): ResourceLot {
+  return {
+    ...base,
+    reservedByJobId: null,
+    qualityKnown: true,
+    quality: 1,
+    provenance: "generated",
+    decayStartedAtSimSeconds: null,
+  };
 }
 
 function rectangleFromFootprint(footprint: readonly WorldPoint[]): { center: WorldPoint; width: number; depth: number; facingRadians: number } {
@@ -235,47 +322,165 @@ export function generateBuildingContents(
 
       for (const labelKey of FURNITURE_BY_ROLE[roomInstances[i]!] ?? []) {
         const furnitureId = ids.next("furniture");
-        furniture.push({
-          id: furnitureId,
-          roomId,
-          kind: labelKey,
-          condition: 0.3 + prng.nextFloat() * 0.6,
-          functionalState: prng.nextBool(0.7) ? "functional" : "degraded",
-        });
+        const condition = 0.3 + prng.nextFloat() * 0.6;
+        const functionalState = prng.nextBool(0.7) ? "functional" : "degraded";
+
+        if (labelKey === "furniture.wardrobe" || labelKey === "furniture.storage_shelf") {
+          // Demostrador profundo armario/estantería (§15.6 del prompt S7-S9): jerarquía
+          // real `Furniture → Container → Content`, no un contenedor huérfano en la sala.
+          const containerId = ids.next("container");
+          const contentIds: string[] = [];
+          const family: ResourceLot["family"] = "wood_and_planks";
+          if (prng.nextBool(0.7)) {
+            const lotId = ids.next("resource-lot");
+            resourceLots.push(makeResourceLot({ id: lotId, family, quantity: 1 + prng.nextInt(0, 4), unit: "kilogram", location: { kind: "container", containerId }, condition: 0.4 + prng.nextFloat() * 0.5 }));
+            contentIds.push(lotId);
+          }
+          const objectFamily: WorldObject["family"] = "personal_liquid_container";
+          if (prng.nextBool(0.5)) {
+            const objectId = ids.next("object");
+            worldObjects.push(
+              makeWorldObject({
+                id: objectId,
+                family: objectFamily,
+                variant: `${objectFamily}.bottle`,
+                location: { kind: "container", containerId },
+                weightKg: 0.8,
+                bulk: "small",
+                condition: 0.3 + prng.nextFloat() * 0.6,
+                quality: 0.2 + prng.nextFloat() * 0.6,
+                functionalState: prng.nextBool(0.75) ? "functional" : "degraded",
+              }),
+            );
+            contentIds.push(objectId);
+          }
+          containers.push({
+            id: containerId,
+            location: { kind: "room", roomId },
+            capacityUnits: 20,
+            contentIds,
+            hostFurnitureId: furnitureId,
+            hostWorldObjectId: null,
+            acceptedHandlingTags: null,
+          });
+          furniture.push({
+            id: furnitureId,
+            roomId,
+            kind: labelKey,
+            condition,
+            functionalState,
+            family: "storage_furniture",
+            variant: labelKey === "furniture.wardrobe" ? "storage_furniture.wardrobe" : "storage_furniture.shelf",
+            weightKg: 45,
+            bulk: "bulky",
+            quality: 0.3 + prng.nextFloat() * 0.5,
+            capacityUnits: 20,
+            containerId,
+            movedToLocation: null,
+            handlingTags: [],
+            functions: ["storage"],
+            inactiveFunctionReasons: {},
+            repairProfileId: WARDROBE_REPAIR_PROFILE_ID,
+            disassemblyProfileId: WARDROBE_DISASSEMBLY_PROFILE_ID,
+            provenance: "generated",
+            knownEvidenceIds: [],
+          });
+          continue;
+        }
+
+        if (labelKey === "furniture.fridge") {
+          // Demostrador profundo frigorífico (§15.6): nunca refrigera sin
+          // electricidad (fuera de alcance en S7-S9), reparable con causa
+          // reconocida, desmontable en chapa/cableado/componentes/motor.
+          const containerId = ids.next("container");
+          const contentIds: string[] = [];
+          if (prng.nextBool(0.6)) {
+            const lotId = ids.next("resource-lot");
+            resourceLots.push(
+              makeResourceLot({ id: lotId, family: "preserved_food", quantity: 1 + prng.nextInt(0, 3), unit: "unit", location: { kind: "container", containerId }, condition: 0.3 + prng.nextFloat() * 0.5 }),
+            );
+            contentIds.push(lotId);
+          }
+          containers.push({
+            id: containerId,
+            location: { kind: "room", roomId },
+            capacityUnits: 15,
+            contentIds,
+            hostFurnitureId: furnitureId,
+            hostWorldObjectId: null,
+            acceptedHandlingTags: null,
+          });
+          furniture.push({
+            id: furnitureId,
+            roomId,
+            kind: labelKey,
+            condition,
+            functionalState,
+            family: "technical_appliance",
+            variant: "technical_appliance.fridge",
+            weightKg: 65,
+            bulk: "bulky",
+            quality: 0.3 + prng.nextFloat() * 0.5,
+            capacityUnits: 15,
+            containerId,
+            movedToLocation: null,
+            handlingTags: ["bulky", "keep_upright"],
+            functions: ["storage"],
+            inactiveFunctionReasons: { refrigeration: "no_electricity" },
+            repairProfileId: FRIDGE_REPAIR_PROFILE_ID,
+            disassemblyProfileId: FRIDGE_DISASSEMBLY_PROFILE_ID,
+            provenance: "generated",
+            knownEvidenceIds: [],
+          });
+          continue;
+        }
+
+        furniture.push(makeFurniture({ id: furnitureId, roomId, kind: labelKey, condition, functionalState }));
+
         if (CONTAINER_ROLES.has(roomInstances[i]!)) {
           const content = contentFor(roomInstances[i]!);
           const containerId = ids.next("container");
           const contentIds: string[] = [];
-          for (const family of content.resourceFamilies) {
+          for (const resFamily of content.resourceFamilies) {
             const lotId = ids.next("resource-lot");
-            resourceLots.push({
-              id: lotId,
-              family,
-              quantity: family === "water" ? 5 + prng.nextInt(0, 10) : 1 + prng.nextInt(0, 4),
-              unit: family === "water" ? "liter" : family === "wood_and_planks" || family === "mechanical_parts_i" || family === "sheet_metal" ? "kilogram" : "unit",
-              location: { kind: "container", containerId },
-              condition: 0.4 + prng.nextFloat() * 0.5,
-              reservedByJobId: null,
-            });
+            resourceLots.push(
+              makeResourceLot({
+                id: lotId,
+                family: resFamily,
+                quantity: resFamily === "water" ? 5 + prng.nextInt(0, 10) : 1 + prng.nextInt(0, 4),
+                unit: resFamily === "water" ? "liter" : resFamily === "wood_and_planks" || resFamily === "mechanical_parts_i" || resFamily === "sheet_metal" ? "kilogram" : "unit",
+                location: { kind: "container", containerId },
+                condition: 0.4 + prng.nextFloat() * 0.5,
+              }),
+            );
             contentIds.push(lotId);
           }
-          for (const family of content.objectFamilies) {
+          for (const objFamily of content.objectFamilies) {
             const objectId = ids.next("object");
-            worldObjects.push({
-              id: objectId,
-              family,
-              variant: `${family}.generic`,
-              location: { kind: "container", containerId },
-              ownerOrReservedByJobId: null,
-              weightKg: 1 + prng.nextFloat() * 3,
-              bulk: "small",
-              condition: 0.3 + prng.nextFloat() * 0.6,
-              quality: 0.2 + prng.nextFloat() * 0.6,
-              functionalState: prng.nextBool(0.75) ? "functional" : "degraded",
-            });
+            worldObjects.push(
+              makeWorldObject({
+                id: objectId,
+                family: objFamily,
+                variant: `${objFamily}.generic`,
+                location: { kind: "container", containerId },
+                weightKg: 1 + prng.nextFloat() * 3,
+                bulk: "small",
+                condition: 0.3 + prng.nextFloat() * 0.6,
+                quality: 0.2 + prng.nextFloat() * 0.6,
+                functionalState: prng.nextBool(0.75) ? "functional" : "degraded",
+              }),
+            );
             contentIds.push(objectId);
           }
-          containers.push({ id: containerId, location: { kind: "room", roomId }, capacityUnits: 20, contentIds });
+          containers.push({
+            id: containerId,
+            location: { kind: "room", roomId },
+            capacityUnits: 20,
+            contentIds,
+            hostFurnitureId: null,
+            hostWorldObjectId: null,
+            acceptedHandlingTags: null,
+          });
           break; // un contenedor representativo por estancia (jerarquía §8.3, sin inflar de más).
         }
       }

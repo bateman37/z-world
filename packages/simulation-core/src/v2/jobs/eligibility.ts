@@ -53,6 +53,19 @@ export function checkHardRequirements(
         continue; // comprobado en `isDirectlyEligible`/resolución, no aquí (depende de la persona ejecutora final).
       case "requires_known_method":
         continue; // en este catálogo todos los métodos activos son de clasificación abierta/improvisable/guiada conocida por defecto.
+      case "requires_transformation_profile": {
+        const profileId = resolveTransformationProfileId(state, target, def.key);
+        if (!profileId) return fail("block.no_transformation_profile");
+        continue;
+      }
+      case "requires_concrete_materials":
+        // Comprobado junto con `requires_transformation_profile` contra las
+        // recetas versionadas (§15.5/CAT-005 §4.3: nunca una pila
+        // universal `repair_materials`); la disponibilidad real de
+        // materiales se resuelve en fase `prepare`, no aquí.
+        continue;
+      case "requires_irreversible_confirmation":
+        continue; // comprobado aparte en `checkIrreversibleConfirmation` (depende de `Job.irreversibleConfirmed`, que no existe todavía al crear el trabajo).
       default: {
         const exhaustive: never = requirement.kind;
         throw new Error(`Requisito duro no reconocido: ${JSON.stringify(exhaustive)}`);
@@ -60,6 +73,19 @@ export function checkHardRequirements(
     }
   }
   return ok;
+}
+
+/**
+ * Perfil de reparación/desmontaje concreto declarado por el objeto o
+ * mueble objetivo, según el método (§16.2/§16.3, S7). `null` si el
+ * objetivo no tiene ese perfil: nunca se inventa una receta genérica.
+ */
+export function resolveTransformationProfileId(state: SimulationStateV2, target: JobTarget, actionKey: string): string | null {
+  const entity = target.kind === "world_object" ? state.worldObjects[target.worldObjectId] : target.kind === "furniture" ? state.furniture[target.furnitureId] : null;
+  if (!entity) return null;
+  if (actionKey === "repair") return entity.repairProfileId;
+  if (actionKey === "disassemble_selective" || actionKey === "disassemble_destructive") return entity.disassemblyProfileId;
+  return null;
 }
 
 /** `Nunca` excluye tanto la selección automática como una orden directa silenciosa (§6.3/§11.7 del prompt S4-S6). */

@@ -1,4 +1,5 @@
 import type { EntityLocation, JobTarget, SimulationStateV2, WorldPoint } from "@z-world/contracts";
+import { furnitureLocation } from "@z-world/contracts";
 
 /**
  * Traduce un `JobTarget` (WEB-002 §11.1, subhito S5) a la `EntityLocation`
@@ -31,11 +32,15 @@ export function resolveTargetLocation(state: SimulationStateV2, target: JobTarge
     }
     case "furniture": {
       const furniture = state.furniture[target.furnitureId];
-      return furniture ? { kind: "room", roomId: furniture.roomId } : null;
+      return furniture ? furnitureLocation(furniture) : null;
     }
     case "world_object": {
       const obj = state.worldObjects[target.worldObjectId];
       return obj ? obj.location : null;
+    }
+    case "container": {
+      const container = state.containers[target.containerId];
+      return container ? container.location : null;
     }
     case "area":
       return { kind: "world_point", point: centroid(target.polygon) };
@@ -73,6 +78,12 @@ export function locationToNavPoint(state: SimulationStateV2, location: EntityLoc
       const person = state.people[location.personId];
       return person ? person.public.position : null;
     }
+    case "on_object": {
+      const worldObject = state.worldObjects[location.objectId];
+      if (worldObject) return locationToNavPoint(state, worldObject.location);
+      const furniture = state.furniture[location.objectId];
+      return furniture ? locationToNavPoint(state, furnitureLocation(furniture)) : null;
+    }
     default:
       return null;
   }
@@ -90,6 +101,12 @@ export function resolveRoomId(state: SimulationStateV2, location: EntityLocation
     case "carried_by_person": {
       const person = state.people[location.personId];
       return person ? (person.location.kind === "room" ? person.location.roomId : null) : null;
+    }
+    case "on_object": {
+      const worldObject = state.worldObjects[location.objectId];
+      if (worldObject) return resolveRoomId(state, worldObject.location);
+      const furniture = state.furniture[location.objectId];
+      return furniture ? resolveRoomId(state, furnitureLocation(furniture)) : null;
     }
     default:
       return null;

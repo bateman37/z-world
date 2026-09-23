@@ -8,8 +8,28 @@ import { makeSyntheticBuildingState, TEST_HOUSE_IDS } from "../test-fixtures.js"
 function withWaterInHallway(base: SimulationStateV2): { state: SimulationStateV2; resourceLotId: string; containerId: string } {
   const containerId = "container-test-water";
   const resourceLotId = "resource-lot-test-water";
-  const container: Container = { id: containerId, location: { kind: "room", roomId: TEST_HOUSE_IDS.hallwayRoomId }, capacityUnits: 10, contentIds: [resourceLotId] };
-  const lot: ResourceLot = { id: resourceLotId, family: "water", quantity: 5, unit: "liter", location: { kind: "container", containerId }, condition: 0.9, reservedByJobId: null };
+  const container: Container = {
+    id: containerId,
+    location: { kind: "room", roomId: TEST_HOUSE_IDS.hallwayRoomId },
+    capacityUnits: 10,
+    contentIds: [resourceLotId],
+    hostFurnitureId: null,
+    hostWorldObjectId: null,
+    acceptedHandlingTags: null,
+  };
+  const lot: ResourceLot = {
+    id: resourceLotId,
+    family: "water",
+    quantity: 5,
+    unit: "liter",
+    location: { kind: "container", containerId },
+    condition: 0.9,
+    reservedByJobId: null,
+    qualityKnown: true,
+    quality: 1,
+    provenance: null,
+    decayStartedAtSimSeconds: null,
+  };
   return {
     state: { ...base, containers: { ...base.containers, [containerId]: container }, resourceLots: { ...base.resourceLots, [resourceLotId]: lot } },
     resourceLotId,

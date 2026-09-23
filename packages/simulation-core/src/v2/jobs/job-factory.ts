@@ -13,6 +13,8 @@ export interface CreateJobParams {
   readonly pace?: PaceMode;
   readonly attention?: AttentionMode;
   readonly urgency?: number;
+  readonly disassemblyScope?: "selective" | "destructive" | null;
+  readonly irreversibleConfirmed?: boolean;
 }
 
 export interface CreateJobResult {
@@ -71,6 +73,8 @@ export function createJob(state: SimulationStateV2, params: CreateJobParams): Cr
     workRemainingUnits: params.def.baseWorkUnits,
     workRateVariation: null,
     directOrder: params.directOrder,
+    disassemblyScope: params.disassemblyScope ?? null,
+    irreversibleConfirmed: params.irreversibleConfirmed ?? false,
     createdAtSimSeconds: state.clock.elapsedSimSeconds,
     updatedAtSimSeconds: state.clock.elapsedSimSeconds,
   };

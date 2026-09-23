@@ -21,8 +21,8 @@ import type {
   WorkerProjectionsV2,
   ZoneProjection,
 } from "@z-world/contracts";
-import { toSimulatedDayTime } from "@z-world/contracts";
-import { ACTION_METHODS } from "@z-world/catalogs";
+import { toSimulatedDayTime, furnitureLocation } from "@z-world/contracts";
+import { ACTION_METHODS_BY_KEY } from "@z-world/catalogs";
 
 /**
  * Construye las proyecciones de solo lectura del runtime V2 (S3 §5.8):
@@ -217,6 +217,14 @@ const EVENT_MESSAGE_KEYS: Readonly<Record<DomainEventV2["type"], string>> = {
   work_interrupted: "log.work_interrupted",
   zone_changed: "log.zone_changed",
   designation_changed: "log.designation_changed",
+  object_collected: "log.object_collected",
+  object_stored: "log.object_stored",
+  object_retrieved: "log.object_retrieved",
+  object_repaired: "log.object_repaired",
+  object_disassembled: "log.object_disassembled",
+  resource_lot_consumed: "log.resource_lot_consumed",
+  resource_lot_split: "log.resource_lot_split",
+  resource_lot_merged: "log.resource_lot_merged",
 };
 
 export function toOperationalLogEntryV2(event: DomainEventV2): OperationalLogEntryProjection {
@@ -246,7 +254,7 @@ function buildNeedsProjection(state: SimulationStateV2): Readonly<Record<string,
 }
 
 function buildJobsProjection(state: SimulationStateV2): readonly JobProjection[] {
-  const def = new Map(ACTION_METHODS.map((m) => [m.key, m]));
+  const def = ACTION_METHODS_BY_KEY;
   return Object.values(state.jobs)
     .sort((a, b) => (a.createdAtSimSeconds - b.createdAtSimSeconds) || (a.id < b.id ? -1 : 1))
     .map((job) => ({
@@ -335,6 +343,40 @@ function buildContextualActionsProjection(state: SimulationStateV2): readonly Co
     .filter((r) => discoveryByEntity.has(r.id))
     .map((r) => ({ target: { kind: "room", roomId: r.id } as JobTarget, labelKey: "target.room_rest", blockedReasonKey: null }));
   if (restTargets.length > 0) options.push({ actionKey: "rest", labelKey: "action.rest.label", targets: restTargets });
+
+  // Objetos y mobiliario reconocidos (S7, §15.7/§16 del prompt S7-S9): la
+  // sala que los contiene debe tener el facet `content` al menos
+  // `inspected` (revelado por `register`), igual que exige
+  // `ACTION_METHODS_BY_KEY.get("collect").requiredKnowledge`.
+  const roomOf = (location: { kind: string; roomId?: string }): string | null => (location.kind === "room" && location.roomId ? location.roomId : null);
+  const knownContentRoomIds = new Set(Object.values(state.world.rooms).filter((r) => hasFacetAtLeast(r.id, "content", RANK, 3)).map((r) => r.id));
+
+  const collectTargets: ContextualActionTargetProjection[] = Object.values(state.worldObjects)
+    .filter((o) => {
+      const roomId = roomOf(o.location);
+      return roomId !== null && knownContentRoomIds.has(roomId);
+    })
+    .map((o) => ({ target: { kind: "world_object", worldObjectId: o.id } as JobTarget, labelKey: `object.${o.variant}`, blockedReasonKey: o.ownerOrReservedByJobId ? "block.object_reserved" : null }));
+  if (collectTargets.length > 0) options.push({ actionKey: "collect", labelKey: "action.collect.label", targets: collectTargets });
+
+  const transformableTargets = (profileField: "repairProfileId" | "disassemblyProfileId"): ContextualActionTargetProjection[] => {
+    const fromObjects: ContextualActionTargetProjection[] = Object.values(state.worldObjects)
+      .filter((o) => o[profileField] !== null && (() => { const r = roomOf(o.location); return r !== null && knownContentRoomIds.has(r); })())
+      .map((o) => ({ target: { kind: "world_object", worldObjectId: o.id } as JobTarget, labelKey: `object.${o.variant}`, blockedReasonKey: null }));
+    const fromFurniture: ContextualActionTargetProjection[] = Object.values(state.furniture)
+      .filter((f) => f[profileField] !== null && (() => { const r = roomOf(furnitureLocation(f)); return r !== null && knownContentRoomIds.has(r); })())
+      .map((f) => ({ target: { kind: "furniture", furnitureId: f.id } as JobTarget, labelKey: `object.${f.variant || f.kind}`, blockedReasonKey: null }));
+    return [...fromObjects, ...fromFurniture];
+  };
+
+  const repairTargets = transformableTargets("repairProfileId");
+  if (repairTargets.length > 0) options.push({ actionKey: "repair", labelKey: "action.repair.label", targets: repairTargets });
+
+  const disassemblyTargets = transformableTargets("disassemblyProfileId");
+  if (disassemblyTargets.length > 0) {
+    options.push({ actionKey: "disassemble_selective", labelKey: "action.disassemble_selective.label", targets: disassemblyTargets });
+    options.push({ actionKey: "disassemble_destructive", labelKey: "action.disassemble_destructive.label", targets: disassemblyTargets });
+  }
 
   return options;
 }

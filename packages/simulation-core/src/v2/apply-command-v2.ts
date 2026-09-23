@@ -292,6 +292,8 @@ function applyOrderContextualAction(
     pace: command.pace,
     attention: command.attention,
     urgency: 5,
+    disassemblyScope: command.disassemblyScope ?? null,
+    irreversibleConfirmed: command.confirmIrreversible ?? false,
   });
   if ("rejectedReasonKey" in created) return { state, events: [] };
   const nextState: SimulationStateV2 = { ...state, sequences: created.sequences, jobs: { ...state.jobs, [created.job.id]: created.job } };
