@@ -10,6 +10,10 @@ import type {
 } from "./projections.js";
 import type { WorldPoint } from "./geometry.js";
 import type { AreaTerrainKind, LineTerrainKind } from "./world.js";
+import type { NeedBand, NeedDimension } from "./needs-v2.js";
+import type { DesignationKind, JobPhaseKind, JobState, ZonePolicy } from "./work-v2.js";
+import type { JobTarget } from "./work-v2.js";
+import type { PriorityId } from "./catalog-ids.js";
 
 /**
  * Proyecciones de solo lectura del runtime V2 (S3 de WEB-002 §5.8).
@@ -75,6 +79,56 @@ export interface MapEntitiesProjectionV2 {
   readonly people: ReadonlyArray<{ readonly personId: string; readonly position: WorldPoint; readonly indoors: boolean; readonly roomId: string | null }>;
 }
 
+/**
+ * Proyecciones de trabajos, necesidades, zonas y designaciones (S4-S6,
+ * subhitos de WEB-002 §9 del prompt de subhitos). Cualitativas: nunca
+ * incluyen dificultad, margen, banda B ni potencial interno.
+ */
+export interface PersonNeedProjection {
+  readonly dimension: NeedDimension;
+  readonly band: NeedBand;
+}
+
+export interface JobProjection {
+  readonly id: string;
+  readonly actionKey: string;
+  readonly labelKey: string;
+  readonly effectivePriority: PriorityId;
+  readonly state: JobState;
+  readonly phaseKind: JobPhaseKind | null;
+  readonly progressRatio: number;
+  readonly assignedPersonIds: readonly string[];
+  readonly blockReasonKey: string | null;
+  readonly directOrder: boolean;
+  readonly target: JobTarget;
+}
+
+export interface ZoneProjection {
+  readonly id: string;
+  readonly policy: ZonePolicy;
+  readonly polygon: readonly WorldPoint[];
+}
+
+export interface DesignationProjection {
+  readonly id: string;
+  readonly kind: DesignationKind;
+  readonly cancelled: boolean;
+  readonly generatedJobCount: number;
+}
+
+/** Un blanco concreto y legítimamente conocido/viable para una acción contextual (§10.3: nunca se filtra un secreto mediante el listado, ya viene vacío de él). */
+export interface ContextualActionTargetProjection {
+  readonly target: JobTarget;
+  readonly labelKey: string;
+  readonly blockedReasonKey: string | null;
+}
+
+export interface ContextualActionOptionProjection {
+  readonly actionKey: string;
+  readonly labelKey: string;
+  readonly targets: readonly ContextualActionTargetProjection[];
+}
+
 /** Envoltorio de todas las proyecciones que el runtime V2 envía a React. */
 export interface WorkerProjectionsV2 {
   readonly gameSummary: GameSummaryProjection;
@@ -86,5 +140,10 @@ export interface WorkerProjectionsV2 {
   readonly fog: FogMaskProjection;
   readonly movements: readonly MovementProjection[];
   readonly operationalLog: readonly OperationalLogEntryProjection[];
+  readonly needsByPerson: Readonly<Record<string, readonly PersonNeedProjection[]>>;
+  readonly jobs: readonly JobProjection[];
+  readonly zones: readonly ZoneProjection[];
+  readonly designations: readonly DesignationProjection[];
+  readonly contextualActions: readonly ContextualActionOptionProjection[];
   readonly revision: number;
 }

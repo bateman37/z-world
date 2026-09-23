@@ -20,6 +20,7 @@ export * from "./objects-v2.js";
 export * from "./agriculture-v2.js";
 export * from "./place-history-v2.js";
 export * from "./work-v2.js";
+export * from "./action-catalog.js";
 export * from "./needs-v2.js";
 export * from "./state-v2.js";
 export * from "./events-v2.js";

@@ -67,7 +67,7 @@ export function migrateV1ToV2(v1: SimulationStateV1): MigrationResult {
     // La migración es una traducción estructural (§7.1): nunca invoca el
     // generador semántico real, así que el stream `world` nace fresco y sin
     // usar, sin alterar los streams originales de la partida V1.
-    prng: { ...v1.prng, world: createPrngStreamState(v1.seed, "world") },
+    prng: { ...v1.prng, world: createPrngStreamState(v1.seed, "world"), resolution: createPrngStreamState(v1.seed, "resolution") },
     sequences: {
       nextDomainEventSequence: v1.sequences.nextDomainEventSequence,
       nextPersonOrdinal: v1.sequences.nextPersonOrdinal,

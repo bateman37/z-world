@@ -85,6 +85,7 @@ export function createInitialStateV2(seed: string, config: VillageGeneratorConfi
       fixture: prng.fixture,
       navigation: prng.navigation,
       world: worldStream.snapshot(),
+      resolution: prng.resolution,
     },
     sequences: {
       nextDomainEventSequence: peopleResult.sequences.nextDomainEventSequence,

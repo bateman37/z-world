@@ -23,6 +23,24 @@ const SNAPSHOT_TRIGGERING_EVENT_TYPES: ReadonlySet<DomainEventV2["type"]> = new 
   "priority_changed",
   "room_entered",
   "room_exited",
+  // Trabajos, necesidades, zonas y designaciones (S4-S6, WEB-002 §10):
+  // límites causales tan significativos como una orden de movimiento — sin
+  // guardarlos, recargar a mitad de un trabajo, consumo o descanso podría
+  // perder progreso ya comprometido (§10 del prompt de subhitos).
+  "job_created",
+  "job_state_changed",
+  "job_phase_changed",
+  "job_assignment_changed",
+  "reservation_created",
+  "reservation_released",
+  "work_episode_created",
+  "need_changed",
+  "consumption_happened",
+  "rest_progressed",
+  "systemic_intention_created",
+  "work_interrupted",
+  "zone_changed",
+  "designation_changed",
 ]);
 
 /**

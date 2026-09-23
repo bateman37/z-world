@@ -23,10 +23,13 @@ del pueblo (incrementos 4+5), ejecutado por subhitos verificables. S1
 (esqueleto de `SimulationStateV2` y migración V1→V2,
 [DEC-0015](decisions/DEC-0015_simulation-state-v2-skeleton-and-v1-migration.md))
 S2 (generador semántico determinista del pueblo,
-[DEC-0016](decisions/DEC-0016_semantic-village-generator.md)) y S3
+[DEC-0016](decisions/DEC-0016_semantic-village-generator.md)), S3
 (runtime jugable V2, navegación y descubrimiento progresivo,
 [DEC-0017](decisions/DEC-0017_v2-playable-runtime-navigation-and-discovery.md))
-están completados técnicamente; quedan S4 a S11 sin fecha.
+y S4-S6 (motor de resolución, trabajos planificados y necesidades
+causales, entregados juntos por decisión expresa de Dennis,
+[DEC-0018](decisions/DEC-0018_resolution-engine-planned-work-and-causal-needs.md))
+están completados técnicamente; quedan S7 a S11 sin fecha.
 
 El prototipo histórico Godot queda preservado íntegro, sin más desarrollo
 activo. Su historial de entregas de código:
@@ -466,6 +469,81 @@ no se amplió `RDM-001` y `CHR-005`/`RDM-002` siguen `draft`. Ver
 
 ## Última entrega de código (línea activa Node.js/TypeScript)
 
+`WEB-002` (subhitos S4-S6) — motor de resolución, trabajos planificados y
+necesidades causales (23 de septiembre de 2026): tres subhitos entregados
+juntos por decisión expresa de Dennis, sobre el runtime jugable aceptado
+en S3 (ver
+[DEC-0018](decisions/DEC-0018_resolution-engine-planned-work-and-causal-needs.md)).
+**Completado técnicamente.** Cierra el primer bucle causal completo:
+explorar → crear un trabajo → viajar → resolver por el motor común
+(directo/D/B) → consecuencia persistente → necesidad cubierta.
+
+- Motor común de resolución (`packages/simulation-core/src/v2/resolution/`):
+  una sola tubería (`jobs/advance-jobs.ts`) para las siete acciones
+  activas mínimas exigidas (reconocer, observar, inspeccionar, registrar,
+  beber, comer, descansar; catálogo en `packages/catalogs/src/action-methods.ts`),
+  capacidad efectiva exacta (medias, perfiles `70/30`/`50/50`/`30/70`,
+  capacidad "universal" para métodos sin característica/habilidad
+  declarada), modelo D (`±8 %`, muestra única persistente, nunca
+  remuestreada por pausa/reanudación) y modelo B (campana truncada
+  determinista sobre un stream de PRNG dedicado, bandas exactas del
+  prompt maestro, nunca mostradas al jugador).
+- Trabajos, planificador y zonas (`packages/simulation-core/src/v2/jobs/`):
+  máquina de estados de `Job` con transiciones legales explícitas y
+  reevaluación de bloqueos sin recorrer el mundo; planificador
+  determinista (prioridad personal → urgencia → zona → distancia →
+  antigüedad → ID estable, sin azar ni información oculta); reservas de
+  lote de recurso (impiden doble consumo); zonas normativas
+  `habitual`/`precaution`/`forbidden`; designación por área ejecutable
+  limitada a `systematic_recon` (reconocimiento sistemático de lugares ya
+  avistados, nunca revela lo desconocido).
+- Necesidades causales (`packages/simulation-core/src/v2/needs/`,
+  `packages/catalogs/src/needs-tuning.ts`): hidratación/nutrición/
+  descanso evolucionan por tiempo, movimiento y trabajo activo sin doble
+  contabilización; beber/comer/descansar consumen un recurso real y
+  localizado (reservado para impedir doble consumo); una necesidad
+  crítica interrumpe de forma segura un trabajo incompatible y genera una
+  intención sistémica solo si existe una solución ya conocida y
+  accesible — nunca materializa un recurso.
+- `WorkerProjectionsV2` gana necesidades, trabajos, zonas, designaciones y
+  acciones contextuales legítimamente disponibles; `WorkPanel`
+  (`apps/web/components/work-panel.tsx`) en `/village/[gameSaveId]`
+  permite ordenar una acción contextual con objetivo, pausar/reanudar/
+  cancelar un trabajo y crear/borrar zonas y designaciones — sin pasada
+  artística, reutilizando Canvas/TopBar/PersonList/PersonSheetPanel sin
+  cambios.
+- Tres defectos reales encontrados y corregidos por las propias pruebas
+  de este subhito: beber/comer/descansar sufrían además el coste
+  genérico de "trabajo activo" sobre sí mismos (doble contabilización
+  real); los valores de necesidad acumulaban ruido de coma flotante de
+  17 dígitos significativos que un guardado/recarga a través de JSONB en
+  PostgreSQL real podía reconstruir con un bit distinto (redondeo a 6
+  decimales); y la proyección de acciones contextuales filtraba el
+  perfil real de un lugar solo avistado (no observado) en el selector de
+  reconocer/observar — detectado por el E2E de S3 ya existente. Además,
+  los catorce eventos causales nuevos no disparaban guardado automático
+  hasta corregirlo explícitamente.
+- 50 pruebas unitarias/integración nuevas del motor (capacidad, modelo B,
+  máquina de estados, necesidades puras, y tres bucles causales completos
+  de extremo a extremo sobre el runtime V2 real) y 1 E2E nueva, sumadas a
+  las 141 unitarias, 18 de integración PostgreSQL real y 4 E2E ya
+  existentes (191 unitarias, 18 integración, 5 E2E en total), todas en
+  verde. `npm run typecheck`, `npm run lint` y `npm run build` también en
+  verde en todo el monorepo.
+
+No implementa todavía (deuda honesta, ver «Límites» de
+[DEC-0018](decisions/DEC-0018_resolution-engine-planned-work-and-causal-needs.md)):
+dibujo de zonas/designaciones sobre el Canvas con el ratón (se crean con
+cuatro coordenadas numéricas), rechazo explícito de una orden directa
+sobre zona prohibida, techos de contribución de cooperación multi-persona
+más allá del primer ejecutor, reservas dedicadas de habitación/soporte de
+descanso, ni efecto numérico observable de ritmo/atención o política de
+respuesta (contratos preparados, sin consumidor todavía). El catálogo
+completo del horizonte (recoger, transportar, reparar, desmontar,
+agricultura, objetos profundos, explotación de edificios) permanece en
+los subhitos S7 a S11, sin fecha, según
+[RDM-003](roadmap/RDM-003_simulation-first-playable-roadmap.md).
+
 `WEB-002` (subhito S3) — runtime jugable V2, navegación y descubrimiento
 progresivo (23 de septiembre de 2026): tercer subhito de `WEB-002`, sobre
 el generador semántico aceptado en S2 (ver
@@ -893,6 +971,78 @@ proyecciones; `packages/persistence/src/worker-runtime-v2.integration.test.ts`
 cubre la persistencia real del runtime; `e2e/village-runtime.spec.ts`
 cubre el recorrido jugable completo en navegador (Chromium real).
 
+## Cómo jugar S4-S6 manualmente (`WEB-002` subhitos S4-S6)
+
+Guion exacto para que Dennis compruebe en navegador el motor de
+resolución, los trabajos y las necesidades causales, sobre el mismo
+`/village/[gameSaveId]` de S3 (pasos 1-8 de esa lista siguen siendo
+válidos para arrancar, generar y moverse).
+
+1. **Arrancar y generar** una partida siguiendo los pasos 1-4 de la
+   lista de S3. El nuevo panel «Trabajos y necesidades» aparece como
+   cuarta columna, a la derecha de la ficha de persona.
+2. **Necesidades**: al seleccionar una persona, el panel muestra
+   hidratación/nutrición/descanso con una banda cualitativa (Estable/Con
+   necesidad/Urgente/Crítica), nunca un número — evolucionan solas con
+   el tiempo, aunque la persona esté parada.
+3. **Acción contextual**: el selector «Acción» solo ofrece las acciones
+   con al menos un objetivo legítimamente conocido en este momento (al
+   principio, normalmente solo «Reconocer»/«Observar» sobre lugares ya
+   avistados desde la niebla inicial). Elige una acción y un objetivo, y
+   pulsa «Ordenar»: aparece un trabajo nuevo en el panel de abajo con su
+   estado y fase, y la persona empieza a moverse hacia el objetivo si
+   hace falta.
+4. **Seguimiento del trabajo**: el panel «Trabajos» muestra estado
+   (`proposed`/`available`/.../`in_progress`/`completed`...), fase
+   actual y progreso; con velocidad ×2 o ×10, el trabajo avanza solo.
+   «Pausar»/«Reanudar»/«Cancelar» actúan sobre el trabajo seleccionado en
+   cualquier momento.
+5. **Beber/comer/descansar**: entra con una persona en el refugio
+   provisional (contiene garantizados `5-8 L` de agua y seis porciones
+   de comida conservada junto con un lugar de descanso, ver
+   [DEC-0018](decisions/DEC-0018_resolution-engine-planned-work-and-causal-needs.md)
+   §9). Una vez dentro de la estancia con el agua/comida, «Beber»/«Comer»
+   aparecen como acciones disponibles con esa estancia como objetivo;
+   ordénalas y comprueba que la banda de esa necesidad mejora y que la
+   cantidad del recurso baja (visible indirectamente: repetir la acción
+   deja de ofrecer el mismo lote una vez agotado). «Descansar» siempre
+   está disponible en cualquier estancia ya conocida (el suelo es
+   soporte de menor rendimiento si no hay cama).
+6. **Prioridades y `Nunca`**: en la ficha de persona (columna existente
+   desde `WEB-001`), cambia la prioridad de una acción a `Nunca` y
+   confirma que el planificador deja de asignársela automáticamente a
+   esa persona (una orden directa tuya sigue funcionando: `Nunca`
+   excluye la selección automática, no una orden explícita).
+7. **Zonas y designación**: introduce cuatro coordenadas (rectángulo) y
+   una política (Habitual/Precaución/Prohibida), pulsa «Crear zona»; la
+   zona aparece en la lista con un botón «Borrar». «Designar
+   reconocimiento por área» sobre el mismo rectángulo genera de
+   inmediato un trabajo de observar por cada lugar ya avistado dentro
+   del área (0 trabajos si no hay ninguno avistado ahí todavía — nunca
+   revela algo desconocido).
+8. **Necesidad crítica y autoprotección**: deja pasar tiempo simulado
+   suficiente (velocidad ×10) sin cubrir ninguna necesidad hasta que una
+   banda llegue a «Crítica»; el registro operacional debe mostrar una
+   intención sistémica y, si hay una solución conocida y accesible, un
+   trabajo nuevo de beber/comer/descansar asignado automáticamente a esa
+   persona — o, si no la hay, un motivo de bloqueo explícito, nunca un
+   recurso aparecido de la nada.
+9. **Guardar y recargar a mitad de proceso**: con un trabajo `in_progress`
+   o una necesidad a medio recuperar, recarga la página (`F5`).
+   Reloj, trabajo, fase, progreso y necesidades deben quedar exactamente
+   igual que antes de recargar, sin rerrollear ni duplicar consumo.
+
+Para verificar por código en vez de a ojo:
+`packages/simulation-core/src/v2/{resolution/capacity,resolution/model-b,
+jobs/advance-jobs,jobs/job-transitions,needs/evolve-needs}.test.ts` cubren
+el motor, el planificador y las necesidades puras;
+`packages/persistence/src/worker-runtime-v2.integration.test.ts` cubre la
+persistencia real (incluye el redondeo de necesidades corregido en este
+subhito); `e2e/work-panel.spec.ts` cubre el panel en navegador real
+(Chromium), y `e2e/village-runtime.spec.ts` (ya existente) sigue en verde,
+lo que confirma que el nuevo panel no introdujo una fuga de información
+(esa prueba detectó y forzó la corrección de una).
+
 ## Funcionalidad realmente implementada en el prototipo histórico Godot
 
 - Proyecto Godot 4.7.2 importable desde la raíz (`project.godot`), escena
@@ -1066,6 +1216,59 @@ posteriores de `RDM-001`.
   íntegro (el generador semántico completo, el motor de resolución de
   `ARC-006`–`ARC-008`, el sistema de objetos y el primer bucle causal
   siguen sin implementar).
+
+## Validaciones de `WEB-002` (subhitos S4-S6)
+
+Validación completa desde el estado limpio del monorepo (23 de
+septiembre de 2026), tras el motor de resolución/trabajos/necesidades,
+ejecutada realmente en el entorno de implementación:
+
+- `npm run typecheck` (las seis capas): sin errores.
+- `npm run lint` (`lint:packages` + `lint --workspace apps/web`): sin
+  advertencias ni errores.
+- `npx vitest run` (raíz del monorepo): **191 pruebas unitarias en
+  verde** — las 141 de S1-S3/`WEB-001` sin modificar más 50 nuevas:
+  `resolution/capacity.test.ts` (8: medias de una/dos características y
+  habilidades, tres perfiles, nivel 0 válido, capacidad universal),
+  `resolution/model-b.test.ts` (13: acotación `[-4,4]`, determinismo,
+  distribución estructuralmente razonable, cinco bandas exactas en sus
+  límites), `jobs/job-transitions.test.ts` (4: transición legal/ilegal,
+  estados terminales, bloqueo/reactivación), `needs/evolve-needs.test.ts`
+  (17: ocho bandas exactas, pausa sin cambio, trabajo activo sin doble
+  contabilización, `×1`/`×10` equivalentes, nunca negativo, recuperación
+  por agua/comida/descanso según soporte) y `jobs/advance-jobs.test.ts`
+  (8: bucle beber completo extremo a extremo — orden→viaje→consumo→
+  necesidad mejorada→persistencia —, reserva excluyente, descansar con
+  variación D estable tras pausar/reanudar, inspeccionar/registrar con
+  episodio B persistente, `Nunca` no excluye la autoprotección,
+  intención sistémica con y sin solución conocida).
+- `npm run test:integration` (PostgreSQL real, `zworld_test`): **18
+  pruebas en verde**, sin regresión — la primera ejecución detectó un
+  defecto real (ruido de coma flotante en necesidades que rompía la
+  igualdad exacta tras guardar/recargar vía JSONB), corregido antes de
+  cerrar el subhito.
+- `npm run build`: compila y tipa correctamente (incluye `apps/web` con
+  el panel nuevo).
+- `npm run test:e2e` (Playwright, Chromium real, `next dev` real,
+  PostgreSQL real): **5 pruebas en verde** — las 4 ya existentes sin
+  modificación funcional más 1 nueva (`work-panel.spec.ts`): necesidades
+  visibles con banda cualitativa, creación/borrado de una zona
+  normativa con guardado automático confirmado. La primera ejecución de
+  la suite completa hizo fallar `village-runtime.spec.ts` (detectó una
+  fuga real de perfil de lugar en el selector de reconocer/observar);
+  corregida, la suite completa queda en verde de forma repetible.
+- Tres defectos reales de la propia entrega, encontrados por estas
+  mismas pruebas y corregidos antes de cerrar el subhito (detalle en
+  DEC-0018): doble contabilización del coste de "trabajo activo" sobre
+  beber/comer/descansar, ruido de coma flotante en necesidades tras
+  persistir, y fuga de perfil de lugar en el selector de acciones. Se
+  corrigió además que los catorce eventos causales nuevos no disparaban
+  guardado automático (sin pruebas previas que lo cubrieran
+  explícitamente; se detectó al escribir `work-panel.spec.ts`).
+
+No se ejecutó ninguna aceptación manual nueva por parte de Dennis para
+S4-S6 (ver «Aceptación manual pendiente» y el guion «Cómo jugar S4-S6
+manualmente» más arriba, escrito para que la ejecute).
 
 ## Validaciones de `WEB-002` (subhito S3)
 
@@ -1428,11 +1631,12 @@ Godot en el entorno de implementación (ver sección de validaciones de
 
 ## Aceptación manual pendiente
 
-`WEB-002` S1, S2 y S3 — completados técnicamente, sin lista de
-aceptación manual formal propia todavía; ver «Cómo jugar el runtime V2
+`WEB-002` S1 a S6 — completados técnicamente, sin lista de aceptación
+manual formal propia todavía; ver «Cómo jugar el runtime V2
 manualmente» más arriba para reproducir S3 (incluye reproducir la
-generación de S2) a mano. No se declaran superados por el agente que
-implementó la entrega.
+generación de S2) a mano, y el guion de S4-S6 en el informe de entrega
+de esa rama (`feat/web-002-s4-s6-resolution-work-needs`). No se
+declaran superados por el agente que implementó la entrega.
 
 `WEB-001` — completada técnicamente y probada en navegador (Chromium)
 contra un servidor de producción real y PostgreSQL real, pero **la
@@ -1468,12 +1672,15 @@ especificación maestra, por instrucción expresa de Dennis, ejecutada por
 subhitos en varias sesiones (ver
 [DEC-0015](decisions/DEC-0015_simulation-state-v2-skeleton-and-v1-migration.md)).
 S1 (esqueleto de `SimulationStateV2` y migración V1→V2), S2 (generador
-semántico reproducible del pueblo) y S3 (runtime jugable V2, navegación
-y descubrimiento progresivo) están completados técnicamente. El
-siguiente candidato de implementación es S4 — motor común de resolución
-directa/D/B—, que sigue sin iniciarse. Cada subhito requiere su propia
-sesión y debe dejar el repositorio funcionando, probado y documentado
-antes de continuar al siguiente, sin cambiar de stack,
+semántico reproducible del pueblo), S3 (runtime jugable V2, navegación
+y descubrimiento progresivo) y S4-S6 (motor común de resolución,
+trabajos planificados y necesidades causales, ver
+[DEC-0018](decisions/DEC-0018_resolution-engine-planned-work-and-causal-needs.md))
+están completados técnicamente. El siguiente candidato de
+implementación es S7 — objetos profundos, inventarios, recursos y
+transformaciones —, que sigue sin iniciarse. Cada subhito requiere su
+propia sesión y debe dejar el repositorio funcionando, probado y
+documentado antes de continuar al siguiente, sin cambiar de stack,
 rehacer los seis protagonistas, sustituir el reloj, romper guardados
 existentes ni abandonar el modelo espacial ya construido en `WEB-001`.
 «Defensa y vida propia» sigue completada técnicamente para el prototipo

@@ -21,7 +21,7 @@ export const prngStreamStateSchema = z.object({
   state: z.number().int().min(0).max(0xffffffff),
 });
 
-export type PrngDomain = "cohort" | "fixture" | "navigation" | "world";
+export type PrngDomain = "cohort" | "fixture" | "navigation" | "world" | "resolution";
 
 /**
  * Forma exacta de WEB-001/S1: nunca se cambia, para que un snapshot V1 (o
@@ -52,5 +52,7 @@ export const prngStateByDomainV2Schema = z.object({
   fixture: prngStreamStateSchema,
   navigation: prngStreamStateSchema,
   world: prngStreamStateSchema,
+  /** Stream dedicado a la variación B del motor de resolución (S4 de WEB-002 §12.6): independiente de `world`/`cohort` para que una comprobación incierta no altere la generación ni la cohorte. */
+  resolution: prngStreamStateSchema,
 });
 export type PrngStateByDomainV2 = z.infer<typeof prngStateByDomainV2Schema>;

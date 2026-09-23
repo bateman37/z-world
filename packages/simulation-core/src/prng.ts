@@ -67,6 +67,7 @@ export function createPrngStateByDomainV2(seed: string): PrngStateByDomainV2 {
     fixture: createPrngStreamState(seed, "fixture"),
     navigation: createPrngStreamState(seed, "navigation"),
     world: createPrngStreamState(seed, "world"),
+    resolution: createPrngStreamState(seed, "resolution"),
   };
 }
 

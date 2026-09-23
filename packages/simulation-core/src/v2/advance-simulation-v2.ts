@@ -1,9 +1,12 @@
-import type { DomainEventV2, EntityLocation, PersonStateV2, SimulationStateV2, WorldPoint } from "@z-world/contracts";
+import type { DomainEventV2, EntityLocation, NeedDimension, PersonStateV2, SimulationStateV2, WorldPoint } from "@z-world/contracts";
+import { needBandFor } from "@z-world/contracts";
 import { advanceClock } from "../clock.js";
 import { revealAroundObservers } from "../fog.js";
 import { nextEventId } from "../sequences.js";
 import { updateDiscoveryV2 } from "./discovery.js";
 import type { NavigationIndexV2 } from "./room-graph.js";
+import { advanceJobs } from "./jobs/advance-jobs.js";
+import { declineNeedsForElapsedSimMinutes, declineNeedsForMovement, needOf } from "./needs/evolve-needs.js";
 
 /** Misma velocidad base provisional que V1 (DEC-0014); no se recalibra en S3. */
 export const BASE_WALK_SPEED_METERS_PER_SIM_SECOND_V2 = 1.4;
@@ -70,18 +73,40 @@ export function advanceSimulationV2(state: SimulationStateV2, elapsedRealSeconds
   let sequences = state.sequences;
   const events: DomainEventV2[] = [];
   const people: Record<string, PersonStateV2> = { ...state.people };
+  const elapsedSimMinutes = simSecondsToAdvance / 60;
 
   for (const personId of state.peopleOrder) {
     const person = people[personId];
-    if (!person || !person.public.activeMovementOrder) continue;
+    if (!person) continue;
 
-    const order = person.public.activeMovementOrder;
+    // Necesidades (§14.3 de WEB-002, subhito S6): el coste por trabajo
+    // activo (fase `execute`) lo aplica `advanceJobs` para no contar dos
+    // veces la misma causa; aquí solo se cubren desplazamiento e
+    // inactividad, incluido el tramo de viaje de un trabajo (mismo mecanismo
+    // de `activeMovementOrder` que una orden directa de movimiento).
+    const activeJob = person.activeJobId ? state.jobs[person.activeJobId] : null;
+    const isExecutingJobPhase = activeJob?.state === "in_progress" && activeJob.phases[activeJob.currentPhaseIndex]?.kind === "execute";
+    if (!isExecutingJobPhase) {
+      if (person.public.activeMovementOrder) {
+        const order = person.public.activeMovementOrder;
+        const distanceThisTick = Math.min(order.totalDistanceMeters - order.travelledDistanceMeters, BASE_WALK_SPEED_METERS_PER_SIM_SECOND_V2 * simSecondsToAdvance);
+        people[personId] = { ...person, needs: declineNeedsForMovement(person.needs, Math.max(0, distanceThisTick)) };
+      } else {
+        people[personId] = { ...person, needs: declineNeedsForElapsedSimMinutes(person.needs, elapsedSimMinutes, "idle", "normal") };
+      }
+    }
+    emitNeedBandEventsIfShifted(personId, person.needs, people[personId]!.needs, sequences, events, nextClock.elapsedSimSeconds, (nextSeq) => (sequences = nextSeq));
+
+    const currentPerson = people[personId]!;
+    if (!currentPerson.public.activeMovementOrder) continue;
+
+    const order = currentPerson.public.activeMovementOrder;
     const distanceToAdvance = BASE_WALK_SPEED_METERS_PER_SIM_SECOND_V2 * simSecondsToAdvance;
     const travelledDistanceMeters = Math.min(order.totalDistanceMeters, order.travelledDistanceMeters + distanceToAdvance);
     const position = pointAlongPath(order.path, travelledDistanceMeters);
     const reachedDestination = travelledDistanceMeters >= order.totalDistanceMeters;
 
-    const previousLocation = person.location;
+    const previousLocation = currentPerson.location;
     const nextLocation = locationAtCheckpoint(order.locationCheckpoints, travelledDistanceMeters, position);
 
     if (previousLocation.kind === "room" && (nextLocation.kind !== "room" || nextLocation.roomId !== previousLocation.roomId)) {
@@ -100,14 +125,14 @@ export function advanceSimulationV2(state: SimulationStateV2, elapsedRealSeconds
       sequences = nextSequences;
       events.push({ type: "movement_completed", eventId, simSeconds: nextClock.elapsedSimSeconds, causedByCommandId: null, personId });
       people[personId] = {
-        ...person,
-        public: { ...person.public, position, operationalState: "arrival_completed", activeMovementOrder: null },
+        ...currentPerson,
+        public: { ...currentPerson.public, position, operationalState: "arrival_completed", activeMovementOrder: null },
         location: nextLocation,
       };
     } else {
       people[personId] = {
-        ...person,
-        public: { ...person.public, position, activeMovementOrder: { ...order, travelledDistanceMeters } },
+        ...currentPerson,
+        public: { ...currentPerson.public, position, activeMovementOrder: { ...order, travelledDistanceMeters } },
         location: nextLocation,
       };
     }
@@ -127,5 +152,36 @@ export function advanceSimulationV2(state: SimulationStateV2, elapsedRealSeconds
     events.push(...discoveryResult.events);
   }
 
-  return { state: stateAfterMovement, events };
+  // Trabajos, planificador y autoprotección (S4-S6, WEB-002 §11/§12/§14):
+  // se ejecutan después de movimiento/niebla/descubrimiento pasivo, con el
+  // mismo `nav` derivado, para que la co-ubicación y el conocimiento que
+  // usan ya reflejen este tick.
+  const jobsResult = advanceJobs(stateAfterMovement, nav, simSecondsToAdvance);
+  events.push(...jobsResult.events);
+
+  return { state: jobsResult.state, events };
+}
+
+const NEED_DIMENSIONS_ORDER: readonly NeedDimension[] = ["hydration", "nutrition", "rest"];
+
+/** Emite `need_changed` solo cuando la banda cualitativa cambió (§8 de WEB-002: eventos como límites causales, nunca telemetría por tick). */
+function emitNeedBandEventsIfShifted(
+  personId: string,
+  before: PersonStateV2["needs"],
+  after: PersonStateV2["needs"],
+  sequences: SimulationStateV2["sequences"],
+  events: DomainEventV2[],
+  simSeconds: number,
+  setSequences: (next: SimulationStateV2["sequences"]) => void,
+): void {
+  let currentSequences = sequences;
+  for (const dimension of NEED_DIMENSIONS_ORDER) {
+    const beforeValue = needOf(before, dimension).value;
+    const afterValue = needOf(after, dimension).value;
+    if (needBandFor(beforeValue) === needBandFor(afterValue)) continue;
+    const { eventId, sequences: nextSequences } = nextEventId(currentSequences);
+    currentSequences = nextSequences;
+    events.push({ type: "need_changed", eventId, simSeconds, causedByCommandId: null, personId, dimension, band: needBandFor(afterValue) });
+  }
+  setSequences(currentSequences);
 }
