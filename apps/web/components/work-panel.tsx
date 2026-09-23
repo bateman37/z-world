@@ -35,6 +35,7 @@ export function WorkPanel({
     disassemblyScope?: "selective" | "destructive";
     confirmIrreversible?: boolean;
     storageItem?: StorageItemRef;
+    storageQuantity?: number;
   }) => void;
   readonly onPauseJob: (jobId: string) => void;
   readonly onResumeJob: (jobId: string) => void;
@@ -49,6 +50,7 @@ export function WorkPanel({
   const [zoneBounds, setZoneBounds] = useState({ minX: "-20", minY: "-20", maxX: "20", maxY: "20" });
   const [zonePolicy, setZonePolicy] = useState<"habitual" | "precaution" | "forbidden">("habitual");
   const [irreversibleConfirmed, setIrreversibleConfirmed] = useState(false);
+  const [partialQuantity, setPartialQuantity] = useState("");
 
   const needs = selectedPersonId ? (projections.needsByPerson[selectedPersonId] ?? []) : [];
   const selectedOption = projections.contextualActions.find((o) => o.actionKey === actionKey) ?? projections.contextualActions[0];
@@ -63,6 +65,9 @@ export function WorkPanel({
   // implícita por pulsar "Ordenar" una sola vez.
   const isIrreversibleAction = selectedOption?.actionKey === "disassemble_selective" || selectedOption?.actionKey === "disassemble_destructive";
 
+  // Retirar solo una parte de un lote lo divide en el núcleo (S7 §6.5); vacío = el lote entero.
+  const isPartialRetrieve = selectedOption?.actionKey === "retrieve_from_storage" && targets[targetIndex]?.storageItem?.kind === "resource_lot";
+
   function handleOrder() {
     if (!selectedPersonId || !selectedOption) return;
     const target = targets[targetIndex]?.target;
@@ -75,7 +80,9 @@ export function WorkPanel({
       disassemblyScope: selectedOption.actionKey === "disassemble_destructive" ? "destructive" : selectedOption.actionKey === "disassemble_selective" ? "selective" : undefined,
       confirmIrreversible: isIrreversibleAction ? irreversibleConfirmed : undefined,
       storageItem: targets[targetIndex]?.storageItem ? { kind: targets[targetIndex]!.storageItem!.kind, id: targets[targetIndex]!.storageItem!.id } : undefined,
+      storageQuantity: isPartialRetrieve && Number(partialQuantity) > 0 ? Number(partialQuantity) : undefined,
     });
+    setPartialQuantity("");
     setIrreversibleConfirmed(false);
   }
 
@@ -164,6 +171,11 @@ export function WorkPanel({
                 ))}
               </select>
             </label>
+            {isPartialRetrieve && (
+              <label style={{ display: "block", marginTop: 4 }}>
+                Cantidad (vacío = todo): <input aria-label="Cantidad a retirar" value={partialQuantity} onChange={(e) => setPartialQuantity(e.target.value)} style={{ width: 56 }} />
+              </label>
+            )}
             {isIrreversibleAction && (
               <label style={{ display: "block", marginTop: 6, color: "var(--z-danger)" }}>
                 <input type="checkbox" checked={irreversibleConfirmed} onChange={(e) => setIrreversibleConfirmed(e.target.checked)} /> Confirmo que esta acción es irreversible y puede perder

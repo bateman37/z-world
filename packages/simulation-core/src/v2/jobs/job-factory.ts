@@ -16,6 +16,7 @@ export interface CreateJobParams {
   readonly disassemblyScope?: "selective" | "destructive" | null;
   readonly irreversibleConfirmed?: boolean;
   readonly storageItem?: Job["storageItem"];
+  readonly storageQuantity?: number | null;
 }
 
 export interface CreateJobResult {
@@ -75,6 +76,7 @@ export function createJob(state: SimulationStateV2, params: CreateJobParams): Cr
     disassemblyScope: params.disassemblyScope ?? null,
     irreversibleConfirmed: params.irreversibleConfirmed ?? false,
     storageItem: params.storageItem ?? null,
+    storageQuantity: params.storageQuantity ?? null,
     createdAtSimSeconds: state.clock.elapsedSimSeconds,
     updatedAtSimSeconds: state.clock.elapsedSimSeconds,
   };

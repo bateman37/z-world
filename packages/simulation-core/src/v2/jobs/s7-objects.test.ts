@@ -9,7 +9,7 @@ import { makeSyntheticBuildingState, TEST_HOUSE_IDS } from "../test-fixtures.js"
 import { validateSimulationStateV2Invariants } from "../invariants.js";
 import { applyResourceDecay, decayedCondition, freshnessBandFor } from "../objects/decay.js";
 import { applyUseWear } from "../objects/wear.js";
-import { containerUsedUnits, resolveHolderPersonId } from "../objects/storage.js";
+import { canMergeResourceLots, containerUsedUnits, mergeResourceLots, resolveHolderPersonId, splitResourceLot } from "../objects/storage.js";
 import { makeResourceLot, makeWorldObject } from "../generator/buildings.js";
 import { makeTransportMeans } from "../generator/scenario.js";
 import { createInitialStateV2 } from "../create-initial-state-v2.js";
@@ -311,8 +311,18 @@ describe("S7 — bomba de agua (demostrador profundo CAT-005 §3.2)", () => {
     const nav = buildFullNavigationIndexV2(state.world);
     state = unpause(state, nav);
 
+    // Sin diagnóstico previo, la reparación de una instalación queda bloqueada (§6.8).
+    const early = order(state, nav, { commandId: "early", personId, actionKey: "repair", target: { kind: "world_object", worldObjectId: pumpId } });
+    const blockedEarly = run(early.state, nav, 40, 5);
+    expect(blockedEarly.state.jobs[early.jobId]!.blockReasonKey).toBe("block.requires_diagnosis");
+    expect(blockedEarly.state.resourceLots["resource-lot-s7-parts"]!.quantity).toBe(2);
+    state = applyCommandV2(blockedEarly.state, { commandId: "cancel-early", type: "cancel_job", jobId: early.jobId }, nav).state;
+    const test = order(state, nav, { commandId: "test", personId, actionKey: "test_installation", target: { kind: "world_object", worldObjectId: pumpId } });
+    state = run(test.state, nav, 40, 1).state; // cada paso de 1 s real son 72 s simulados a ×1
+    expect(state.jobs[test.jobId]!.state).toBe("completed");
+
     const repair = order(state, nav, { commandId: "rep", personId, actionKey: "repair", target: { kind: "world_object", worldObjectId: pumpId } });
-    const afterRepair = run(repair.state, nav, 200, 30);
+    const afterRepair = run(repair.state, nav, 80, 1);
     expect(afterRepair.state.jobs[repair.jobId]!.state).toBe("completed");
     const repaired = afterRepair.events.find((e) => e.type === "object_repaired");
     // Completa → funcional; provisional → degradada. Ambas recuperan el bombeo (causa reparable: junta gastada).
@@ -334,7 +344,7 @@ describe("S7 — bomba de agua (demostrador profundo CAT-005 §3.2)", () => {
       current = { ...current, resourceLots: Object.fromEntries(Object.entries(current.resourceLots).filter(([, l]) => !(l.family === "water" && l.location.kind === "on_object"))) };
       current = { ...current, people: Object.fromEntries(Object.entries(current.people).map(([id, p]) => [id, { ...p, needs: p.needs.map((n) => ({ ...n, value: 100, band: "stable" as const })) }])) };
       const draw = order(current, nav, { commandId: `draw-${i}`, personId, actionKey: "draw_water", target: { kind: "world_object", worldObjectId: pumpId } });
-      const result = run(draw.state, nav, 30, 30);
+      const result = run(draw.state, nav, 30, 1);
       current = result.state;
       for (const e of result.events) {
         if (e.type === "water_drawn") totalDrawn += e.quantity;
@@ -691,5 +701,83 @@ describe("S7 — compatibilidad de snapshots anteriores (defaults seguros)", () 
     const nav = buildFullNavigationIndexV2(loaded.world);
     const advanced = run(unpause(loaded, nav), nav, 3, 60).state;
     expect(validateSimulationStateV2Invariants(advanced).ok).toBe(true);
+  });
+});
+
+describe("S7 — dividir y fusionar lotes (§6.5)", () => {
+  it("retirar una parte divide el lote conservando cantidad, condición y procedencia", () => {
+    const { state: withW, containerId } = withWardrobe(cleanBase("s7-split-1"));
+    const wood = lot("resource-lot-s7-split", "wood_and_planks", 5, { kind: "container", containerId });
+    let state = putLot(withW, wood);
+    const nav = buildFullNavigationIndexV2(state.world);
+    state = unpause(state, nav);
+    const personId = state.peopleOrder[0]!;
+    const retrieve = order(state, nav, { commandId: "r", personId, actionKey: "retrieve_from_storage", target: { kind: "container", containerId }, storageItem: { kind: "resource_lot", id: wood.id }, storageQuantity: 2 });
+    const { state: finalState, events } = run(retrieve.state, nav, 80, 1, (s) => expect(relevantViolations(s)).toEqual([]));
+    expect(finalState.jobs[retrieve.jobId]!.state).toBe("completed");
+    const split = events.find((e) => e.type === "resource_lot_split");
+    expect(split && split.type === "resource_lot_split" && split.quantity).toBe(2);
+    const part = split && split.type === "resource_lot_split" ? finalState.resourceLots[split.newResourceLotId]! : undefined;
+    expect(part!.quantity).toBe(2);
+    expect(part!.location).toEqual({ kind: "carried_by_person", personId });
+    expect(part!.condition).toBe(wood.condition);
+    expect(part!.provenance).toContain(`split_from:${wood.id}`);
+    expect(finalState.resourceLots[wood.id]!.quantity).toBe(3);
+    expect(finalState.resourceLots[wood.id]!.location).toEqual({ kind: "container", containerId });
+  });
+
+  it("guardar un lote junto a otro compatible los fusiona; uno incompatible se queda aparte", () => {
+    const { state: withW, containerId } = withWardrobe(cleanBase("s7-merge-1"));
+    const personId = withW.peopleOrder[0]!;
+    const inside = lot("resource-lot-s7-in", "wood_and_planks", 3, { kind: "container", containerId }, { condition: 0.8 });
+    const carried = lot("resource-lot-s7-carried", "wood_and_planks", 2, { kind: "carried_by_person", personId }, { condition: 0.75 });
+    let state = putLot(putLot(withW, inside), carried);
+    const nav = buildFullNavigationIndexV2(state.world);
+    state = unpause(state, nav);
+    const store = order(state, nav, { commandId: "s", personId, actionKey: "store", target: { kind: "container", containerId }, storageItem: { kind: "resource_lot", id: carried.id } });
+    const { state: finalState, events } = run(store.state, nav, 80, 1, (s) => expect(relevantViolations(s)).toEqual([]));
+    expect(finalState.jobs[store.jobId]!.state).toBe("completed");
+    expect(events.some((e) => e.type === "resource_lot_merged" && e.survivingResourceLotId === inside.id && e.mergedResourceLotId === carried.id)).toBe(true);
+    expect(finalState.resourceLots[carried.id]).toBeUndefined();
+    const survivor = finalState.resourceLots[inside.id]!;
+    expect(survivor.quantity).toBe(5);
+    expect(survivor.condition).toBe(0.78); // (0.8·3 + 0.75·2) / 5
+    expect(survivor.provenance).toContain(`merged:${carried.id}`);
+    expect(finalState.containers[containerId]!.contentIds).toEqual([inside.id]);
+
+    // Estados incompatibles (condición muy distinta, o perecederos con curvas distintas) nunca se mezclan.
+    expect(canMergeResourceLots(inside, { ...carried, condition: 0.3 })).toBe(false);
+    const freshA = lot("fa", "fresh_food", 1, { kind: "carried_by_person", personId }, { decayStartedAtSimSeconds: 0, conditionAtDecayStart: 0.9, condition: 0.8 });
+    const freshB = lot("fb", "fresh_food", 1, { kind: "carried_by_person", personId }, { decayStartedAtSimSeconds: 3600, conditionAtDecayStart: 0.9, condition: 0.8 });
+    expect(canMergeResourceLots(freshA, freshB)).toBe(false);
+  });
+
+  it("dividir y fusionar son inversos y conservan la cantidad total exacta", () => {
+    const base = cleanBase("s7-split-merge");
+    const personId = base.peopleOrder[0]!;
+    const water = lot("resource-lot-s7-water", "water", 7.5, { kind: "carried_by_person", personId });
+    const state = putLot(base, water);
+    const split = splitResourceLot(state, water.id, 2.25, "resource-lot-s7-water-part", { kind: "carried_by_person", personId })!;
+    expect(split.resourceLots[water.id]!.quantity + split.resourceLots["resource-lot-s7-water-part"]!.quantity).toBe(7.5);
+    expect(splitResourceLot(state, water.id, 7.5, "x", { kind: "carried_by_person", personId })).toBeNull();
+    const merged = mergeResourceLots(split, water.id, "resource-lot-s7-water-part")!;
+    expect(merged.resourceLots[water.id]!.quantity).toBe(7.5);
+    expect(merged.resourceLots["resource-lot-s7-water-part"]).toBeUndefined();
+  });
+});
+
+describe("S7 — un bloqueo por materiales se reanuda cuando los materiales llegan", () => {
+  it("la reparación bloqueada termina en cuanto hay madera concreta en la estancia", () => {
+    const { state: withW, furnitureId } = withWardrobe(cleanBase("s7-revive-1"));
+    const nav = buildFullNavigationIndexV2(withW.world);
+    let state = unpause(withW, nav);
+    const personId = state.peopleOrder[0]!;
+    const repair = order(state, nav, { commandId: "rep", personId, actionKey: "repair", target: { kind: "furniture", furnitureId } });
+    state = run(repair.state, nav, 40).state;
+    expect(state.jobs[repair.jobId]!.blockReasonKey).toBe("block.missing_materials");
+    state = putLot(state, lot("resource-lot-s7-arrived", "wood_and_planks", 2, { kind: "room", roomId: TEST_HOUSE_IDS.hallwayRoomId }));
+    const { state: finalState } = run(state, nav, 80);
+    expect(["completed", "causal_failure"]).toContain(finalState.jobs[repair.jobId]!.state);
+    expect(finalState.resourceLots["resource-lot-s7-arrived"]).toBeUndefined();
   });
 });

@@ -27,8 +27,11 @@ import {
 } from "@z-world/catalogs";
 import { installationBlockReason, resolveTransformationProfileId } from "./eligibility.js";
 import {
+  canMergeResourceLots,
   itemLocation,
   liquidCapacityOf,
+  mergeResourceLots,
+  splitResourceLot,
   liquidHeldBy,
   locationWorldPoint,
   moveItem,
@@ -335,8 +338,12 @@ function phaseBlockerStillApplies(state: SimulationStateV2, job: Job, executorId
   switch (job.blockReasonKey) {
     case "block.irreversible_not_confirmed":
       return !job.irreversibleConfirmed;
-    case "block.missing_materials":
-      return missingMaterialsForRepair(state, job, executorId) !== null;
+    case "block.missing_materials": {
+      const plan = missingMaterialsForRepair(state, job, executorId);
+      return plan === null || plan.missing;
+    }
+    case "block.requires_diagnosis":
+      return requiresDiagnosisFirst(state, job);
     case "block.container_full":
     case "block.container_incompatible":
     case "block.item_not_at_storage_site":
@@ -596,6 +603,7 @@ function progressStorePhase(ctx: Ctx, jobId: string, executorId: string): void {
   ctx.state = moveItem(ctx.state, job.storageItem, { kind: "container", containerId });
   const eventId = withNextEventId(ctx);
   emit(ctx, { type: "object_stored", eventId, simSeconds: ctx.state.clock.elapsedSimSeconds, causedByCommandId: null, objectId: job.storageItem.id, entityKind: job.storageItem.kind, containerId, jobId });
+  if (job.storageItem.kind === "resource_lot") mergeStoredLotIntoContainer(ctx, job.storageItem.id, containerId, jobId);
   completePhase(ctx, jobId);
 }
 
@@ -610,10 +618,44 @@ function progressRetrievePhase(ctx: Ctx, jobId: string, executorId: string): voi
     return;
   }
   const containerId = job.target.containerId;
-  ctx.state = moveItem(ctx.state, job.storageItem, { kind: "carried_by_person", personId: executorId });
+  const lot = job.storageItem.kind === "resource_lot" ? ctx.state.resourceLots[job.storageItem.id] : undefined;
+  let retrievedId = job.storageItem.id;
+  if (lot && job.storageQuantity !== null && job.storageQuantity < lot.quantity) {
+    // Retirar solo una parte divide el lote (S7 §6.5): misma condición, curva y procedencia; la cantidad se conserva exacta.
+    const newLotId = `resource-lot-${ctx.state.sequences.nextEntityOrdinal}`;
+    ctx.state = { ...ctx.state, sequences: { ...ctx.state.sequences, nextEntityOrdinal: ctx.state.sequences.nextEntityOrdinal + 1 } };
+    const split = splitResourceLot(ctx.state, lot.id, job.storageQuantity, newLotId, { kind: "carried_by_person", personId: executorId });
+    if (split) {
+      ctx.state = split;
+      retrievedId = newLotId;
+      const splitEventId = withNextEventId(ctx);
+      emit(ctx, { type: "resource_lot_split", eventId: splitEventId, simSeconds: ctx.state.clock.elapsedSimSeconds, causedByCommandId: null, sourceResourceLotId: lot.id, newResourceLotId: newLotId, quantity: job.storageQuantity });
+    }
+  }
+  if (retrievedId === job.storageItem.id) ctx.state = moveItem(ctx.state, job.storageItem, { kind: "carried_by_person", personId: executorId });
   const eventId = withNextEventId(ctx);
-  emit(ctx, { type: "object_retrieved", eventId, simSeconds: ctx.state.clock.elapsedSimSeconds, causedByCommandId: null, objectId: job.storageItem.id, entityKind: job.storageItem.kind, containerId, jobId });
+  emit(ctx, { type: "object_retrieved", eventId, simSeconds: ctx.state.clock.elapsedSimSeconds, causedByCommandId: null, objectId: retrievedId, entityKind: job.storageItem.kind, containerId, jobId });
   completePhase(ctx, jobId);
+}
+
+/** Al guardar un lote junto a otro compatible del mismo contenedor, se fusionan en uno solo (S7 §6.5) sin mezclar estados incompatibles. */
+function mergeStoredLotIntoContainer(ctx: Ctx, lotId: string, containerId: string, jobId: string): void {
+  const stored = ctx.state.resourceLots[lotId];
+  const container = ctx.state.containers[containerId];
+  if (!stored || !container) return;
+  // El lote guardado solo está reservado por este mismo trabajo: se libera para poder fusionarlo.
+  const unreserved = { ...stored, reservedByJobId: stored.reservedByJobId === jobId ? null : stored.reservedByJobId };
+  const survivor = container.contentIds
+    .map((id) => ctx.state.resourceLots[id])
+    .filter((l): l is ResourceLot => l !== undefined && l.id !== lotId)
+    .sort((a, b) => (a.id < b.id ? -1 : 1))
+    .find((l) => canMergeResourceLots(l, unreserved));
+  if (!survivor) return;
+  const merged = mergeResourceLots({ ...ctx.state, resourceLots: { ...ctx.state.resourceLots, [lotId]: unreserved } }, survivor.id, lotId);
+  if (!merged) return;
+  ctx.state = merged;
+  const eventId = withNextEventId(ctx);
+  emit(ctx, { type: "resource_lot_merged", eventId, simSeconds: ctx.state.clock.elapsedSimSeconds, causedByCommandId: null, survivingResourceLotId: survivor.id, mergedResourceLotId: lotId });
 }
 
 /**
@@ -650,6 +692,10 @@ function progressPreparePhase(ctx: Ctx, jobId: string): void {
       blockJob(ctx, jobId, "block.no_transformation_profile");
       return;
     }
+    if (requiresDiagnosisFirst(ctx.state, job)) {
+      blockJob(ctx, jobId, "block.requires_diagnosis");
+      return;
+    }
     const plan = missingMaterialsForRepair(ctx.state, job, executorId);
     if (plan === null || plan.missing) {
       blockJob(ctx, jobId, "block.missing_materials");
@@ -663,6 +709,19 @@ function progressPreparePhase(ctx: Ctx, jobId: string): void {
   }
 
   completePhase(ctx, jobId);
+}
+
+/**
+ * Una instalación técnica (bomba) solo se repara tras diagnosticarla (S7
+ * §6.8: "una reparación requiere diagnóstico suficiente"): hace falta una
+ * prueba previa o haberla visto averiarse. Los objetos sueltos y muebles no
+ * lo exigen en este recorte (su avería es visible al registrarlos).
+ */
+function requiresDiagnosisFirst(state: SimulationStateV2, job: Job): boolean {
+  if (job.actionKey !== "repair" || job.target.kind !== "world_object") return false;
+  const obj = state.worldObjects[job.target.worldObjectId];
+  if (!obj || !obj.installedAt) return false;
+  return !obj.knownEvidenceIds.some((e) => e.startsWith("tested@") || e.startsWith("broke_down@"));
 }
 
 /** Desmontar exige vaciar el contenedor anfitrión y descargar el medio (SET-009 §3.4 paso 5). `null` si se puede desmontar ya. */

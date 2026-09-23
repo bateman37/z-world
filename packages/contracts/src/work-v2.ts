@@ -271,6 +271,8 @@ export interface Job {
    * S7 (default seguro).
    */
   readonly storageItem: StorageItemRef | null;
+  /** Cantidad parcial a retirar de un lote (`retrieve_from_storage`, S7 §6.5: dividir un lote). `null` = el lote entero. Default seguro para trabajos anteriores. */
+  readonly storageQuantity: number | null;
   readonly createdAtSimSeconds: number;
   readonly updatedAtSimSeconds: number;
 }
@@ -309,6 +311,7 @@ export const jobSchema = z.object({
     .object({ kind: z.enum(["world_object", "resource_lot"]), id: z.string() })
     .nullable()
     .default(null),
+  storageQuantity: z.number().positive().nullable().default(null),
   createdAtSimSeconds: z.number().int().nonnegative(),
   updatedAtSimSeconds: z.number().int().nonnegative(),
 });

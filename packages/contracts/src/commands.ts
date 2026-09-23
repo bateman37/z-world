@@ -77,6 +77,8 @@ export const orderContextualActionCommandSchema = z.object({
   confirmIrreversible: z.boolean().optional(),
   /** Objeto o lote concreto que `store`/`retrieve_from_storage` mueve hacia/desde el contenedor del blanco (S7). */
   storageItem: z.object({ kind: z.enum(["world_object", "resource_lot"]), id: z.string().min(1) }).optional(),
+  /** Cantidad parcial de un lote a retirar (divide el lote, S7 §6.5). */
+  storageQuantity: z.number().positive().optional(),
 });
 
 export const pauseJobCommandSchema = z.object({ ...baseCommandFields, type: z.literal("pause_job"), jobId: z.string().min(1) });

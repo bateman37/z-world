@@ -242,6 +242,7 @@ export const COPY_KEYS: Readonly<Record<string, string>> = {
   "block.food_spoiled": "El alimento está echado a perder: no es consumible.",
   "block.transport_loaded": "Hay que descargar el medio antes de desmontarlo.",
   "block.item_already_stored": "Ya está guardado en ese contenedor.",
+  "block.requires_diagnosis": "Hay que probar/diagnosticar la instalación antes de repararla.",
   "block.no_liquid_vessel": "No hay ningún recipiente con hueco a mano para recoger el agua.",
   "log.object_broke_down": "Un objeto se averió por desgaste.",
   "log.installation_tested": "Se probó una instalación.",

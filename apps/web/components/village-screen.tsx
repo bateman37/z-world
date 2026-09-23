@@ -85,6 +85,7 @@ export function VillageScreen({
     disassemblyScope?: "selective" | "destructive";
     confirmIrreversible?: boolean;
     storageItem?: StorageItemRef;
+    storageQuantity?: number;
   }) {
     if (!selectedPersonId) return;
     sendCommand({
@@ -99,6 +100,7 @@ export function VillageScreen({
       disassemblyScope: params.disassemblyScope,
       confirmIrreversible: params.confirmIrreversible,
       storageItem: params.storageItem,
+      storageQuantity: params.storageQuantity,
     });
   }
 

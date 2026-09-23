@@ -32,6 +32,18 @@ if (!DISASSEMBLY_PROFILES_BY_ID.has(WARDROBE_DISASSEMBLY_PROFILE_ID) || !DISASSE
   throw new Error("Perfil de desmontaje de demostrador S7 no encontrado en el catálogo.");
 }
 
+// Guardas de arranque de los otros dos demostradores profundos (bomba de agua y carretilla/carro, CAT-005 §3.2):
+// sus variantes de catálogo deben declarar perfiles de reparación y desmontaje que existan de verdad.
+for (const variant of ["technical_installation.hand_pump", "human_transport.wheelbarrow", "human_transport.handcart"]) {
+  const entry = OBJECT_CATALOG_BY_VARIANT.get(variant);
+  if (!entry || !entry.repairProfileId || !REPAIR_PROFILES_BY_ID.has(entry.repairProfileId)) {
+    throw new Error(`Perfil de reparación del demostrador S7 ${variant} no encontrado en el catálogo.`);
+  }
+  if (!entry.disassemblyProfileId || !DISASSEMBLY_PROFILES_BY_ID.has(entry.disassemblyProfileId)) {
+    throw new Error(`Perfil de desmontaje del demostrador S7 ${variant} no encontrado en el catálogo.`);
+  }
+}
+
 /** Entrada de catálogo obligatoria: una variante generada sin catálogo es un error de programación, nunca un objeto silencioso. */
 export function catalogEntry(variant: string): ObjectCatalogEntry {
   const found = OBJECT_CATALOG_BY_VARIANT.get(variant);

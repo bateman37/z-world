@@ -223,3 +223,63 @@ export function liquidHeldBy(state: SimulationStateV2, objectId: string): number
   }
   return total;
 }
+
+/**
+ * División y fusión de lotes (S7 §6.5): conservan la cantidad exacta, la
+ * condición y la procedencia, y nunca mezclan estados incompatibles sin una
+ * regla expresa. Regla de compatibilidad provisional (documentada en
+ * `docs/STATUS.md`): misma familia y unidad, misma calidad conocida, y
+ * - no perecederos: condición a ±0,1 → la condición resultante es la media
+ *   ponderada por cantidad;
+ * - perecederos: solo si comparten exactamente el mismo inicio y punto de
+ *   partida de deterioro (misma curva), para no falsear la frescura.
+ */
+export function canMergeResourceLots(a: ResourceLot, b: ResourceLot): boolean {
+  if (a.id === b.id || a.family !== b.family || a.unit !== b.unit || a.qualityKnown !== b.qualityKnown) return false;
+  if (a.reservedByJobId || b.reservedByJobId) return false;
+  if (a.decayStartedAtSimSeconds !== null || b.decayStartedAtSimSeconds !== null) {
+    return a.decayStartedAtSimSeconds === b.decayStartedAtSimSeconds && a.conditionAtDecayStart === b.conditionAtDecayStart && a.condition === b.condition;
+  }
+  return Math.abs(a.condition - b.condition) <= 0.1 && Math.abs(a.quality - b.quality) <= 0.1;
+}
+
+const round4 = (value: number): number => Math.round(value * 10000) / 10000;
+
+/** Fusiona `mergedId` en `survivorId` (misma ubicación final que el superviviente). Devuelve `null` si no son compatibles. */
+export function mergeResourceLots(state: SimulationStateV2, survivorId: string, mergedId: string): SimulationStateV2 | null {
+  const survivor = state.resourceLots[survivorId];
+  const merged = state.resourceLots[mergedId];
+  if (!survivor || !merged || !canMergeResourceLots(survivor, merged)) return null;
+  const total = survivor.quantity + merged.quantity;
+  const weighted = (x: number, y: number) => (total > 0 ? round4((x * survivor.quantity + y * merged.quantity) / total) : x);
+  const provenance = [survivor.provenance, `merged:${merged.id}${merged.provenance ? `(${merged.provenance})` : ""}`].filter(Boolean).join("+");
+  let containers = state.containers;
+  if (merged.location.kind === "container") {
+    const source = containers[merged.location.containerId];
+    if (source) containers = { ...containers, [source.id]: { ...source, contentIds: source.contentIds.filter((id) => id !== merged.id) } };
+  }
+  const resourceLots = { ...state.resourceLots };
+  delete resourceLots[merged.id];
+  resourceLots[survivor.id] = {
+    ...survivor,
+    quantity: Math.round(total * 1000) / 1000,
+    condition: survivor.decayStartedAtSimSeconds !== null ? survivor.condition : weighted(survivor.condition, merged.condition),
+    quality: weighted(survivor.quality, merged.quality),
+    provenance,
+  };
+  return { ...state, containers, resourceLots };
+}
+
+/** Separa `quantity` de un lote en un lote nuevo `newLotId` situado en `nextLocation`, con la misma condición, calidad, curva de deterioro y procedencia. */
+export function splitResourceLot(state: SimulationStateV2, lotId: string, quantity: number, newLotId: string, nextLocation: EntityLocation): SimulationStateV2 | null {
+  const lot = state.resourceLots[lotId];
+  if (!lot || quantity <= 0 || quantity >= lot.quantity) return null;
+  const remaining = Math.round((lot.quantity - quantity) * 1000) / 1000;
+  const part: ResourceLot = { ...lot, id: newLotId, quantity: Math.round(quantity * 1000) / 1000, location: nextLocation, reservedByJobId: null, provenance: `split_from:${lot.id}${lot.provenance ? `(${lot.provenance})` : ""}` };
+  let next: SimulationStateV2 = { ...state, resourceLots: { ...state.resourceLots, [lot.id]: { ...lot, quantity: remaining }, [newLotId]: part } };
+  if (nextLocation.kind === "container") {
+    const destination = next.containers[nextLocation.containerId];
+    if (destination) next = { ...next, containers: { ...next.containers, [destination.id]: { ...destination, contentIds: [...destination.contentIds, newLotId] } } };
+  }
+  return next;
+}
