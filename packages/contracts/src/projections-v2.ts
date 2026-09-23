@@ -13,7 +13,9 @@ import type { AreaTerrainKind, LineTerrainKind } from "./world.js";
 import type { NeedBand, NeedDimension } from "./needs-v2.js";
 import type { DesignationKind, JobPhaseKind, JobState, ZonePolicy } from "./work-v2.js";
 import type { JobTarget, StorageItemRef } from "./work-v2.js";
-import type { FreshnessBand } from "./events-v2.js";
+import type { FreshnessBand, NoiseBand } from "./events-v2.js";
+import type { TransportDestination, TransportMethodChoice, TransportStep } from "./work-v2.js";
+import type { BulkClass, TransportMethod } from "./objects-v2.js";
 import type { PriorityId } from "./catalog-ids.js";
 
 /**
@@ -102,6 +104,43 @@ export interface JobProjection {
   readonly blockReasonKey: string | null;
   readonly directOrder: boolean;
   readonly target: JobTarget;
+  /** Fases logísticas y ubicaciones visibles de un traslado (S8). Ausente en el resto de trabajos. */
+  readonly transport?: TransportJobProjection;
+}
+
+/**
+ * Ficha cualitativa de un traslado (S8, §10.2 del prompt S7-S9): método,
+ * paso logístico, medio, destino, porteadoras, carga y accesos. Nunca
+ * incluye cifras internas de tuning ni rutas por niebla.
+ */
+export interface TransportJobProjection {
+  readonly requestedMethod: TransportMethodChoice;
+  readonly method: TransportMethod | null;
+  readonly step: TransportStep;
+  readonly meansLabelKey: string | null;
+  readonly destinationLabelKey: string;
+  /** Acceso ante el que se detiene esta etapa (punto de transferencia), si la hay. */
+  readonly stagedStop: boolean;
+  readonly transferPointId: string | null;
+  readonly carrierPersonIds: readonly string[];
+  readonly requiredCarriers: number;
+  readonly loadWeightKg: number | null;
+  readonly loadBulk: BulkClass | null;
+  /** `carried` | `on_means` | `deposited` | `null` (todavía sin cargar). */
+  readonly loadPlacement: "carried" | "on_means" | "deposited" | null;
+  readonly accessesCrossed: number;
+  readonly accessesTotal: number;
+  readonly noiseBand: NoiseBand;
+  readonly previousJobId: string | null;
+  readonly nextJobId: string | null;
+  readonly planNoteKey: string | null;
+}
+
+/** Opciones de una orden de traslado (S8, SET-010 §3.9): solo destinos, medios y métodos conocidos y pertinentes. */
+export interface TransportOrderOptionsProjection {
+  readonly methods: readonly { readonly method: TransportMethodChoice; readonly labelKey: string; readonly blockedReasonKey: string | null }[];
+  readonly means: readonly { readonly id: string; readonly method: TransportMethod; readonly labelKey: string; readonly blockedReasonKey: string | null }[];
+  readonly destinations: readonly { readonly destination: TransportDestination; readonly labelKey: string; readonly blockedReasonKey: string | null }[];
 }
 
 export interface ZoneProjection {
@@ -124,6 +163,8 @@ export interface ContextualActionTargetProjection {
   readonly blockedReasonKey: string | null;
   /** Elemento concreto que `store`/`retrieve_from_storage` mueve hacia/desde el contenedor del blanco (S7). Ausente en el resto de acciones. */
   readonly storageItem?: StorageItemRef & { readonly labelKey: string; readonly holderPersonId: string | null };
+  /** Agrupa blancos de traslado que están en el mismo lugar (para componer una carga con varios elementos, S8). */
+  readonly cargoGroupKey?: string;
 }
 
 /**
@@ -137,7 +178,7 @@ export interface InventoryEntryProjection {
   readonly id: string;
   readonly entityKind: "world_object" | "resource_lot" | "furniture" | "transport_means";
   readonly labelKey: string;
-  readonly locationKind: "carried" | "container" | "room" | "exterior";
+  readonly locationKind: "carried" | "container" | "room" | "exterior" | "load" | "transfer_point";
   /** Persona que lo lleva (directamente o en su mochila), si aplica. */
   readonly holderPersonId: string | null;
   /** Etiqueta del contenedor/anfitrión que lo contiene, si aplica. */
@@ -159,6 +200,8 @@ export interface ContextualActionOptionProjection {
   readonly actionKey: string;
   readonly labelKey: string;
   readonly targets: readonly ContextualActionTargetProjection[];
+  /** Opciones propias del traslado (S8). Ausente en el resto de acciones. */
+  readonly transport?: TransportOrderOptionsProjection;
 }
 
 /** Envoltorio de todas las proyecciones que el runtime V2 envía a React. */

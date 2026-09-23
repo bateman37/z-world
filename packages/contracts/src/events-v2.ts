@@ -12,6 +12,7 @@ import {
 } from "./events.js";
 import { JOB_PHASE_KINDS, JOB_STATES, OUTCOME_BAND_VALUES, RESERVATION_TARGET_KINDS, ZONE_POLICIES, DESIGNATION_KINDS } from "./work-v2.js";
 import { NEED_BANDS, NEED_DIMENSIONS } from "./needs-v2.js";
+import { TRANSPORT_METHODS } from "./objects-v2.js";
 
 /**
  * Eventos de dominio del runtime V2 (S3 de WEB-002 §5.1): reutiliza sin
@@ -288,6 +289,103 @@ export const resourceLotDeterioratedEventSchema = z.object({
   band: z.enum(FRESHNESS_BANDS),
 });
 
+/**
+ * Eventos de transporte y logística local de S8 (Puerta B, §10.1 del
+ * prompt S7-S9): límites causales del traslado — plan elegido, medio
+ * recuperado, carga preparada, acceso atravesado o bloqueado, ruido a lo
+ * largo de la ruta, entrega, transferencia, depósito y estacionamiento.
+ * Nunca telemetría por tick (el ruido se registra por tramos de ruta).
+ */
+export const NOISE_BANDS = ["quiet", "audible", "loud"] as const;
+export type NoiseBand = (typeof NOISE_BANDS)[number];
+
+export const transportPlannedEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("transport_planned"),
+  jobId: z.string(),
+  method: z.enum(TRANSPORT_METHODS),
+  chosenBy: z.enum(["auto", "imposed"]),
+  transportMeansId: z.string().nullable(),
+  staged: z.boolean(),
+});
+
+export const transportMeansRetrievedEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("transport_means_retrieved"),
+  jobId: z.string(),
+  transportMeansId: z.string(),
+  personId: z.string(),
+});
+
+export const loadPreparedEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("load_prepared"),
+  jobId: z.string(),
+  loadBundleId: z.string(),
+  method: z.enum(TRANSPORT_METHODS),
+  totalWeightKg: z.number().nonnegative(),
+  carrierPersonIds: z.array(z.string()),
+});
+
+export const accessTraversedEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("access_traversed"),
+  jobId: z.string(),
+  openingId: z.string(),
+  loadBundleId: z.string().nullable(),
+});
+
+export const transportRouteBlockedEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("transport_route_blocked"),
+  jobId: z.string(),
+  openingId: z.string().nullable(),
+  reasonKey: z.string(),
+});
+
+export const transportNoiseEmittedEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("transport_noise_emitted"),
+  jobId: z.string(),
+  point: z.object({ x: z.number(), y: z.number() }),
+  band: z.enum(NOISE_BANDS),
+  metersTravelled: z.number().nonnegative(),
+});
+
+export const loadDeliveredEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("load_delivered"),
+  jobId: z.string(),
+  loadBundleId: z.string(),
+  destinationKind: z.enum(["container", "room", "world_point", "transfer_point"]),
+  destinationId: z.string().nullable(),
+});
+
+export const loadTransferredEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("load_transferred"),
+  jobId: z.string(),
+  transferPointId: z.string(),
+  nextJobId: z.string().nullable(),
+});
+
+export const loadDepositedEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("load_deposited"),
+  jobId: z.string(),
+  loadBundleId: z.string(),
+  reasonKey: z.string(),
+  onTransportMeans: z.boolean(),
+});
+
+export const transportMeansParkedEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("transport_means_parked"),
+  jobId: z.string().nullable(),
+  transportMeansId: z.string(),
+  disposition: z.enum(["parked", "returned", "abandoned"]),
+});
+
 export const domainEventV2Schema = z.discriminatedUnion("type", [
   gameCreatedEventSchema,
   speedOrPauseChangedEventSchema,
@@ -327,6 +425,16 @@ export const domainEventV2Schema = z.discriminatedUnion("type", [
   installationTestedEventSchema,
   waterDrawnEventSchema,
   resourceLotDeterioratedEventSchema,
+  transportPlannedEventSchema,
+  transportMeansRetrievedEventSchema,
+  loadPreparedEventSchema,
+  accessTraversedEventSchema,
+  transportRouteBlockedEventSchema,
+  transportNoiseEmittedEventSchema,
+  loadDeliveredEventSchema,
+  loadTransferredEventSchema,
+  loadDepositedEventSchema,
+  transportMeansParkedEventSchema,
 ]);
 
 export type DomainEventV2 = z.infer<typeof domainEventV2Schema>;

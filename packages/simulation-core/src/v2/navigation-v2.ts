@@ -19,6 +19,22 @@ export interface WalkabilityGridV2 {
   readonly originY: number;
   readonly walkable: Uint8Array;
   readonly costMultiplier: Float32Array;
+  /**
+   * Superficie de cada celda (S8, derivada y nunca persistida): permite que
+   * carretilla y carro reaccionen al terreno real (SET-010 §3.6). Ver
+   * `SURFACE_CODE`.
+   */
+  readonly surface: Uint8Array;
+}
+
+/** Códigos de `WalkabilityGridV2.surface`: tierra (por defecto), carretera firme, vegetación densa/bosque, otro (agua/obstáculo). */
+export const SURFACE_CODE = { open_ground: 0, road: 1, dense_vegetation: 2, other: 3 } as const;
+
+export function surfaceKindAt(grid: WalkabilityGridV2, index: number): "road" | "open_ground" | "dense_vegetation" {
+  const code = grid.surface[index] ?? SURFACE_CODE.open_ground;
+  if (code === SURFACE_CODE.road) return "road";
+  if (code === SURFACE_CODE.dense_vegetation) return "dense_vegetation";
+  return "open_ground";
 }
 
 function pointInPolygon(point: WorldPoint, polygon: readonly WorldPoint[]): boolean {
@@ -93,7 +109,8 @@ export function buildWalkabilityGridV2(
   const rows = Math.max(1, Math.ceil((bounds.maxY - bounds.minY) / resolutionMeters));
   const walkable = new Uint8Array(columns * rows);
   const costMultiplier = new Float32Array(columns * rows).fill(1);
-  const grid: WalkabilityGridV2 = { resolutionMeters, columns, rows, originX: bounds.minX, originY: bounds.minY, walkable, costMultiplier };
+  const surface = new Uint8Array(columns * rows);
+  const grid: WalkabilityGridV2 = { resolutionMeters, columns, rows, originX: bounds.minX, originY: bounds.minY, walkable, costMultiplier, surface };
 
   for (const area of valuesById(world.terrainAreas)) {
     const areaBounds = boundsOf(area.polygon);
@@ -108,6 +125,7 @@ export function buildWalkabilityGridV2(
         const index = row * columns + col;
         walkable[index] = area.transitable ? 1 : 0;
         costMultiplier[index] = area.traversalCostMultiplier;
+        surface[index] = area.kind === "open_ground" ? SURFACE_CODE.open_ground : area.kind === "dense_vegetation" ? SURFACE_CODE.dense_vegetation : SURFACE_CODE.other;
       }
     }
   }
@@ -155,6 +173,7 @@ export function buildWalkabilityGridV2(
         } else {
           walkable[index] = 1;
           costMultiplier[index] = Math.min(costMultiplier[index] ?? 1, ROAD_COST_MULTIPLIER);
+          surface[index] = SURFACE_CODE.road;
         }
       }
     }

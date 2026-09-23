@@ -7,7 +7,7 @@
  */
 
 /** Identificador inequívoco de esta versión del generador (§7.1). Cambiarlo nunca reescribe partidas ya generadas con una versión anterior (§7.4/§25.2). */
-export const VILLAGE_GENERATOR_VERSION = "web-002-semantic-v2" as const;
+export const VILLAGE_GENERATOR_VERSION = "web-002-semantic-v3" as const;
 
 /**
  * Historial de versiones del generador (§5.2 del prompt S7-S9). Una
@@ -24,8 +24,13 @@ export const VILLAGE_GENERATOR_VERSION = "web-002-semantic-v2" as const;
  *   que v1 dejaba en el refugio pasan a llevarlas las personas, sin
  *   duplicarse). Los objetos nuevos usan un stream PRNG derivado propio,
  *   así que el trazado espacial de una semilla es idéntico al de v1.
+ * - `web-002-semantic-v3` (S8, Puerta B): añade un carro de mano ante el
+ *   acceso de clientes del supermercado COM-02 más cercano a la llegada y
+ *   una carretilla junto a la entrada del refugio (stream derivado
+ *   `s8-transport`). Todo lo generado por v2 —incluido el medio aleatorio
+ *   del taller— se conserva idéntico.
  */
-export const PREVIOUS_VILLAGE_GENERATOR_VERSIONS = ["web-002-semantic-v1"] as const;
+export const PREVIOUS_VILLAGE_GENERATOR_VERSIONS = ["web-002-semantic-v1", "web-002-semantic-v2"] as const;
 
 export interface VillageGeneratorConfig {
   /** Media huella del sector, en metros. 1500 → sector de ~3 × 3 km (§7.1). */

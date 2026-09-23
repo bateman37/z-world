@@ -3,7 +3,8 @@ import { gameSpeedSchema } from "./clock.js";
 import { priorityValueSchema } from "./priority-value.js";
 import { worldPointSchema } from "./geometry.js";
 import { jobTargetSchema } from "./work-v2.js";
-import { ATTENTION_MODES, DESIGNATION_KINDS, PACE_MODES, ZONE_POLICIES } from "./work-v2.js";
+import { ATTENTION_MODES, DESIGNATION_KINDS, MEANS_DISPOSITIONS, PACE_MODES, TRANSPORT_METHOD_CHOICES, ZONE_POLICIES, transportDestinationSchema } from "./work-v2.js";
+import { cargoRefSchema } from "./objects-v2.js";
 
 /**
  * Comandos del núcleo: unión discriminada validada (§7.2 de WEB-001). La
@@ -79,6 +80,16 @@ export const orderContextualActionCommandSchema = z.object({
   storageItem: z.object({ kind: z.enum(["world_object", "resource_lot"]), id: z.string().min(1) }).optional(),
   /** Cantidad parcial de un lote a retirar (divide el lote, S7 §6.5). */
   storageQuantity: z.number().positive().optional(),
+  /** Selector de método de transporte de SET-010 §3.9 (`auto` o un método concreto), solo para `transport` (S8). */
+  transportMethod: z.enum(TRANSPORT_METHOD_CHOICES).optional(),
+  /** Carretilla/carro concreto que se quiere usar (opcional: `Auto` elige entre los conocidos y disponibles). */
+  transportMeansId: z.string().min(1).optional(),
+  /** Destino físico del traslado (S8). */
+  transportDestination: transportDestinationSchema.optional(),
+  /** Elementos adicionales de la misma carga, además del blanco (S8). */
+  transportCargo: z.array(cargoRefSchema).max(12).optional(),
+  /** Qué hacer con el medio al terminar: estacionarlo en destino o devolverlo a su origen (S8, fase 9 de SET-010 §3.7). */
+  meansDisposition: z.enum(MEANS_DISPOSITIONS).optional(),
 });
 
 export const pauseJobCommandSchema = z.object({ ...baseCommandFields, type: z.literal("pause_job"), jobId: z.string().min(1) });

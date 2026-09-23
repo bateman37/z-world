@@ -17,6 +17,7 @@ export interface CreateJobParams {
   readonly irreversibleConfirmed?: boolean;
   readonly storageItem?: Job["storageItem"];
   readonly storageQuantity?: number | null;
+  readonly transport?: Job["transport"];
 }
 
 export interface CreateJobResult {
@@ -77,6 +78,7 @@ export function createJob(state: SimulationStateV2, params: CreateJobParams): Cr
     irreversibleConfirmed: params.irreversibleConfirmed ?? false,
     storageItem: params.storageItem ?? null,
     storageQuantity: params.storageQuantity ?? null,
+    transport: params.transport ?? null,
     createdAtSimSeconds: state.clock.elapsedSimSeconds,
     updatedAtSimSeconds: state.clock.elapsedSimSeconds,
   };

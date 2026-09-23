@@ -103,6 +103,47 @@ export function reserveExclusiveTarget(
   return { state: { ...state, sequences, worldObjects, reservations: { ...state.reservations, [reservation.id]: reservation } }, reservation, events: [event] };
 }
 
+/**
+ * Reserva de persona porteadora (S8, §7.7 del prompt S7-S9: «personas/
+ * funciones incompatibles»): una persona comprometida en un traslado no
+ * puede reservarse para otro trabajo a la vez. Exclusiva, como el resto de
+ * reservas profundas; `null` si otra reserva vigente ya la compromete.
+ */
+export function reservePerson(state: SimulationStateV2, job: Job, personId: string, phase: JobPhaseKind): ReserveResult | null {
+  if (!state.people[personId]) return null;
+  const existing = Object.values(state.reservations).find((r) => r.targetKind === "person" && r.targetId === personId);
+  if (existing && existing.jobId !== job.id) return null;
+  if (existing) return null;
+  const { eventId, sequences } = nextEventId(state.sequences);
+  const reservation: Reservation = {
+    id: nextReservationId(state),
+    targetKind: "person",
+    targetId: personId,
+    quantity: null,
+    jobId: job.id,
+    phase,
+    releasePolicy: "on_job_end",
+    createdAtSimSeconds: state.clock.elapsedSimSeconds,
+  };
+  const event: DomainEventV2 = {
+    type: "reservation_created",
+    eventId,
+    simSeconds: state.clock.elapsedSimSeconds,
+    causedByCommandId: null,
+    reservationId: reservation.id,
+    jobId: job.id,
+    targetKind: "person",
+    targetId: personId,
+  };
+  const jobs = { ...state.jobs, [job.id]: { ...(state.jobs[job.id] ?? job), reservationIds: [...(state.jobs[job.id] ?? job).reservationIds, reservation.id] } };
+  return { state: { ...state, sequences, jobs, reservations: { ...state.reservations, [reservation.id]: reservation } }, reservation, events: [event] };
+}
+
+/** ¿Está la persona comprometida por la reserva vigente de otro trabajo? */
+export function personReservedByOtherJob(state: SimulationStateV2, personId: string, jobId: string | null): boolean {
+  return Object.values(state.reservations).some((r) => r.targetKind === "person" && r.targetId === personId && r.jobId !== jobId);
+}
+
 /** Libera todas las reservas de un trabajo (cancelación, bloqueo definitivo o cierre, §11.8: "reservar no teletransporta; al cancelar o fallar... la reserva se libera"). */
 export function releaseJobReservations(state: SimulationStateV2, jobId: string): { readonly state: SimulationStateV2; readonly events: readonly DomainEventV2[] } {
   const events: DomainEventV2[] = [];

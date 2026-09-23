@@ -36,6 +36,7 @@ function baseJob(overrides: Partial<Job> = {}): Job {
     irreversibleConfirmed: false,
     storageItem: null,
     storageQuantity: null,
+    transport: null,
     createdAtSimSeconds: 0,
     updatedAtSimSeconds: 0,
     ...overrides,

@@ -221,7 +221,8 @@ function checkReservationExclusivity(state: SimulationStateV2, violations: Invar
   }
 }
 
-const EXCLUSIVE_RESERVATION_PREFIXES = ["world_object:", "transport_means:", "container:", "furniture:", "resource_lot:"] as const;
+// S8: una persona porteadora también es exclusiva (nunca comprometida por dos traslados a la vez).
+const EXCLUSIVE_RESERVATION_PREFIXES = ["world_object:", "transport_means:", "container:", "furniture:", "resource_lot:", "person:"] as const;
 
 /** `Job.reservationIds` lista exactamente reservas vigentes de ese mismo trabajo (reservas bidireccionales, §12 del prompt S7-S9). */
 function checkJobReservationsBidirectional(state: SimulationStateV2, violations: InvariantViolation[]): void {
@@ -279,14 +280,58 @@ function checkPartsOnlyHasNoActiveFunctions(state: SimulationStateV2, violations
   }
 }
 
-/** Una carga nunca aparece simultáneamente en un contenedor y en un bulto de transporte (§12). */
+/**
+ * Una carga nunca aparece simultáneamente en un contenedor y en un bulto de
+ * transporte (§12), salvo el recipiente personal que la materializa (S8,
+ * método `personal_container`). S8 añade la coherencia completa carga ↔
+ * contenido ↔ medio ↔ persona (§12 del prompt S7-S9: «persona/medio/carga
+ * coherentes durante transporte»).
+ */
 function checkBundleContentNotAlsoContained(state: SimulationStateV2, violations: InvariantViolation[]): void {
   for (const bundle of Object.values(state.loadBundles)) {
     for (const id of [...bundle.contentObjectIds, ...bundle.contentResourceLotIds]) {
       const location = state.worldObjects[id]?.location ?? state.resourceLots[id]?.location;
-      if (location && location.kind === "container") {
-        violations.push({ code: "bundle_content_also_contained", message: `${id} figura en la carga ${bundle.id} y a la vez dentro del contenedor ${location.containerId}.` });
+      if (!location) {
+        violations.push({ code: "bundle_content_missing", message: `La carga ${bundle.id} lista ${id}, que no existe.` });
+        continue;
       }
+      if (location.kind === "container" && location.containerId !== bundle.containerId) {
+        violations.push({ code: "bundle_content_also_contained", message: `${id} figura en la carga ${bundle.id} y a la vez dentro del contenedor ${location.containerId}.` });
+      } else if (location.kind !== "container" && (location.kind !== "in_load_bundle" || location.loadBundleId !== bundle.id)) {
+        violations.push({ code: "bundle_content_location_mismatch", message: `La carga ${bundle.id} lista ${id}, pero ese elemento está en otra ubicación.` });
+      }
+    }
+    for (const id of bundle.contentFurnitureIds) {
+      const furniture = state.furniture[id];
+      if (!furniture || furniture.movedToLocation?.kind !== "in_load_bundle" || furniture.movedToLocation.loadBundleId !== bundle.id) {
+        violations.push({ code: "bundle_content_location_mismatch", message: `La carga ${bundle.id} lista el mueble ${id}, que no está en ella.` });
+      }
+    }
+    if (bundle.transportMeansId) {
+      const means = state.transportMeans[bundle.transportMeansId];
+      if (bundle.location.kind === "mounted_on_transport" && (!means || means.currentLoadBundleId !== bundle.id)) {
+        violations.push({ code: "bundle_means_mismatch", message: `La carga ${bundle.id} va montada en ${bundle.transportMeansId}, que no la registra.` });
+      }
+    }
+    if (bundle.jobId && !state.jobs[bundle.jobId]) violations.push({ code: "bundle_orphan_job", message: `La carga ${bundle.id} referencia un trabajo inexistente: ${bundle.jobId}.` });
+  }
+  const listed = (bundleId: string, id: string): boolean => {
+    const bundle = state.loadBundles[bundleId];
+    return bundle !== undefined && (bundle.contentObjectIds.includes(id) || bundle.contentResourceLotIds.includes(id) || bundle.contentFurnitureIds.includes(id));
+  };
+  for (const item of [...Object.values(state.worldObjects), ...Object.values(state.resourceLots)]) {
+    if (item.location.kind === "in_load_bundle" && !listed(item.location.loadBundleId, item.id)) {
+      violations.push({ code: "bundled_item_not_listed", message: `${item.id} está en la carga ${item.location.loadBundleId}, que no lo lista.` });
+    }
+  }
+  for (const means of Object.values(state.transportMeans)) {
+    if (means.currentLoadBundleId && !state.loadBundles[means.currentLoadBundleId]) {
+      violations.push({ code: "means_orphan_bundle", message: `El medio ${means.id} referencia una carga inexistente: ${means.currentLoadBundleId}.` });
+    }
+  }
+  for (const person of Object.values(state.people)) {
+    if (person.carriedLoadBundleId && !state.loadBundles[person.carriedLoadBundleId]) {
+      violations.push({ code: "person_orphan_bundle", message: `La persona ${person.public.id} referencia una carga inexistente: ${person.carriedLoadBundleId}.` });
     }
   }
 }
@@ -402,6 +447,9 @@ function checkEntityLocationsResolve(state: SimulationStateV2, violations: Invar
         if (!state.worldObjects[location.objectId] && !state.furniture[location.objectId]) {
           violations.push({ code: "orphan_location_object", message: `${ownerLabel} referencia un objeto/mueble contenedor inexistente: ${location.objectId}.` });
         }
+        return;
+      case "in_load_bundle":
+        if (!state.loadBundles[location.loadBundleId]) violations.push({ code: "orphan_location_load_bundle", message: `${ownerLabel} referencia una carga inexistente: ${location.loadBundleId}.` });
         return;
       default: {
         const exhaustive: never = location;

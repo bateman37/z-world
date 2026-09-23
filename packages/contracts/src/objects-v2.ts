@@ -363,6 +363,33 @@ export const transportMeansSchema = z.object({
   knownEvidenceIds: z.array(z.string()).default([]),
 });
 
+/**
+ * Referencia a un elemento físico que un traslado mueve (S8): objeto
+ * completo, lote de recurso o mueble. Aditiva sobre `StorageItemRef` de S7.
+ */
+export const CARGO_REF_KINDS = ["world_object", "resource_lot", "furniture"] as const;
+export type CargoRefKind = (typeof CARGO_REF_KINDS)[number];
+export type CargoRef =
+  | { readonly kind: "world_object"; readonly id: string }
+  | { readonly kind: "resource_lot"; readonly id: string }
+  | { readonly kind: "furniture"; readonly id: string };
+export const cargoRefSchema = z.object({ kind: z.enum(CARGO_REF_KINDS), id: z.string().min(1) });
+
+/** Estado físico de una carga (S8 §7.2 del prompt S7-S9). */
+export const LOAD_BUNDLE_STATES = ["loaded", "in_transit", "deposited"] as const;
+export type LoadBundleState = (typeof LOAD_BUNDLE_STATES)[number];
+
+/**
+ * Carga real en tránsito (S8, SET-010 §3.5, §7.2 del prompt S7-S9). Su
+ * contenido tiene como ubicación `in_load_bundle` (o el contenedor
+ * personal que la materializa, `containerId`), y la carga tiene a su vez
+ * una única ubicación: la lleva una persona (`carried_by_person`, la
+ * porteadora principal), va montada en un medio (`mounted_on_transport`) o
+ * quedó depositada (`world_point`/`room`/`transfer_point`). Peso, volumen,
+ * bulto y etiquetas se calculan del contenido real al cargar y se
+ * conservan: peso y bulto bloquean de forma independiente. Todos los
+ * campos añadidos en S8 tienen `.default()` seguro.
+ */
 export interface LoadBundle {
   readonly id: string;
   readonly method: TransportMethod;
@@ -372,6 +399,22 @@ export interface LoadBundle {
   readonly contentResourceLotIds: readonly string[];
   readonly totalWeightKg: number;
   readonly location: EntityLocation;
+  readonly contentFurnitureIds: readonly string[];
+  /** Contenedor personal (mochila, saco, caja...) que materializa la carga con el método `personal_container`; su contenido conserva ubicación `container`. */
+  readonly containerId: string | null;
+  readonly totalVolumeLiters: number;
+  readonly bulk: BulkClass;
+  readonly handlingTags: readonly HandlingTag[];
+  /** Mínimo duro de personas que exige el contenido (mueble o bidón para dos, etc.). */
+  readonly minCarriers: number;
+  /** Peor condición del contenido al cargar (conservación, §7.2). `null` si no aplica. */
+  readonly lowestContentCondition: number | null;
+  readonly state: LoadBundleState;
+  readonly jobId: string | null;
+  /** Ubicación de la que se recogió la carga (procedencia del traslado). */
+  readonly originLocation: EntityLocation | null;
+  /** Reparto del porte a pulso en equipo: qué porteadora lleva cada elemento (§7.4). Vacío si la carga es única. */
+  readonly allocation: Readonly<Record<string, string>>;
 }
 
 export const loadBundleSchema = z.object({
@@ -383,16 +426,45 @@ export const loadBundleSchema = z.object({
   contentResourceLotIds: z.array(z.string()),
   totalWeightKg: z.number().nonnegative(),
   location: entityLocationSchema,
+  contentFurnitureIds: z.array(z.string()).default([]),
+  containerId: z.string().nullable().default(null),
+  totalVolumeLiters: z.number().nonnegative().default(0),
+  bulk: bulkClassSchema.default("small"),
+  handlingTags: z.array(handlingTagSchema).default([]),
+  minCarriers: z.number().int().positive().default(1),
+  lowestContentCondition: z.number().min(0).max(1).nullable().default(null),
+  state: z.enum(LOAD_BUNDLE_STATES).default("loaded"),
+  jobId: z.string().nullable().default(null),
+  originLocation: entityLocationSchema.nullable().default(null),
+  allocation: z.record(z.string(), z.string()).default({}),
 });
 
+/** Clases de punto de transferencia de SET-010 §3.8 activas en S8. */
+export const TRANSFER_POINT_KINDS = ["building_access", "staging_area", "meeting_point", "field_edge", "perimeter_gate"] as const;
+export type TransferPointKind = (typeof TRANSFER_POINT_KINDS)[number];
+
+/**
+ * Punto de transferencia real (S8, SET-010 §3.8): lugar físico donde una
+ * etapa deja su carga para que otra continúe (p. ej. el carro se detiene
+ * ante el portón y el resto sigue a pulso). `openingId` enlaza el acceso
+ * junto al que se crea, si lo hay.
+ */
 export interface TransferPoint {
   readonly id: string;
   readonly location: EntityLocation;
   readonly labelKey: string;
+  readonly kind: TransferPointKind;
+  readonly openingId: string | null;
+  readonly createdByJobId: string | null;
+  readonly createdAtSimSeconds: number;
 }
 
 export const transferPointSchema = z.object({
   id: z.string(),
   location: entityLocationSchema,
   labelKey: z.string(),
+  kind: z.enum(TRANSFER_POINT_KINDS).default("staging_area"),
+  openingId: z.string().nullable().default(null),
+  createdByJobId: z.string().nullable().default(null),
+  createdAtSimSeconds: z.number().int().nonnegative().default(0),
 });

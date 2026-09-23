@@ -5,7 +5,8 @@ import { revealAroundObservers } from "../fog.js";
 import { nextEventId } from "../sequences.js";
 import { updateDiscoveryV2 } from "./discovery.js";
 import type { NavigationIndexV2 } from "./room-graph.js";
-import { advanceJobs } from "./jobs/advance-jobs.js";
+import { advanceJobs, isWorkingPhase } from "./jobs/advance-jobs.js";
+import { transportMovementFactors, transportTravelLimit } from "./transport/movement.js";
 import { applyResourceDecay } from "./objects/decay.js";
 import { declineNeedsForElapsedSimMinutes, declineNeedsForMovement, needOf } from "./needs/evolve-needs.js";
 
@@ -13,8 +14,8 @@ function round6(value: number): number {
   return Math.round(value * 1_000_000) / 1_000_000;
 }
 
-/** Misma velocidad base provisional que V1 (DEC-0014); no se recalibra en S3. */
-export const BASE_WALK_SPEED_METERS_PER_SIM_SECOND_V2 = 1.4;
+import { BASE_WALK_SPEED_METERS_PER_SIM_SECOND_V2 } from "./constants.js";
+export { BASE_WALK_SPEED_METERS_PER_SIM_SECOND_V2 };
 
 export interface AdvanceSimulationV2Result {
   readonly state: SimulationStateV2;
@@ -90,12 +91,15 @@ export function advanceSimulationV2(state: SimulationStateV2, elapsedRealSeconds
     // inactividad, incluido el tramo de viaje de un trabajo (mismo mecanismo
     // de `activeMovementOrder` que una orden directa de movimiento).
     const activeJob = person.activeJobId ? state.jobs[person.activeJobId] : null;
-    const isExecutingJobPhase = activeJob?.state === "in_progress" && activeJob.phases[activeJob.currentPhaseIndex]?.kind === "execute";
+    // `isWorkingPhase` incluye cargar/descargar de un traslado (S8): su coste lo aplica `advanceJobs`, nunca dos veces.
+    const isExecutingJobPhase = activeJob ? isWorkingPhase(activeJob) : false;
+    // S8: dentro de un traslado, el método y la superficie cambian velocidad y esfuerzo del mismo movimiento.
+    const factors = transportMovementFactors(state, nav, person);
     if (!isExecutingJobPhase) {
       if (person.public.activeMovementOrder) {
         const order = person.public.activeMovementOrder;
-        const distanceThisTick = Math.min(order.totalDistanceMeters - order.travelledDistanceMeters, BASE_WALK_SPEED_METERS_PER_SIM_SECOND_V2 * simSecondsToAdvance);
-        people[personId] = { ...person, needs: declineNeedsForMovement(person.needs, Math.max(0, distanceThisTick)) };
+        const distanceThisTick = Math.min(order.totalDistanceMeters - order.travelledDistanceMeters, BASE_WALK_SPEED_METERS_PER_SIM_SECOND_V2 * factors.speed * simSecondsToAdvance);
+        people[personId] = { ...person, needs: declineNeedsForMovement(person.needs, Math.max(0, distanceThisTick) * factors.effort) };
       } else {
         people[personId] = { ...person, needs: declineNeedsForElapsedSimMinutes(person.needs, elapsedSimMinutes, "idle", "normal") };
       }
@@ -106,11 +110,13 @@ export function advanceSimulationV2(state: SimulationStateV2, elapsedRealSeconds
     if (!currentPerson.public.activeMovementOrder) continue;
 
     const order = currentPerson.public.activeMovementOrder;
-    const distanceToAdvance = BASE_WALK_SPEED_METERS_PER_SIM_SECOND_V2 * simSecondsToAdvance;
+    const distanceToAdvance = BASE_WALK_SPEED_METERS_PER_SIM_SECOND_V2 * factors.speed * simSecondsToAdvance;
     // Redondeo a 6 decimales (S7): lo que se persiste vuelve idéntico de PostgreSQL `jsonb` (ver `generator/round-state.ts`).
     // Se decide la llegada con el valor sin redondear (redondear podría dejar
     // el recorrido a una millonésima del final y no llegar nunca).
-    const rawTravelled = Math.min(order.totalDistanceMeters, order.travelledDistanceMeters + distanceToAdvance);
+    // S8: una porteadora se detiene ante un acceso de su ruta que ha dejado de ser transitable (nunca lo atraviesa).
+    const travelLimit = transportTravelLimit(state, currentPerson);
+    const rawTravelled = Math.min(order.totalDistanceMeters, travelLimit ?? Infinity, order.travelledDistanceMeters + distanceToAdvance);
     const reachedDestination = rawTravelled >= order.totalDistanceMeters;
     const travelledDistanceMeters = reachedDestination ? order.totalDistanceMeters : round6(rawTravelled);
     const rawPosition = pointAlongPath(order.path, travelledDistanceMeters);

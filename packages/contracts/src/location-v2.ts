@@ -25,6 +25,13 @@ export const ENTITY_LOCATION_KINDS = [
    * aditiva: ninguna partida anterior a S7 usa este tipo.
    */
   "on_object",
+  /**
+   * Contenido dentro de una `LoadBundle` (carga en tránsito, S8 — Puerta B):
+   * la carga es la única autoridad de dónde está físicamente su contenido
+   * (la lleva alguien, va montada en una carretilla/carro, o quedó
+   * depositada). Aditivo: ninguna partida anterior a S8 lo usa.
+   */
+  "in_load_bundle",
 ] as const;
 export type EntityLocationKind = (typeof ENTITY_LOCATION_KINDS)[number];
 
@@ -39,7 +46,8 @@ export type EntityLocation =
   | { readonly kind: "transfer_point"; readonly transferPointId: string }
   | { readonly kind: "work_site"; readonly jobId: string }
   | { readonly kind: "field_edge"; readonly parcelId: string }
-  | { readonly kind: "on_object"; readonly objectId: string };
+  | { readonly kind: "on_object"; readonly objectId: string }
+  | { readonly kind: "in_load_bundle"; readonly loadBundleId: string };
 
 export const entityLocationSchema: z.ZodType<EntityLocation> = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("world_point"), point: worldPointSchema }),
@@ -53,6 +61,7 @@ export const entityLocationSchema: z.ZodType<EntityLocation> = z.discriminatedUn
   z.object({ kind: z.literal("work_site"), jobId: z.string() }),
   z.object({ kind: z.literal("field_edge"), parcelId: z.string() }),
   z.object({ kind: z.literal("on_object"), objectId: z.string() }),
+  z.object({ kind: z.literal("in_load_bundle"), loadBundleId: z.string() }),
 ]);
 
 /** Extrae el ID de la entidad contenedora referenciada, si la ubicación lo tiene. */
@@ -80,6 +89,8 @@ export function locationReferenceId(location: EntityLocation): string | null {
       return location.parcelId;
     case "on_object":
       return location.objectId;
+    case "in_load_bundle":
+      return location.loadBundleId;
     default: {
       const exhaustive: never = location;
       throw new Error(`Ubicación no reconocida: ${JSON.stringify(exhaustive)}`);

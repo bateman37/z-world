@@ -467,6 +467,40 @@ export const OBJECT_ACTION_METHODS: readonly ActionMethodDefinition[] = [
     attentionApplies: false,
     irreversible: false,
   },
+  {
+    // S8 (Puerta B): traslado físico con uno de los cinco métodos activos
+    // (SET-010 §3.2). Mismo `Job`, mismas fases comunes y mismas reservas
+    // que el resto del catálogo: el paso logístico fino (recuperar medio,
+    // cargar, recorrer, atravesar accesos, descargar, estacionar) vive en
+    // `Job.transport` y lo ejecuta `advance-jobs.ts` con el motor único de
+    // `simulation-core/src/v2/transport`. Prioridad `logistics` (mover/
+    // almacenar, §9 del prompt S7-S9).
+    key: "transport",
+    version: 1,
+    labelKey: "action.transport.label",
+    descriptionKey: "action.transport.description",
+    targetKinds: ["world_object", "resource_lot", "furniture"],
+    requiredKnowledge: [],
+    revealsKnowledge: [],
+    priority: "logistics",
+    characteristicIds: ["strength", "endurance"],
+    skillIds: [],
+    profile: "physical_70_30",
+    classification: "open",
+    hardRequirements: [{ kind: "known_target" }],
+    difficulty: 1,
+    model: "direct",
+    baseWorkUnits: 0,
+    unit: "minutes",
+    minParticipants: 1,
+    recommendedParticipants: 1,
+    maxParticipants: 4,
+    rolesAllowed: ["responsible", "primary_executor", "operational_helper", "logistics_support"],
+    phases: ["validate", "reserve", "prepare", "collect", "transport", "deliver", "close", "record_result"],
+    paceApplies: true,
+    attentionApplies: true,
+    irreversible: false,
+  },
 ];
 
 /** Litros que produce una extracción completa de `draw_water` (S7, provisional y documentado en `docs/STATUS.md`). */
@@ -482,6 +516,7 @@ export const EXCLUSIVE_TARGET_ACTION_KEYS: ReadonlySet<string> = new Set([
   "disassemble_destructive",
   "test_installation",
   "draw_water",
+  "transport",
 ]);
 
 export const ACTION_METHODS_BY_KEY: ReadonlyMap<string, ActionMethodDefinition> = new Map(

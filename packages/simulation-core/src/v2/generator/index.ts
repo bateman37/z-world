@@ -13,6 +13,8 @@ import { generateBuildingContents } from "./buildings.js";
 import { generateEnvironmentPlaces } from "./environment-places.js";
 import { materializeScenarioGuarantees } from "./scenario.js";
 import { materializeWaterPump } from "./installations.js";
+import { materializeTransportDemonstrators } from "./transport-demonstrators.js";
+import { buildWalkabilityGridV2 } from "../navigation-v2.js";
 import { createDerivedPrngStreamState } from "../../prng.js";
 import { SHELTER_DISTANCE_METERS } from "@z-world/catalogs";
 
@@ -40,6 +42,8 @@ export interface VillageGenerationResult {
 
 /** Etiqueta del stream derivado de S7 (ver `createDerivedPrngStreamState`). */
 export const S7_OBJECTS_STREAM_LABEL = "s7-objects";
+/** Etiqueta del stream derivado de S8 (demostradores de transporte, v3). */
+export const S8_TRANSPORT_STREAM_LABEL = "s8-transport";
 
 /**
  * Orquestador puro del generador semántico determinista (§7.1 de
@@ -125,13 +129,29 @@ export function generateVillage(seed: string, worldStream: PrngStream, config: V
     lootingRoutes: Object.fromEntries(environment.lootingRoutes.map((r) => [r.id, r])),
   };
 
+  // S8 (v3): carro y carretilla demostradores, con su propio stream derivado (trazado idéntico a v1/v2).
+  const s8Stream = new PrngStream(createDerivedPrngStreamState(seed, S8_TRANSPORT_STREAM_LABEL));
+  const demonstrators = materializeTransportDemonstrators(
+    s8Stream,
+    ids,
+    buildWalkabilityGridV2(world),
+    terrain.arrivalPoint,
+    allPlaces,
+    allBuildings,
+    contents.rooms,
+    contents.floors,
+    contents.openings,
+    scenario.shelterBuildingId,
+  );
+  degradations.push(...demonstrators.degradations);
+
   return {
     world,
     furniture: contents.furniture,
     containers: [...contents.containers, ...scenario.extraContainers],
     worldObjects: [...contents.worldObjects, ...scenario.extraWorldObjects, ...installations.worldObjects],
     resourceLots: [...contents.resourceLots, ...scenario.extraResourceLots],
-    transportMeans: scenario.transportMeans,
+    transportMeans: [...scenario.transportMeans, ...demonstrators.transportMeans],
     cultivationPlots: scenario.cultivationPlots,
     arrivalPoint: terrain.arrivalPoint,
     shelterPlaceId: scenario.shelterPlaceId,

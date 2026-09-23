@@ -634,10 +634,14 @@ describe("S7 — generación v2: bomba, carretilla/carro y pertenencias SCN-003 
   });
 
   it("la carretilla/carro nace como objeto completo con perfiles versionados", () => {
-    const means = Object.values(state.transportMeans);
-    expect(means.length).toBe(1);
-    expect(means[0]!.repairProfileId).toMatch(/^repair\.human_transport\./);
-    expect(means[0]!.disassemblyProfileId).toMatch(/^disassembly\.human_transport\./);
+    // v3 (S8) conserva el medio del taller de v2 y añade un carro de mano y una carretilla demostradores.
+    const means = Object.values(state.transportMeans).sort((a, b) => (a.id < b.id ? -1 : 1));
+    expect(means.length).toBe(3);
+    expect(new Set(means.map((m) => m.method))).toEqual(new Set(["wheelbarrow", "handcart"]));
+    for (const m of means) {
+      expect(m.repairProfileId).toMatch(/^repair\.human_transport\./);
+      expect(m.disassemblyProfileId).toMatch(/^disassembly\.human_transport\./);
+    }
   });
 
   it("cada persona lleva sus pertenencias reales; el agua y las comidas no existen además en el refugio", () => {

@@ -8,6 +8,7 @@ import { createJob } from "./jobs/job-factory.js";
 import { releaseJobReservations } from "./jobs/reservations.js";
 import { valuesById } from "./ordered.js";
 import { transitionJob } from "./jobs/job-transitions.js";
+import { emptyTransportState, settleTransportOnStop } from "./transport/phases.js";
 
 export interface ApplyCommandV2Result {
   readonly state: SimulationStateV2;
@@ -281,7 +282,21 @@ function applyOrderContextualAction(
   // filtrada (§10.3 de WEB-002); se ignora sin efecto en vez de lanzar.
   if (!def) return { state, events: [] };
 
-  const requestedPersonIds = [command.personId, ...command.teamPersonIds];
+  const requestedPersonIds = [...new Set([command.personId, ...command.teamPersonIds])];
+  // S8: un traslado lleva su carga real (el blanco más los elementos añadidos), su destino y el selector Auto/método.
+  let transport: Job["transport"] = null;
+  if (command.actionKey === "transport") {
+    if (!command.transportDestination) return { state, events: [] };
+    const first = command.target.kind === "world_object" ? { kind: "world_object" as const, id: command.target.worldObjectId } : command.target.kind === "resource_lot" ? { kind: "resource_lot" as const, id: command.target.resourceLotId } : command.target.kind === "furniture" ? { kind: "furniture" as const, id: command.target.furnitureId } : null;
+    if (!first) return { state, events: [] };
+    const cargo = [first, ...(command.transportCargo ?? []).filter((c) => !(c.kind === first.kind && c.id === first.id))].filter((c, i, all) => all.findIndex((o) => o.kind === c.kind && o.id === c.id) === i);
+    transport = {
+      ...emptyTransportState(cargo, command.transportDestination),
+      requestedMethod: command.transportMethod ?? "auto",
+      requestedMeansId: command.transportMeansId ?? null,
+      meansDisposition: command.meansDisposition ?? "park_at_destination",
+    };
+  }
   const created = createJob(state, {
     actionKey: command.actionKey,
     def,
@@ -297,6 +312,7 @@ function applyOrderContextualAction(
     irreversibleConfirmed: command.confirmIrreversible ?? false,
     storageItem: command.storageItem ?? null,
     storageQuantity: command.storageQuantity ?? null,
+    transport,
   });
   if ("rejectedReasonKey" in created) return { state, events: [] };
   const nextState: SimulationStateV2 = { ...state, sequences: created.sequences, jobs: { ...state.jobs, [created.job.id]: created.job } };
@@ -314,9 +330,12 @@ function applySimpleJobTransition(state: SimulationStateV2, jobId: string, toSta
 function applyCancelJob(state: SimulationStateV2, jobId: string, _commandId: string): ApplyCommandV2Result {
   const job = state.jobs[jobId];
   if (!job) return { state, events: [] };
-  const releaseResult = releaseJobReservations(state, jobId);
+  if (job.state === "completed" || job.state === "cancelled" || job.state === "causal_failure") return { state, events: [] };
+  // S8: cancelar un traslado deja personas, carga y medio donde causalmente están (SET-010 §4), nunca en su origen.
+  const settled = job.transport ? settleTransportOnStop(state, jobId, "block.cancelled_by_order", "cancel") : { state, events: [] as DomainEventV2[] };
+  const releaseResult = releaseJobReservations(settled.state, jobId);
   let nextState = releaseResult.state;
-  const events: DomainEventV2[] = [...releaseResult.events];
+  const events: DomainEventV2[] = [...settled.events, ...releaseResult.events];
 
   for (const assignment of job.assignments) {
     const person = nextState.people[assignment.personId];

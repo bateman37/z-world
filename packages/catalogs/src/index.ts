@@ -10,3 +10,4 @@ export * from "./needs-tuning.js";
 export * from "./repair-disassembly-profiles.js";
 export * from "./object-catalog.js";
 export * from "./decay-tuning.js";
+export * from "./transport-methods.js";

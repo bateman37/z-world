@@ -100,6 +100,15 @@ export function resolveHolderPersonId(state: SimulationStateV2, location: Entity
       if (obj) return resolveHolderPersonId(state, obj.location, depth + 1);
       return null;
     }
+    // S8: lo que va en una carga la sostiene quien sostiene la carga; lo montado en un medio, quien lo empuja.
+    case "in_load_bundle": {
+      const bundle = state.loadBundles[location.loadBundleId];
+      return bundle ? resolveHolderPersonId(state, bundle.location, depth + 1) : null;
+    }
+    case "mounted_on_transport": {
+      const means = state.transportMeans[location.transportId];
+      return means ? resolveHolderPersonId(state, means.location, depth + 1) : null;
+    }
     default:
       return null;
   }
@@ -176,6 +185,14 @@ export function locationWorldPoint(state: SimulationStateV2, location: EntityLoc
       const means = state.transportMeans[location.transportId];
       return means ? locationWorldPoint(state, means.location, depth + 1) : null;
     }
+    case "in_load_bundle": {
+      const bundle = state.loadBundles[location.loadBundleId];
+      return bundle ? locationWorldPoint(state, bundle.location, depth + 1) : null;
+    }
+    case "transfer_point": {
+      const point = state.transferPoints[location.transferPointId];
+      return point ? locationWorldPoint(state, point.location, depth + 1) : null;
+    }
     default:
       return null;
   }
@@ -190,6 +207,11 @@ export function locationWorldPoint(state: SimulationStateV2, location: EntityLoc
 export function moveItem(state: SimulationStateV2, ref: StorageItemRef, nextLocation: EntityLocation): SimulationStateV2 {
   const previous = itemLocation(state, ref);
   if (!previous) return state;
+  if (previous.kind === "in_load_bundle" && !(nextLocation.kind === "in_load_bundle" && nextLocation.loadBundleId === previous.loadBundleId)) {
+    // Sacar algo de una carga (S8): la carga deja de listarlo y, si queda vacía, desaparece sin referencias huérfanas.
+    const placed = moveItemFromNeutral(removeFromLoadBundle(state, previous.loadBundleId, ref.id), ref, nextLocation);
+    return pruneEmptyLoadBundle(placed, previous.loadBundleId);
+  }
   let containers = state.containers;
   if (previous.kind === "container") {
     const source = containers[previous.containerId];
@@ -207,6 +229,74 @@ export function moveItem(state: SimulationStateV2, ref: StorageItemRef, nextLoca
   }
   const lot = state.resourceLots[ref.id]!;
   return { ...state, containers, resourceLots: { ...state.resourceLots, [lot.id]: { ...lot, location: nextLocation } } };
+}
+
+/** Coloca un elemento ya retirado de su ubicación anterior (sin contenedor de origen) en su destino, manteniendo la jerarquía. */
+function moveItemFromNeutral(state: SimulationStateV2, ref: StorageItemRef, nextLocation: EntityLocation): SimulationStateV2 {
+  let containers = state.containers;
+  if (nextLocation.kind === "container") {
+    const destination = containers[nextLocation.containerId];
+    if (destination && !destination.contentIds.includes(ref.id)) {
+      containers = { ...containers, [destination.id]: { ...destination, contentIds: [...destination.contentIds, ref.id] } };
+    }
+  }
+  if (ref.kind === "world_object") {
+    const obj = state.worldObjects[ref.id]!;
+    return { ...state, containers, worldObjects: { ...state.worldObjects, [obj.id]: { ...obj, location: nextLocation } } };
+  }
+  const lot = state.resourceLots[ref.id]!;
+  return { ...state, containers, resourceLots: { ...state.resourceLots, [lot.id]: { ...lot, location: nextLocation } } };
+}
+
+/** Quita un elemento de las listas de contenido de una carga (S8). */
+export function removeFromLoadBundle(state: SimulationStateV2, loadBundleId: string, id: string): SimulationStateV2 {
+  const bundle = state.loadBundles[loadBundleId];
+  if (!bundle) return state;
+  const allocation = { ...bundle.allocation };
+  delete allocation[id];
+  return {
+    ...state,
+    loadBundles: {
+      ...state.loadBundles,
+      [bundle.id]: {
+        ...bundle,
+        contentObjectIds: bundle.contentObjectIds.filter((x) => x !== id),
+        contentResourceLotIds: bundle.contentResourceLotIds.filter((x) => x !== id),
+        contentFurnitureIds: bundle.contentFurnitureIds.filter((x) => x !== id),
+        allocation,
+      },
+    },
+  };
+}
+
+/** ¿Queda contenido real en la carga? (incluido el de su contenedor personal). */
+export function loadBundleIsEmpty(state: SimulationStateV2, loadBundleId: string): boolean {
+  const bundle = state.loadBundles[loadBundleId];
+  if (!bundle) return true;
+  return bundle.contentObjectIds.length === 0 && bundle.contentResourceLotIds.length === 0 && bundle.contentFurnitureIds.length === 0;
+}
+
+/**
+ * Elimina una carga vacía sin dejar referencias huérfanas (S8): el medio y
+ * las personas dejan de apuntarla y el trabajo propietario la olvida.
+ */
+export function pruneEmptyLoadBundle(state: SimulationStateV2, loadBundleId: string): SimulationStateV2 {
+  const bundle = state.loadBundles[loadBundleId];
+  if (!bundle || !loadBundleIsEmpty(state, loadBundleId)) return state;
+  const loadBundles = { ...state.loadBundles };
+  delete loadBundles[loadBundleId];
+  let transportMeans = state.transportMeans;
+  for (const means of valuesById(state.transportMeans)) {
+    if (means.currentLoadBundleId === loadBundleId) transportMeans = { ...transportMeans, [means.id]: { ...means, currentLoadBundleId: null } };
+  }
+  let people = state.people;
+  for (const [personId, person] of Object.entries(state.people).sort(([a], [b]) => (a < b ? -1 : 1))) {
+    if (person.carriedLoadBundleId === loadBundleId) people = { ...people, [personId]: { ...person, carriedLoadBundleId: null } };
+  }
+  let jobs = state.jobs;
+  const job = bundle.jobId ? state.jobs[bundle.jobId] : undefined;
+  if (job?.transport && job.transport.loadBundleId === loadBundleId) jobs = { ...jobs, [job.id]: { ...job, transport: { ...job.transport, loadBundleId: null } } };
+  return { ...state, loadBundles, transportMeans, people, jobs };
 }
 
 /** Capacidad de líquido (L) de un recipiente según su variante de catálogo, o `null` si no es un recipiente de líquido. */

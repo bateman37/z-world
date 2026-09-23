@@ -88,6 +88,19 @@ export function locationToNavPoint(state: SimulationStateV2, location: EntityLoc
       const furniture = state.furniture[location.objectId];
       return furniture ? locationToNavPoint(state, furnitureLocation(furniture)) : null;
     }
+    // S8: la carga, el medio y el punto de transferencia tienen su propia ubicación única.
+    case "in_load_bundle": {
+      const bundle = state.loadBundles[location.loadBundleId];
+      return bundle ? locationToNavPoint(state, bundle.location) : null;
+    }
+    case "mounted_on_transport": {
+      const means = state.transportMeans[location.transportId];
+      return means ? locationToNavPoint(state, means.location) : null;
+    }
+    case "transfer_point": {
+      const point = state.transferPoints[location.transferPointId];
+      return point ? locationToNavPoint(state, point.location) : null;
+    }
     default:
       return null;
   }
@@ -111,6 +124,18 @@ export function resolveRoomId(state: SimulationStateV2, location: EntityLocation
       if (worldObject) return resolveRoomId(state, worldObject.location);
       const furniture = state.furniture[location.objectId];
       return furniture ? resolveRoomId(state, furnitureLocation(furniture)) : null;
+    }
+    case "in_load_bundle": {
+      const bundle = state.loadBundles[location.loadBundleId];
+      return bundle ? resolveRoomId(state, bundle.location) : null;
+    }
+    case "mounted_on_transport": {
+      const means = state.transportMeans[location.transportId];
+      return means ? resolveRoomId(state, means.location) : null;
+    }
+    case "transfer_point": {
+      const point = state.transferPoints[location.transferPointId];
+      return point ? resolveRoomId(state, point.location) : null;
     }
     default:
       return null;

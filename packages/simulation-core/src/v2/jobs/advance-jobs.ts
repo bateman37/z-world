@@ -39,7 +39,6 @@ import {
   storageBlockReason,
 } from "../objects/storage.js";
 import { applyUseWear, REPAIRABLE_INACTIVE_REASONS } from "../objects/wear.js";
-import { nextEventId } from "../../sequences.js";
 import type { NavigationIndexV2 } from "../room-graph.js";
 import { findPathV2, resolveNavAnchor } from "../pathfinding-v2.js";
 import { PrngStream } from "../../prng.js";
@@ -49,7 +48,20 @@ import { sampleVariationD } from "../resolution/model-d.js";
 import { checkHardRequirements, priorityAllowsWork } from "./eligibility.js";
 import { isPersonCoLocated, locationToNavPoint, resolveRoomId, resolveTargetLocation } from "./location-utils.js";
 import { selectJobForPerson } from "./planner.js";
-import { releaseJobReservations, reserveExclusiveTarget, reserveResourceLot, type ReserveResult } from "./reservations.js";
+import { personReservedByOtherJob, releaseJobReservations, reserveExclusiveTarget, reservePerson, reserveResourceLot, type ReserveResult } from "./reservations.js";
+import {
+  progressTransportClose,
+  progressTransportDeliver,
+  progressTransportLoad,
+  progressTransportPrepare,
+  progressTransportReserve,
+  progressTransportTraverse,
+  progressTransportValidate,
+  settleTransportOnStop,
+  transportBlockerStillApplies,
+} from "../transport/phases.js";
+import { teamWorkFactor } from "../transport/capacity.js";
+import { buildRouteOptions, zonePolicyAtPoint } from "../transport/route.js";
 import { resolveOwnNeedTarget } from "./own-need-resolution.js";
 import { createJob } from "./job-factory.js";
 import { transitionJob } from "./job-transitions.js";
@@ -80,40 +92,7 @@ function nextEpisodeId(state: SimulationStateV2): string {
   return `episode-s${state.sequences.nextDomainEventSequence}`;
 }
 
-/**
- * Redondeo a 6 decimales en los límites causales que se persisten (S7):
- * PostgreSQL `jsonb` no devuelve exactamente un `double` de 17 cifras
- * significativas, así que un episodio o un progreso sin redondear diverge
- * al recargar. Mismo criterio que `generator/round-state.ts`.
- */
-function round6(value: number): number {
-  return Math.round(value * 1_000_000) / 1_000_000;
-}
-
-interface Ctx {
-  state: SimulationStateV2;
-  events: DomainEventV2[];
-  nav: NavigationIndexV2;
-  simSecondsToAdvance: number;
-}
-
-function emit(ctx: Ctx, event: DomainEventV2): void {
-  ctx.events.push(event);
-}
-
-function withNextEventId(ctx: Ctx): string {
-  const { eventId, sequences } = nextEventId(ctx.state.sequences);
-  ctx.state = { ...ctx.state, sequences };
-  return eventId;
-}
-
-function putJob(ctx: Ctx, job: Job): void {
-  ctx.state = { ...ctx.state, jobs: { ...ctx.state.jobs, [job.id]: job } };
-}
-
-function setPerson(ctx: Ctx, personId: string, person: PersonStateV2): void {
-  ctx.state = { ...ctx.state, people: { ...ctx.state.people, [personId]: person } };
-}
+import { emit, putJob, round6, setPerson, withNextEventId, type Ctx, type EngineOps } from "./engine-ctx.js";
 
 /**
  * Motor de avance de trabajos (WEB-002 §11/§12, subhitos S4-S6): un único
@@ -138,8 +117,9 @@ export function advanceJobs(state: SimulationStateV2, nav: NavigationIndexV2, si
 
 // --- Asignación -------------------------------------------------------------
 
-function isPersonFreeForPlanning(person: PersonStateV2): boolean {
-  return person.activeJobId === null && person.public.activeMovementOrder === null;
+function isPersonFreeForPlanning(state: SimulationStateV2, person: PersonStateV2): boolean {
+  // S8: una persona reservada como porteadora por otro trabajo no está libre aunque no tenga `activeJobId`.
+  return person.activeJobId === null && person.public.activeMovementOrder === null && !personReservedByOtherJob(state, person.public.id, null);
 }
 
 function assignIdlePeople(ctx: Ctx): void {
@@ -150,7 +130,7 @@ function assignIdlePeople(ctx: Ctx): void {
 
   for (const personId of ctx.state.peopleOrder) {
     const person = ctx.state.people[personId];
-    if (!person || !isPersonFreeForPlanning(person)) continue;
+    if (!person || !isPersonFreeForPlanning(ctx.state, person)) continue;
 
     // Órdenes directas: la persona solicitada tiene precedencia absoluta
     // sobre el planificador general (§11.9/§6.9 del prompt de subhitos), pero
@@ -240,9 +220,18 @@ function startJob(ctx: Ctx, jobId: string): void {
  * retira). Todo o nada: si una reserva falla, se liberan las ya hechas en
  * esta llamada y se devuelve el motivo de bloqueo.
  */
-function reservationTargetsFor(job: Job): { kind: "resource_lot" | "world_object" | "furniture" | "container" | "transport_means"; id: string }[] {
-  const targets: { kind: "resource_lot" | "world_object" | "furniture" | "container" | "transport_means"; id: string }[] = [];
+type ReservationTarget = { kind: "resource_lot" | "world_object" | "furniture" | "container" | "transport_means" | "person"; id: string };
+
+function reservationTargetsFor(job: Job): ReservationTarget[] {
+  const targets: ReservationTarget[] = [];
   const exclusive = EXCLUSIVE_TARGET_ACTION_KEYS.has(job.actionKey);
+  if (job.transport) {
+    // S8: toda la carga, el medio elegido y (una vez fijadas) las porteadoras: dos trabajos nunca transportan lo mismo a la vez.
+    for (const ref of job.transport.cargo) targets.push({ kind: ref.kind, id: ref.id });
+    if (job.transport.transportMeansId) targets.push({ kind: "transport_means", id: job.transport.transportMeansId });
+    for (const personId of job.transport.carrierPersonIds) targets.push({ kind: "person", id: personId });
+    return targets;
+  }
   switch (job.target.kind) {
     case "resource_lot":
       // Beber/comer (S5) y recoger un lote suelto (S7) reservan el lote.
@@ -278,6 +267,8 @@ function acquireJobReservations(ctx: Ctx, jobId: string): string | null {
     let result: ReserveResult | null;
     if (target.kind === "resource_lot") {
       result = reserveResourceLot(ctx.state, current, target.id, "reserve");
+    } else if (target.kind === "person") {
+      result = reservePerson(ctx.state, current, target.id, "reserve");
     } else {
       result = reserveExclusiveTarget(ctx.state, current, target.kind, target.id, "reserve");
     }
@@ -289,12 +280,15 @@ function acquireJobReservations(ctx: Ctx, jobId: string): string | null {
         putJob(ctx, { ...ctx.state.jobs[jobId]!, reservationIds: ctx.state.jobs[jobId]!.reservationIds.filter((id) => !created.includes(id)) });
       }
       const exists = target.kind === "resource_lot" ? Boolean(ctx.state.resourceLots[target.id]) : true;
+      if (target.kind === "person") return "block.carriers_unavailable";
+      if (target.kind === "transport_means") return "block.means_reserved";
       return target.kind === "resource_lot" ? (exists ? "block.resource_reserved" : "block.resource_exhausted") : "block.target_reserved";
     }
     ctx.state = result.state;
     ctx.events.push(...result.events);
     created.push(result.reservation.id);
-    putJob(ctx, { ...ctx.state.jobs[jobId]!, reservationIds: [...ctx.state.jobs[jobId]!.reservationIds, result.reservation.id] });
+    // `reservePerson` ya enlaza la reserva en el trabajo (reservas bidireccionales).
+    if (target.kind !== "person") putJob(ctx, { ...ctx.state.jobs[jobId]!, reservationIds: [...ctx.state.jobs[jobId]!.reservationIds, result.reservation.id] });
   }
   return null;
 }
@@ -324,7 +318,7 @@ function reviveBlockedJobs(ctx: Ctx): void {
     // Un bloqueo de fase (S7) solo se reevalúa cuando su causa concreta ha
     // cambiado: reanudar y volver a bloquear en el mismo tick sería
     // telemetría sin límite causal.
-    if (phaseBlockerStillApplies(ctx.state, current, executorId)) continue;
+    if (current.transport ? transportBlockerStillApplies(ctx, current) : phaseBlockerStillApplies(ctx.state, current, executorId)) continue;
     if (acquireJobReservations(ctx, current.id)) continue;
     const result = transitionJob(ctx.state, ctx.state.jobs[current.id]!, "in_progress", null);
     ctx.state = { ...ctx.state, sequences: result.sequences };
@@ -407,6 +401,12 @@ function finishJob(ctx: Ctx, jobId: string): void {
 function blockJob(ctx: Ctx, jobId: string, reasonKey: string): void {
   const job = ctx.state.jobs[jobId];
   if (!job) return;
+  if (job.transport) {
+    // S8: detenerse con carga nunca la teletransporta; se deposita donde corresponde y el traslado se replanteará desde ahí.
+    const settled = settleTransportOnStop(ctx.state, jobId, reasonKey, "block");
+    ctx.state = settled.state;
+    ctx.events.push(...settled.events);
+  }
   const releaseResult = releaseJobReservations(ctx.state, jobId);
   ctx.state = releaseResult.state;
   ctx.events.push(...releaseResult.events);
@@ -419,6 +419,11 @@ function blockJob(ctx: Ctx, jobId: string, reasonKey: string): void {
 function failJobCausally(ctx: Ctx, jobId: string, reasonKey: string): void {
   const job = ctx.state.jobs[jobId];
   if (!job) return;
+  if (job.transport) {
+    const settled = settleTransportOnStop(ctx.state, jobId, reasonKey, "cancel");
+    ctx.state = settled.state;
+    ctx.events.push(...settled.events);
+  }
   const releaseResult = releaseJobReservations(ctx.state, jobId);
   ctx.state = releaseResult.state;
   ctx.events.push(...releaseResult.events);
@@ -436,6 +441,59 @@ function primaryExecutorId(job: Job): string | null {
   return job.assignments.find((a) => a.role === "primary_executor")?.personId ?? job.assignments[0]?.personId ?? null;
 }
 
+const ENGINE_OPS: EngineOps = {
+  completePhase: (ctx, jobId) => completePhase(ctx, jobId),
+  blockJob: (ctx, jobId, reasonKey) => blockJob(ctx, jobId, reasonKey),
+  failJobCausally: (ctx, jobId, reasonKey) => failJobCausally(ctx, jobId, reasonKey),
+  acquireJobReservations: (ctx, jobId) => acquireJobReservations(ctx, jobId),
+  mergeStoredLotIntoContainer: (ctx, lotId, containerId, jobId) => mergeStoredLotIntoContainer(ctx, lotId, containerId, jobId),
+};
+
+/** Blanco dentro de una zona prohibida: una orden directa no la atraviesa ni actúa en ella en silencio (cierra la deuda de `DEC-0018` §5). */
+function targetInForbiddenZone(ctx: Ctx, job: Job, targetLocation: Job["location"]): boolean {
+  if (job.origin === "systemic_need") return false; // la autoprotección mínima no es discrecional (§7.6).
+  if (Object.keys(ctx.state.workZones).length === 0) return false;
+  const point = locationToNavPoint(ctx.state, targetLocation);
+  return point !== null && zonePolicyAtPoint(ctx.state, point) === "forbidden";
+}
+
+/** Fases de un traslado (S8): mismas fases comunes del `Job`, con su paso logístico real. */
+function progressTransportJob(ctx: Ctx, jobId: string, def: ActionMethodDefinition, executorId: string, phaseKind: Job["phases"][number]["kind"]): void {
+  const job = ctx.state.jobs[jobId]!;
+  switch (phaseKind) {
+    case "validate": {
+      const hardCheck = checkHardRequirements(def, ctx.state, executorId, job.target);
+      if (!hardCheck.ok) {
+        blockJob(ctx, jobId, hardCheck.reasonKey ?? "block.requirement_failed");
+        return;
+      }
+      progressTransportValidate(ctx, ENGINE_OPS, jobId);
+      return;
+    }
+    case "reserve":
+      progressTransportReserve(ctx, ENGINE_OPS, jobId);
+      return;
+    case "prepare":
+      progressTransportPrepare(ctx, ENGINE_OPS, jobId);
+      return;
+    case "collect":
+      progressTransportLoad(ctx, ENGINE_OPS, jobId);
+      return;
+    case "transport":
+      progressTransportTraverse(ctx, ENGINE_OPS, jobId);
+      return;
+    case "deliver":
+      progressTransportDeliver(ctx, ENGINE_OPS, jobId);
+      return;
+    case "close":
+      progressTransportClose(ctx, ENGINE_OPS, jobId);
+      return;
+    default:
+      completePhase(ctx, jobId);
+      return;
+  }
+}
+
 function progressJob(ctx: Ctx, jobId: string): void {
   const job = ctx.state.jobs[jobId];
   if (!job) return;
@@ -443,6 +501,10 @@ function progressJob(ctx: Ctx, jobId: string): void {
   if (!def) return;
   const phaseKind = job.phases[job.currentPhaseIndex]?.kind;
   if (!phaseKind) return;
+  if (job.actionKey === "transport" && !job.transport) {
+    blockJob(ctx, jobId, "block.no_transport_destination");
+    return;
+  }
 
   const executorId = primaryExecutorId(job);
   if (!executorId) return;
@@ -452,6 +514,16 @@ function progressJob(ctx: Ctx, jobId: string): void {
   const targetLocation = resolveTargetLocation(ctx.state, job.target);
   if (!targetLocation) {
     failJobCausally(ctx, jobId, "block.target_no_longer_exists");
+    return;
+  }
+
+  if (phaseKind === "validate" && targetInForbiddenZone(ctx, job, targetLocation)) {
+    blockJob(ctx, jobId, "block.target_in_forbidden_zone");
+    return;
+  }
+
+  if (job.transport) {
+    progressTransportJob(ctx, jobId, def, executorId, phaseKind);
     return;
   }
 
@@ -471,12 +543,19 @@ function progressJob(ctx: Ctx, jobId: string): void {
       return;
     }
     case "travel": {
+      const destination = locationToNavPoint(ctx.state, targetLocation);
+      // S8 (cooperación real): las ayudantes también acuden al lugar de trabajo; solo contribuyen si están allí.
+      for (const assignment of job.assignments) {
+        if (assignment.personId === executorId || !destination) continue;
+        const helper = ctx.state.people[assignment.personId];
+        if (!helper || helper.activeJobId !== jobId || helper.public.activeMovementOrder || isPersonCoLocated(ctx.state, assignment.personId, targetLocation)) continue;
+        startInternalMove(ctx, assignment.personId, destination, jobId, false);
+      }
       if (isPersonCoLocated(ctx.state, executorId, targetLocation)) {
         completePhase(ctx, jobId);
         return;
       }
       if (executor.public.activeMovementOrder) return; // ya en camino, se comprobará el próximo tick.
-      const destination = locationToNavPoint(ctx.state, targetLocation);
       if (!destination) {
         blockJob(ctx, jobId, "block.target_unreachable");
         return;
@@ -797,14 +876,17 @@ function consumeResourceLotQuantity(ctx: Ctx, lotId: string, quantity: number, j
   emit(ctx, { type: "resource_lot_consumed", eventId, simSeconds: ctx.state.clock.elapsedSimSeconds, causedByCommandId: null, resourceLotId: lotId, jobId, quantity });
 }
 
-function startInternalMove(ctx: Ctx, personId: string, destination: { x: number; y: number }, jobId: string): void {
+function startInternalMove(ctx: Ctx, personId: string, destination: { x: number; y: number }, jobId: string, blockOnFailure = true): void {
   const person = ctx.state.people[personId];
   if (!person) return;
   const goalAnchor = resolveNavAnchor(ctx.nav, ctx.state.world, destination);
   const startAnchor = resolveNavAnchor(ctx.nav, ctx.state.world, person.public.position);
-  const path = findPathV2(ctx.nav, ctx.state.world, startAnchor, goalAnchor);
+  // Una zona prohibida no se atraviesa en silencio (S8, cierra la deuda de `DEC-0018` §5): la ruta la rodea o el trabajo se bloquea con ese motivo.
+  const hasForbidden = Object.values(ctx.state.workZones).some((z) => z.policy === "forbidden");
+  const options = hasForbidden ? buildRouteOptions(ctx.state, ctx.nav, { method: null, minOpeningClass: "narrow", knownTerrainOnly: false }) : undefined;
+  const path = findPathV2(ctx.nav, ctx.state.world, startAnchor, goalAnchor, options);
   if (!path) {
-    blockJob(ctx, jobId, "block.no_known_route");
+    if (blockOnFailure) blockJob(ctx, jobId, hasForbidden && findPathV2(ctx.nav, ctx.state.world, startAnchor, goalAnchor) ? "block.route_crosses_forbidden_zone" : "block.no_known_route");
     return;
   }
   setPerson(ctx, personId, {
@@ -869,7 +951,8 @@ function resolveModelDExecution(ctx: Ctx, jobId: string, def: ActionMethodDefini
     putJob(ctx, job);
   }
 
-  const elapsedMinutes = (ctx.simSecondsToAdvance / 60) * (1 + (job.workRateVariation ?? 0));
+  // Cooperación real (S8, cierra la deuda de `DEC-0018`): ayudantes presentes contribuyen con los topes 100/60/35/20 %.
+  const elapsedMinutes = (ctx.simSecondsToAdvance / 60) * (1 + (job.workRateVariation ?? 0)) * modelDTeamFactor(ctx, job, def, executorId);
 
   if (job.actionKey === "rest") {
     const executor = ctx.state.people[executorId];
@@ -893,6 +976,22 @@ function resolveModelDExecution(ctx: Ctx, jobId: string, def: ActionMethodDefini
     applyConsequences(ctx, ctx.state.jobs[jobId]!, def, executorId, "favorable");
     completePhase(ctx, jobId);
   }
+}
+
+/** Factor de equipo del modelo D: solo cuentan las ayudantes co-ubicadas con el blanco, hasta el máximo de participantes del método. */
+function modelDTeamFactor(ctx: Ctx, job: Job, def: ActionMethodDefinition, executorId: string): number {
+  if (def.maxParticipants <= 1 || job.assignments.length <= 1 || job.actionKey === "rest") return 1;
+  const targetLocation = resolveTargetLocation(ctx.state, job.target);
+  if (!targetLocation) return 1;
+  const capacityOf = (personId: string): number => {
+    const person = ctx.state.people[personId];
+    if (!person) return 0;
+    const capacity = computeEffectiveCapacity(person.public, def);
+    return isUniversalCapacity(capacity) ? 10 : capacity;
+  };
+  const helpers = job.assignments.filter((a) => a.personId !== executorId && isPersonCoLocated(ctx.state, a.personId, targetLocation)).map((a) => capacityOf(a.personId));
+  if (helpers.length === 0) return 1;
+  return teamWorkFactor([capacityOf(executorId), ...helpers], def.maxParticipants);
 }
 
 function restSupportTier(job: Job): RestSupportTier {
@@ -1329,8 +1428,7 @@ function applyWorkNeedDecline(ctx: Ctx): void {
     // (consumo/recuperación): aplicarles también el coste genérico de
     // "trabajo activo" contaría la misma causa dos veces (§14.3).
     if (SELF_CARE_ACTION_KEYS.has(job.actionKey)) continue;
-    const phaseKind = job.phases[job.currentPhaseIndex]?.kind;
-    if (phaseKind !== "execute") continue;
+    if (!isWorkingPhase(job)) continue;
     for (const assignment of job.assignments) {
       const person = ctx.state.people[assignment.personId];
       if (!person) continue;
@@ -1342,6 +1440,20 @@ function applyWorkNeedDecline(ctx: Ctx): void {
       }
     }
   }
+}
+
+/**
+ * ¿Está el trabajo en una fase de trabajo físico con coste de necesidades
+ * propio? `execute` (S4-S6) y, en un traslado (S8), cargar/descargar. El
+ * recorrido cargado no cuenta aquí: su fatiga la aplica el movimiento con
+ * el esfuerzo del método (sin doble contabilización).
+ */
+export function isWorkingPhase(job: Job): boolean {
+  if (job.state !== "in_progress") return false;
+  const phaseKind = job.phases[job.currentPhaseIndex]?.kind;
+  if (phaseKind === "execute") return true;
+  if (job.transport && (phaseKind === "collect" || phaseKind === "deliver") && job.transport.stepRemainingMinutes > 0) return true;
+  return false;
 }
 
 // --- Autoprotección mínima -----------------------------------------------
@@ -1422,6 +1534,12 @@ function runAutoprotection(ctx: Ctx): void {
 function interruptJobForAutoprotection(ctx: Ctx, jobId: string, personId: string): void {
   const job = ctx.state.jobs[jobId];
   if (!job) return;
+  if (job.transport) {
+    // Perder una porteadora detiene y deposita la carga de forma segura, nunca la devuelve al origen (§7.4/§7.10).
+    const settled = settleTransportOnStop(ctx.state, jobId, "block.critical_need_autoprotection", "interrupt", personId);
+    ctx.state = settled.state;
+    ctx.events.push(...settled.events);
+  }
   const releaseResult = releaseJobReservations(ctx.state, jobId);
   ctx.state = releaseResult.state;
   ctx.events.push(...releaseResult.events);

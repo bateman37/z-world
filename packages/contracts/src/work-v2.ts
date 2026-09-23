@@ -4,6 +4,7 @@ import { PRIORITY_IDS, type PriorityId } from "./catalog-ids.js";
 import { DISCOVERY_FACETS, type DiscoveryFacet } from "./place-history-v2.js";
 import { NEED_DIMENSIONS, type NeedDimension } from "./needs-v2.js";
 import { worldPointSchema, type WorldPoint } from "./geometry.js";
+import { cargoRefSchema, TRANSPORT_METHODS, type CargoRef, type TransportMethod } from "./objects-v2.js";
 
 /**
  * Trabajos, zonas y designaciones de WEB-002 §6.3/§11 (subhito S4-S6:
@@ -213,6 +214,145 @@ export interface StorageItemRef {
   readonly id: string;
 }
 
+/**
+ * Destino físico de un traslado (S8, SET-010 §3.8): un contenedor real (con
+ * capacidad), una estancia, un punto exterior o un punto de transferencia.
+ */
+export type TransportDestination =
+  | { readonly kind: "container"; readonly containerId: string }
+  | { readonly kind: "room"; readonly roomId: string }
+  | { readonly kind: "world_point"; readonly point: WorldPoint }
+  | { readonly kind: "transfer_point"; readonly transferPointId: string };
+
+export const transportDestinationSchema: z.ZodType<TransportDestination> = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("container"), containerId: z.string().min(1) }),
+  z.object({ kind: z.literal("room"), roomId: z.string().min(1) }),
+  z.object({ kind: z.literal("world_point"), point: worldPointSchema }),
+  z.object({ kind: z.literal("transfer_point"), transferPointId: z.string().min(1) }),
+]);
+
+/** Selector de método de SET-010 §3.9: `auto` o uno de los cinco métodos activos. Nunca se confunde con prioridad, equipo, ritmo ni atención. */
+export const TRANSPORT_METHOD_CHOICES = ["auto", ...TRANSPORT_METHODS] as const;
+export type TransportMethodChoice = (typeof TRANSPORT_METHOD_CHOICES)[number];
+
+/**
+ * Paso logístico fino dentro de las fases comunes del `Job` (SET-010 §3.7):
+ * `reserve` (fase `reserve`) → `retrieve_means`/`go_to_origin` (fase
+ * `prepare`) → `load` (fase `collect`) → `traverse`, que incluye atravesar
+ * accesos (fase `transport`) → `unload`/`deposit` (fase `deliver`) →
+ * `park` (fase `close`) → `done`.
+ */
+export const TRANSPORT_STEPS = ["plan", "reserve", "retrieve_means", "go_to_origin", "load", "traverse", "unload", "deposit", "park", "done"] as const;
+export type TransportStep = (typeof TRANSPORT_STEPS)[number];
+
+export const MEANS_DISPOSITIONS = ["park_at_destination", "return_to_origin"] as const;
+export type MeansDisposition = (typeof MEANS_DISPOSITIONS)[number];
+
+export interface TransportRouteAccess {
+  readonly openingId: string;
+  /** Metros de la ruta de la porteadora principal a los que se atraviesa el acceso. */
+  readonly atMeters: number;
+  readonly crossed: boolean;
+}
+
+export interface TransportSurfaceMeters {
+  readonly road: number;
+  readonly open_ground: number;
+  readonly dense_vegetation: number;
+  readonly interior: number;
+}
+
+/** Parada forzada de una etapa: el medio no puede seguir más allá de este acceso (S8, SET-010 §3.8). */
+export interface TransportStagedStop {
+  readonly openingId: string;
+  readonly point: WorldPoint;
+  readonly roomId: string | null;
+}
+
+/**
+ * Estado de un traslado (S8 — Puerta B). Vive en el mismo `Job` y la misma
+ * máquina de fases que S4-S7: no es una tubería paralela. `null` en todo
+ * trabajo que no sea `transport` y en todo trabajo anterior a S8.
+ */
+export interface TransportJobState {
+  readonly requestedMethod: TransportMethodChoice;
+  readonly method: TransportMethod | null;
+  readonly requestedMeansId: string | null;
+  readonly transportMeansId: string | null;
+  readonly cargo: readonly CargoRef[];
+  /** Destino final de la orden completa. */
+  readonly destination: TransportDestination;
+  /** Parada de esta etapa cuando el medio no puede llegar al destino final (punto de transferencia a crear). */
+  readonly stagedStop: TransportStagedStop | null;
+  readonly transferPointId: string | null;
+  readonly step: TransportStep;
+  readonly stepRemainingMinutes: number;
+  readonly meansDisposition: MeansDisposition;
+  readonly meansOriginLocation: EntityLocation | null;
+  readonly loadBundleId: string | null;
+  readonly carrierPersonIds: readonly string[];
+  readonly requiredCarriers: number;
+  readonly usefulCarrierLimit: number;
+  readonly routeAccesses: readonly TransportRouteAccess[];
+  readonly routeDistanceMeters: number;
+  readonly surfaceMeters: TransportSurfaceMeters;
+  readonly travelledLoadedMeters: number;
+  /** Progreso (m) de la porteadora principal sobre la ruta cargada vigente (para ruido y accesos por tramo). */
+  readonly routeTravelledMeters: number;
+  readonly noiseUnits: number;
+  readonly nextNoiseReportAtMeters: number;
+  readonly fatigueUnits: number;
+  readonly previousJobId: string | null;
+  readonly nextJobId: string | null;
+  /** Motivo cualitativo de la elección de `Auto` o de la aceptación del método impuesto. */
+  readonly planNoteKey: string | null;
+  /** Etapa a pulso tras un punto de transferencia: nunca vuelve a elegir un medio con ruedas (evita replantear la misma transferencia). */
+  readonly manualOnly: boolean;
+  /** Método (y medio) de la etapa siguiente cuando esta es una etapa de recogida a pulso hasta el medio. */
+  readonly continuationMethod: TransportMethodChoice | null;
+  readonly continuationMeansId: string | null;
+}
+
+const surfaceMetersSchema = z.object({
+  road: z.number().nonnegative(),
+  open_ground: z.number().nonnegative(),
+  dense_vegetation: z.number().nonnegative(),
+  interior: z.number().nonnegative(),
+});
+
+export const transportJobStateSchema = z.object({
+  requestedMethod: z.enum(TRANSPORT_METHOD_CHOICES),
+  method: z.enum(TRANSPORT_METHODS).nullable(),
+  requestedMeansId: z.string().nullable(),
+  transportMeansId: z.string().nullable(),
+  cargo: z.array(cargoRefSchema).min(1),
+  destination: transportDestinationSchema,
+  stagedStop: z.object({ openingId: z.string(), point: worldPointSchema, roomId: z.string().nullable() }).nullable(),
+  transferPointId: z.string().nullable(),
+  step: z.enum(TRANSPORT_STEPS),
+  stepRemainingMinutes: z.number().nonnegative(),
+  meansDisposition: z.enum(MEANS_DISPOSITIONS),
+  meansOriginLocation: entityLocationSchema.nullable(),
+  loadBundleId: z.string().nullable(),
+  carrierPersonIds: z.array(z.string()),
+  requiredCarriers: z.number().int().positive(),
+  usefulCarrierLimit: z.number().int().positive(),
+  routeAccesses: z.array(z.object({ openingId: z.string(), atMeters: z.number().nonnegative(), crossed: z.boolean() })),
+  routeDistanceMeters: z.number().nonnegative(),
+  surfaceMeters: surfaceMetersSchema,
+  travelledLoadedMeters: z.number().nonnegative(),
+  routeTravelledMeters: z.number().nonnegative().default(0),
+  noiseUnits: z.number().nonnegative(),
+  nextNoiseReportAtMeters: z.number().nonnegative(),
+  fatigueUnits: z.number().nonnegative(),
+  previousJobId: z.string().nullable(),
+  nextJobId: z.string().nullable(),
+  planNoteKey: z.string().nullable(),
+  manualOnly: z.boolean().default(false),
+  continuationMethod: z.enum(TRANSPORT_METHOD_CHOICES).nullable().default(null),
+  continuationMeansId: z.string().nullable().default(null),
+});
+
 export interface JobTimeLimit {
   readonly kind: "until_complete" | "until_sim_seconds" | "quantity";
   readonly value: number | null;
@@ -273,6 +413,8 @@ export interface Job {
   readonly storageItem: StorageItemRef | null;
   /** Cantidad parcial a retirar de un lote (`retrieve_from_storage`, S7 §6.5: dividir un lote). `null` = el lote entero. Default seguro para trabajos anteriores. */
   readonly storageQuantity: number | null;
+  /** Estado del traslado (S8). `null` fuera de `transport` y en trabajos anteriores a S8 (default seguro). */
+  readonly transport: TransportJobState | null;
   readonly createdAtSimSeconds: number;
   readonly updatedAtSimSeconds: number;
 }
@@ -312,6 +454,7 @@ export const jobSchema = z.object({
     .nullable()
     .default(null),
   storageQuantity: z.number().positive().nullable().default(null),
+  transport: transportJobStateSchema.nullable().default(null),
   createdAtSimSeconds: z.number().int().nonnegative(),
   updatedAtSimSeconds: z.number().int().nonnegative(),
 });

@@ -41,6 +41,17 @@ const SNAPSHOT_TRIGGERING_EVENT_TYPES: ReadonlySet<DomainEventV2["type"]> = new 
   "work_interrupted",
   "zone_changed",
   "designation_changed",
+  // Traslados (S8): cada límite logístico (plan, medio recuperado, carga preparada, acceso, entrega,
+  // transferencia, depósito, estacionamiento) se guarda para poder recargar a mitad sin perder nada.
+  "transport_planned",
+  "transport_means_retrieved",
+  "load_prepared",
+  "access_traversed",
+  "transport_route_blocked",
+  "load_delivered",
+  "load_transferred",
+  "load_deposited",
+  "transport_means_parked",
 ]);
 
 /**

@@ -1,4 +1,8 @@
 import type {
+  CargoRef,
+  Job,
+  TransportJobProjection,
+  TransportOrderOptionsProjection,
   ContextualActionOptionProjection,
   ContextualActionTargetProjection,
   EntityLocation,
@@ -12,7 +16,8 @@ import type {
   WorldObject,
 } from "@z-world/contracts";
 import { furnitureLocation } from "@z-world/contracts";
-import { TRANSPORT_MEANS_VARIANT_BY_METHOD } from "@z-world/catalogs";
+import { NOISE_BAND_THRESHOLDS, TRANSPORT_MEANS_VARIANT_BY_METHOD } from "@z-world/catalogs";
+import { TRANSPORT_METHODS } from "@z-world/contracts";
 import {
   containerUsedUnits,
   freshnessBandFor,
@@ -24,6 +29,9 @@ import {
   resolveTransformationProfileId,
   spoilsAtSimSeconds,
   storageBlockReason,
+  isRoomKnown,
+  meansBlockReason,
+  summarizeCargo,
 } from "@z-world/simulation-core";
 
 /**
@@ -264,6 +272,18 @@ export function knownConsumableLots(state: SimulationStateV2, knowledge: ObjectK
 export function buildInventoryProjection(state: SimulationStateV2, knowledge: ObjectKnowledge): InventoryEntryProjection[] {
   const entries: InventoryEntryProjection[] = [];
   const locationFields = (location: EntityLocation, where: KnownLocation) => {
+    // S8: lo que va en una carga o espera en un punto de transferencia se muestra como tal (nunca como una bolsa global).
+    if (location.kind === "in_load_bundle" || location.kind === "transfer_point") {
+      const bundle = location.kind === "in_load_bundle" ? state.loadBundles[location.loadBundleId] : undefined;
+      const means = bundle?.transportMeansId ? state.transportMeans[bundle.transportMeansId] : undefined;
+      const point = location.kind === "transfer_point" ? state.transferPoints[location.transferPointId] : undefined;
+      return {
+        locationKind: location.kind === "in_load_bundle" ? ("load" as const) : ("transfer_point" as const),
+        holderPersonId: where.kind === "carried" ? where.holderPersonId : null,
+        containerLabelKey: means ? `object.${transportVariant(means)}` : point ? point.labelKey : "load.label",
+        roomId: where.kind === "room" || where.kind === "container" ? where.roomId : null,
+      };
+    }
     const containerId = location.kind === "container" ? location.containerId : null;
     const hostId = location.kind === "on_object" ? location.objectId : null;
     const containerLabel = containerId ? containerLabelKey(state, containerId) : hostId && state.worldObjects[hostId] ? objectLabelKey(state.worldObjects[hostId]!) : null;
@@ -362,4 +382,139 @@ export function derivePossessions(state: SimulationStateV2, personId: string): r
     .map((o) => ({ id: o.id, labelKey: objectLabelKey(o), isMeleeOrImprovisedWeapon: o.family === "improvised_tool_or_weapon" && (o.functions.includes("melee") || o.variant.startsWith("possession.")) }));
   if (held.length === 0) return person.public.possessions;
   return held;
+}
+
+// --- S8: traslados --------------------------------------------------------
+
+function cargoGroupKeyFor(state: SimulationStateV2, location: EntityLocation): string {
+  if (location.kind === "transfer_point") return `tp:${location.transferPointId}`;
+  if (location.kind === "in_load_bundle") return `load:${location.loadBundleId}`;
+  const holder = resolveHolderPersonId(state, location);
+  if (holder) return `carried:${holder}`;
+  const roomId = resolveRoomId(state, location);
+  if (roomId) return `room:${roomId}`;
+  const point = locationWorldPoint(state, location);
+  return point ? `pt:${Math.round(point.x / 6)}:${Math.round(point.y / 6)}` : "unknown";
+}
+
+function isTransportableLocation(state: SimulationStateV2, location: EntityLocation): boolean {
+  switch (location.kind) {
+    case "room":
+    case "world_point":
+    case "transfer_point":
+    case "in_load_bundle":
+    case "carried_by_person":
+    case "field_edge":
+      return true;
+    case "container":
+      // Contenido de un contenedor de estancia o exterior (se retira al cargar); el de una mochila se retira antes.
+      return resolveHolderPersonId(state, location) === null;
+    default:
+      return false;
+  }
+}
+
+/**
+ * Opción contextual «Transportar» (S8, SET-010 §3.9): blancos de carga
+ * conocidos y transportables, destinos conocidos con capacidad real, medios
+ * conocidos y el selector `Auto`/método. Solo se ofrecen carretilla o carro
+ * si la comunidad conoce alguno (nunca un medio oculto o inexistente).
+ */
+export function buildTransportActionOption(state: SimulationStateV2, knowledge: ObjectKnowledge): ContextualActionOptionProjection | null {
+  const targets: ContextualActionTargetProjection[] = [];
+  const reserved = (ref: CargoRef): boolean => Object.values(state.reservations).some((r) => r.targetKind === ref.kind && r.targetId === ref.id);
+  for (const obj of Object.values(state.worldObjects)) {
+    if (obj.installedAt || obj.portability === "fixed") continue;
+    if (!isTransportableLocation(state, obj.location) || !knowledge.known(obj.location)) continue;
+    targets.push({ target: { kind: "world_object", worldObjectId: obj.id }, labelKey: objectLabelKey(obj), blockedReasonKey: reserved({ kind: "world_object", id: obj.id }) ? "block.target_reserved" : null, cargoGroupKey: cargoGroupKeyFor(state, obj.location), storageItem: { kind: "world_object", id: obj.id, labelKey: objectLabelKey(obj), holderPersonId: resolveHolderPersonId(state, obj.location) } });
+  }
+  for (const lot of Object.values(state.resourceLots)) {
+    if (!isTransportableLocation(state, lot.location) || !knowledge.known(lot.location)) continue;
+    targets.push({ target: { kind: "resource_lot", resourceLotId: lot.id }, labelKey: `resource.${lot.family}`, blockedReasonKey: reserved({ kind: "resource_lot", id: lot.id }) ? "block.target_reserved" : null, cargoGroupKey: cargoGroupKeyFor(state, lot.location), storageItem: { kind: "resource_lot", id: lot.id, labelKey: `resource.${lot.family}`, holderPersonId: resolveHolderPersonId(state, lot.location) } });
+  }
+  for (const furniture of Object.values(state.furniture)) {
+    if (!furniture.family) continue;
+    const location = furnitureLocation(furniture);
+    if (!knowledge.known(location)) continue;
+    targets.push({ target: { kind: "furniture", furnitureId: furniture.id }, labelKey: furniture.variant ? `object.${furniture.variant}` : furniture.kind, blockedReasonKey: reserved({ kind: "furniture", id: furniture.id }) ? "block.target_reserved" : null, cargoGroupKey: cargoGroupKeyFor(state, location) });
+  }
+  if (targets.length === 0) return null;
+  targets.sort((a, b) => (a.cargoGroupKey ?? "").localeCompare(b.cargoGroupKey ?? "") || a.labelKey.localeCompare(b.labelKey) || JSON.stringify(a.target).localeCompare(JSON.stringify(b.target)));
+  return { actionKey: "transport", labelKey: "action.transport.label", targets, transport: buildTransportOrderOptions(state, knowledge) };
+}
+
+export function buildTransportOrderOptions(state: SimulationStateV2, knowledge: ObjectKnowledge): TransportOrderOptionsProjection {
+  const means = Object.values(state.transportMeans)
+    .filter((m) => knowledge.known(m.location) !== null && m.functionalState !== "parts_only")
+    .sort((a, b) => (a.id < b.id ? -1 : 1))
+    .map((m) => ({ id: m.id, method: m.method, labelKey: `object.${transportVariant(m)}`, blockedReasonKey: meansBlockReason(state, m, null, [], null) }));
+  const knownMethods = new Set(means.map((m) => m.method));
+  const methods: TransportOrderOptionsProjection["methods"] = [
+    { method: "auto", labelKey: "transport_method.auto", blockedReasonKey: null },
+    ...TRANSPORT_METHODS.filter((m) => (m !== "wheelbarrow" && m !== "handcart") || knownMethods.has(m)).map((m) => ({ method: m, labelKey: `transport_method.${m}`, blockedReasonKey: null })),
+  ];
+
+  const destinations: { destination: TransportOrderOptionsProjection["destinations"][number]["destination"]; labelKey: string; blockedReasonKey: string | null }[] = [];
+  for (const container of Object.values(state.containers).sort((a, b) => (a.id < b.id ? -1 : 1))) {
+    const where = knowledge.known(container.location);
+    if (!where || where.kind === "carried" || !isContainerUsable(state, container)) continue;
+    destinations.push({ destination: { kind: "container", containerId: container.id }, labelKey: containerLabelKey(state, container.id), blockedReasonKey: null });
+  }
+  for (const room of Object.values(state.world.rooms).sort((a, b) => (a.id < b.id ? -1 : 1))) {
+    if (!isRoomKnown(state, room.id)) continue;
+    destinations.push({ destination: { kind: "room", roomId: room.id }, labelKey: room.programRoleKey ? `room_role.${room.programRoleKey}` : "target.room", blockedReasonKey: null });
+  }
+  for (const point of Object.values(state.transferPoints).sort((a, b) => (a.id < b.id ? -1 : 1))) {
+    destinations.push({ destination: { kind: "transfer_point", transferPointId: point.id }, labelKey: point.labelKey, blockedReasonKey: null });
+  }
+  destinations.push({ destination: { kind: "world_point", point: state.world.arrivalPoint }, labelKey: "destination.arrival_point", blockedReasonKey: null });
+  return { methods, means, destinations };
+}
+
+const STEP_OF_PLACEMENT = (state: SimulationStateV2, job: Job): TransportJobProjection["loadPlacement"] => {
+  const bundle = job.transport?.loadBundleId ? state.loadBundles[job.transport.loadBundleId] : undefined;
+  if (!bundle) return null;
+  if (bundle.state === "deposited") return "deposited";
+  return bundle.location.kind === "mounted_on_transport" ? "on_means" : "carried";
+};
+
+function destinationLabelKey(state: SimulationStateV2, job: Job): string {
+  const destination = job.transport!.destination;
+  if (destination.kind === "container") return containerLabelKey(state, destination.containerId);
+  if (destination.kind === "room") {
+    const room = state.world.rooms[destination.roomId];
+    return room?.programRoleKey ? `room_role.${room.programRoleKey}` : "target.room";
+  }
+  if (destination.kind === "transfer_point") return state.transferPoints[destination.transferPointId]?.labelKey ?? "transfer_point.building_access";
+  return "destination.exterior_point";
+}
+
+/** Ficha cualitativa de un traslado para el panel de trabajos (S8). */
+export function buildTransportJobProjection(state: SimulationStateV2, job: Job): TransportJobProjection | undefined {
+  const transport = job.transport;
+  if (!transport) return undefined;
+  const means = transport.transportMeansId ? state.transportMeans[transport.transportMeansId] : undefined;
+  const bundle = transport.loadBundleId ? state.loadBundles[transport.loadBundleId] : undefined;
+  const summary = bundle ? null : summarizeCargo(state, transport.cargo);
+  const perMeter = transport.travelledLoadedMeters > 0 ? transport.noiseUnits / transport.travelledLoadedMeters : 0;
+  return {
+    requestedMethod: transport.requestedMethod,
+    method: transport.method,
+    step: transport.step,
+    meansLabelKey: means ? `object.${transportVariant(means)}` : null,
+    destinationLabelKey: destinationLabelKey(state, job),
+    stagedStop: transport.stagedStop !== null,
+    transferPointId: transport.transferPointId,
+    carrierPersonIds: transport.carrierPersonIds.length > 0 ? [...transport.carrierPersonIds] : job.assignments.map((a) => a.personId),
+    requiredCarriers: transport.requiredCarriers,
+    loadWeightKg: bundle ? Math.round(bundle.totalWeightKg * 10) / 10 : summary ? Math.round(summary.totalWeightKg * 10) / 10 : null,
+    loadBulk: bundle ? bundle.bulk : (summary?.bulk ?? null),
+    loadPlacement: STEP_OF_PLACEMENT(state, job),
+    accessesCrossed: transport.routeAccesses.filter((a) => a.crossed).length,
+    accessesTotal: transport.routeAccesses.length,
+    noiseBand: perMeter >= NOISE_BAND_THRESHOLDS.loud ? "loud" : perMeter >= NOISE_BAND_THRESHOLDS.audible ? "audible" : "quiet",
+    previousJobId: transport.previousJobId,
+    nextJobId: transport.nextJobId,
+    planNoteKey: transport.planNoteKey,
+  };
 }

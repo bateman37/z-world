@@ -23,7 +23,7 @@ import type {
 } from "@z-world/contracts";
 import { toSimulatedDayTime } from "@z-world/contracts";
 import { ACTION_METHODS_BY_KEY } from "@z-world/catalogs";
-import { buildInventoryProjection, buildObjectActionOptions, buildObjectKnowledge, derivePossessions, knownConsumableLots } from "./build-object-projections-v2.js";
+import { buildInventoryProjection, buildObjectActionOptions, buildObjectKnowledge, buildTransportActionOption, buildTransportJobProjection, derivePossessions, knownConsumableLots } from "./build-object-projections-v2.js";
 
 /**
  * Construye las proyecciones de solo lectura del runtime V2 (S3 §5.8):
@@ -230,6 +230,16 @@ const EVENT_MESSAGE_KEYS: Readonly<Record<DomainEventV2["type"], string>> = {
   installation_tested: "log.installation_tested",
   water_drawn: "log.water_drawn",
   resource_lot_deteriorated: "log.resource_lot_deteriorated",
+  transport_planned: "log.transport_planned",
+  transport_means_retrieved: "log.transport_means_retrieved",
+  load_prepared: "log.load_prepared",
+  access_traversed: "log.access_traversed",
+  transport_route_blocked: "log.transport_route_blocked",
+  transport_noise_emitted: "log.transport_noise_emitted",
+  load_delivered: "log.load_delivered",
+  load_transferred: "log.load_transferred",
+  load_deposited: "log.load_deposited",
+  transport_means_parked: "log.transport_means_parked",
 };
 
 export function toOperationalLogEntryV2(event: DomainEventV2): OperationalLogEntryProjection {
@@ -274,6 +284,7 @@ function buildJobsProjection(state: SimulationStateV2): readonly JobProjection[]
       blockReasonKey: job.blockReasonKey,
       directOrder: job.directOrder,
       target: job.target,
+      ...(job.transport ? { transport: buildTransportJobProjection(state, job) } : {}),
     }));
 }
 
@@ -353,6 +364,10 @@ function buildContextualActionsProjection(state: SimulationStateV2): readonly Co
   // Objetos, contenedores e instalaciones de S7 (recoger, almacenar, retirar, reparar, desmontar,
   // probar instalación, extraer agua): misma regla de conocimiento que el inventario localizado.
   options.push(...buildObjectActionOptions(state, knowledge));
+
+  // Traslados (S8): carga conocida, destinos con capacidad real, medios conocidos y selector Auto/método.
+  const transportOption = buildTransportActionOption(state, knowledge);
+  if (transportOption) options.push(transportOption);
 
   return options;
 }
