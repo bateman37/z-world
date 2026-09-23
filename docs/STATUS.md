@@ -17,7 +17,12 @@ en navegador (Chromium) contra un servidor de producción real. Ver
 [DEC-0014](decisions/DEC-0014_web-runtime-foundation-and-initial-simulation-contracts.md)
 y la sección «Última entrega de código (línea activa)» más abajo. La hoja
 de ruta activa de implementación es
-[RDM-003](roadmap/RDM-003_simulation-first-playable-roadmap.md).
+[RDM-003](roadmap/RDM-003_simulation-first-playable-roadmap.md). `WEB-002`
+extiende esa fundación con trabajos/necesidades y el generador semántico
+del pueblo (incrementos 4+5), ejecutado por subhitos verificables; el
+primero (S1, esqueleto de `SimulationStateV2` y migración V1→V2) está
+completado técnicamente (ver
+[DEC-0015](decisions/DEC-0015_simulation-state-v2-skeleton-and-v1-migration.md)).
 
 El prototipo histórico Godot queda preservado íntegro, sin más desarrollo
 activo. Su historial de entregas de código:
@@ -457,6 +462,48 @@ no se amplió `RDM-001` y `CHR-005`/`RDM-002` siguen `draft`. Ver
 
 ## Última entrega de código (línea activa Node.js/TypeScript)
 
+`WEB-002` (subhito S1) — esqueleto de `SimulationStateV2` y migración
+V1→V2 (23 de septiembre de 2026): primer subhito de `WEB-002`
+(incrementos 4+5 de `RDM-003`), ejecutado por instrucción expresa de
+Dennis de dividir la especificación maestra en subhitos verificables en
+vez de implementarla de una sola vez (ver
+[DEC-0015](decisions/DEC-0015_simulation-state-v2-skeleton-and-v1-migration.md)).
+**Completado técnicamente.**
+
+- Forma completa de `SimulationStateV2` en `packages/contracts`
+  (`location-v2.ts`, `spatial-entities-v2.ts`, `objects-v2.ts`,
+  `agriculture-v2.ts`, `place-history-v2.ts`, `work-v2.ts`,
+  `needs-v2.ts`, `state-v2.ts`), validada con Zod: todas las entidades
+  nuevas de §6.3 de `WEB-002` existen como tipos reales, aunque la
+  mayoría de sus colecciones nacen vacías hasta que los subhitos que las
+  pueblan (S2 en adelante) se completen.
+- Migración determinista V1→V2 (`migrateV1ToV2`,
+  `packages/simulation-core/src/v2/migrate-v1-to-v2.ts`): traducción
+  estructural del fixture y la cohorte existentes, nunca invocación del
+  generador semántico real; toda aproximación queda registrada de forma
+  explícita en `migration.degradations`.
+- Validador de invariantes relacionales
+  (`validateSimulationStateV2Invariants`,
+  `packages/simulation-core/src/v2/invariants.ts`) adicional a Zod:
+  cantidades no negativas, ausencia de contención circular/orfandad entre
+  contenedores, exclusividad de reserva y referencias de reserva a
+  trabajos reales.
+- Persistencia no destructiva (`saveMigratedV2Snapshot`,
+  `packages/persistence/src/repository.ts`): el snapshot V2 migrado se
+  guarda como fila adicional, transaccional e idempotente, sin tocar el
+  snapshot V1 vigente ni la revisión de la partida. Ningún flujo de la
+  aplicación web la invoca todavía de forma automática.
+- 18 pruebas unitarias nuevas (migración e invariantes) y 3 pruebas de
+  integración PostgreSQL nuevas (no destrucción, idempotencia, rollback),
+  sumadas a las 45 pruebas Vitest y 2 E2E de `WEB-001`, todas en verde.
+
+No implementa: generador semántico del pueblo, edificios/estancias
+reales, motor de resolución directa/D/B, trabajos/designaciones/
+planificador, necesidades causales, objetos/recursos/transporte reales,
+explotación de edificios, terreno mutable ni agricultura — todo ello
+permanece en los subhitos S2 a S11, sin fecha, según
+[RDM-003](roadmap/RDM-003_simulation-first-playable-roadmap.md).
+
 `WEB-001` — fundación web, cohorte protagonista y mapa local operativo (22
 de septiembre de 2026): primera entrega ejecutable de la línea activa,
 agrupando deliberadamente base técnica, runtime/reloj/persistencia real,
@@ -615,6 +662,15 @@ fixture determinista del sector de llegada), selector de equipo/trabajo
 contextual de `UI-006`, sistema de objetos, trabajos designables ni
 ninguna de las capacidades listadas como fuera de alcance en
 [RDM-003](roadmap/RDM-003_simulation-first-playable-roadmap.md).
+
+Desde `WEB-002` S1, además: forma completa (tipos y esquemas Zod) de
+`SimulationStateV2`, migración determinista V1→V2 por traducción
+estructural, validador de invariantes relacionales y persistencia no
+destructiva del snapshot migrado — ver «Última entrega de código» más
+arriba. Ningún flujo de la aplicación web lee ni escribe todavía
+`SimulationStateV2` en producción: el Worker, la interfaz y la carga real
+de partidas siguen operando exclusivamente sobre `SimulationStateV1`
+hasta que un subhito posterior lo requiera.
 
 ## Funcionalidad realmente implementada en el prototipo histórico Godot
 
@@ -789,6 +845,39 @@ posteriores de `RDM-001`.
   íntegro (el generador semántico completo, el motor de resolución de
   `ARC-006`–`ARC-008`, el sistema de objetos y el primer bucle causal
   siguen sin implementar).
+
+## Validaciones de `WEB-002` (subhito S1)
+
+Validación completa desde el estado limpio del monorepo (23 de
+septiembre de 2026), tras el esqueleto de `SimulationStateV2` y la
+migración V1→V2:
+
+- `npm run typecheck` (las seis capas, incluidas `packages/contracts`,
+  `packages/simulation-core` y `packages/persistence` con los nuevos
+  módulos `v2/`): sin errores.
+- `npm run lint:packages`: sin advertencias ni errores sobre los archivos
+  nuevos o modificados.
+- `npx vitest run` (raíz del monorepo): 56 pruebas unitarias en verde —
+  las 38 de `WEB-001` sin modificar más 18 nuevas (11 de
+  `migrate-v1-to-v2.test.ts`, 7 de `invariants.test.ts`).
+- `npm run test:integration` (PostgreSQL real,
+  `zworld_test`): 10 pruebas en verde — las 7 de `WEB-001` sin modificar
+  más 3 nuevas (`migrate-v2.integration.test.ts`): persistencia del
+  snapshot V2 migrado sin alterar el V1 vigente, idempotencia y rollback
+  transaccional ante partida inexistente.
+- `npm run build`: compila y tipa correctamente, sin cambios de
+  comportamiento visibles en la aplicación (S1 no añade ninguna pantalla
+  ni flujo nuevo; `SimulationStateV2` no tiene todavía ningún consumidor
+  en `apps/web`).
+- `npm run test:e2e` (Playwright, Chromium real, servidor Next.js real):
+  las 2 pruebas de `WEB-001` (`first-arrival.spec.ts`,
+  `multi-tab-conflict.spec.ts`) siguen en verde sin modificación, lo que
+  confirma que S1 no introdujo ninguna regresión visible en el flujo
+  jugable existente.
+
+No se ejecutó ninguna aceptación manual nueva por parte de Dennis para
+S1: no hay ninguna capacidad nueva visible en el navegador que aceptar
+(ver «Aceptación manual pendiente»).
 
 ## Validaciones de `WEB-001`
 
@@ -1040,12 +1129,17 @@ mientras siga sin fusionarse.
 `WEB-001` completó los incrementos 1 a 3 de
 [RDM-003](roadmap/RDM-003_simulation-first-playable-roadmap.md)
 (fundación técnica, reloj/cohorte/estado operativo, y mapa/niebla/
-movimiento). El siguiente candidato de implementación es el primer bucle
-causal completo (explorar → descubrir → trabajar → recoger → transportar
-→ cubrir una necesidad), que corresponde al incremento 4 del roadmap:
-designaciones de trabajo con ratón, trabajos por fases, prioridades
-efectivas y recursos localizados básicos. No se ha iniciado y requerirá su
-propio prompt de programación; debe poder añadirse sin cambiar de stack,
+movimiento). `WEB-002` agrupa los incrementos 4 y 5 (trabajos/
+necesidades y generador semántico/explotación de lugares) en una única
+especificación maestra, por instrucción expresa de Dennis, ejecutada por
+subhitos en varias sesiones (ver
+[DEC-0015](decisions/DEC-0015_simulation-state-v2-skeleton-and-v1-migration.md)).
+S1 (esqueleto de `SimulationStateV2` y migración V1→V2) está completado
+técnicamente. El siguiente candidato de implementación es S2 —
+generador semántico reproducible del pueblo—, que sigue sin iniciarse.
+No se ha iniciado ningún subhito posterior a S1; cada uno requiere su
+propia sesión y debe dejar el repositorio funcionando, probado y
+documentado antes de continuar al siguiente, sin cambiar de stack,
 rehacer los seis protagonistas, sustituir el reloj, romper guardados
 existentes ni abandonar el modelo espacial ya construido en `WEB-001`.
 «Defensa y vida propia» sigue completada técnicamente para el prototipo

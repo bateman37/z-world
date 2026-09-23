@@ -9,3 +9,5 @@ export * from "./cohort/index.js";
 export * from "./create-initial-state.js";
 export * from "./apply-command.js";
 export * from "./advance-simulation.js";
+export * from "./v2/migrate-v1-to-v2.js";
+export * from "./v2/invariants.js";
