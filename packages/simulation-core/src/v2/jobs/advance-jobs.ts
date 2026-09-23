@@ -601,8 +601,13 @@ function emitNeedChangedIfBandShifted(ctx: Ctx, personId: string, dimension: Nee
 
 function applyWorkNeedDecline(ctx: Ctx): void {
   const elapsedMinutes = ctx.simSecondsToAdvance / 60;
+  const SELF_CARE_ACTION_KEYS = new Set(["drink", "eat", "rest"]);
   for (const job of Object.values(ctx.state.jobs)) {
     if (job.state !== "in_progress") continue;
+    // Beber/comer/descansar ya declaran su propio efecto sobre necesidades
+    // (consumo/recuperación): aplicarles también el coste genérico de
+    // "trabajo activo" contaría la misma causa dos veces (§14.3).
+    if (SELF_CARE_ACTION_KEYS.has(job.actionKey)) continue;
     const phaseKind = job.phases[job.currentPhaseIndex]?.kind;
     if (phaseKind !== "execute") continue;
     for (const assignment of job.assignments) {
