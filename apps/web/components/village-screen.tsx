@@ -76,7 +76,15 @@ export function VillageScreen({
   const selectedCard = projections.personCards.find((c) => c.personId === selectedPersonId);
   const canCancel = selectedCard?.operationalState === "moving";
 
-  function handleOrderContextualAction(params: { actionKey: string; target: JobTarget; teamPersonIds: readonly string[]; pace?: PaceMode; attention?: AttentionMode }) {
+  function handleOrderContextualAction(params: {
+    actionKey: string;
+    target: JobTarget;
+    teamPersonIds: readonly string[];
+    pace?: PaceMode;
+    attention?: AttentionMode;
+    disassemblyScope?: "selective" | "destructive";
+    confirmIrreversible?: boolean;
+  }) {
     if (!selectedPersonId) return;
     sendCommand({
       commandId: nextCommandIdV2(),
@@ -87,6 +95,8 @@ export function VillageScreen({
       target: params.target,
       pace: params.pace,
       attention: params.attention,
+      disassemblyScope: params.disassemblyScope,
+      confirmIrreversible: params.confirmIrreversible,
     });
   }
 

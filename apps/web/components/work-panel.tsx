@@ -25,7 +25,15 @@ export function WorkPanel({
 }: {
   readonly projections: WorkerProjectionsV2;
   readonly selectedPersonId: string | null;
-  readonly onOrderContextualAction: (params: { actionKey: string; target: JobTarget; teamPersonIds: readonly string[]; pace?: PaceMode; attention?: AttentionMode }) => void;
+  readonly onOrderContextualAction: (params: {
+    actionKey: string;
+    target: JobTarget;
+    teamPersonIds: readonly string[];
+    pace?: PaceMode;
+    attention?: AttentionMode;
+    disassemblyScope?: "selective" | "destructive";
+    confirmIrreversible?: boolean;
+  }) => void;
   readonly onPauseJob: (jobId: string) => void;
   readonly onResumeJob: (jobId: string) => void;
   readonly onCancelJob: (jobId: string) => void;
@@ -38,16 +46,29 @@ export function WorkPanel({
   const [targetIndex, setTargetIndex] = useState<number>(0);
   const [zoneBounds, setZoneBounds] = useState({ minX: "-20", minY: "-20", maxX: "20", maxY: "20" });
   const [zonePolicy, setZonePolicy] = useState<"habitual" | "precaution" | "forbidden">("habitual");
+  const [irreversibleConfirmed, setIrreversibleConfirmed] = useState(false);
 
   const needs = selectedPersonId ? (projections.needsByPerson[selectedPersonId] ?? []) : [];
   const selectedOption = projections.contextualActions.find((o) => o.actionKey === actionKey) ?? projections.contextualActions[0];
   const targets = selectedOption?.targets ?? [];
+  // Los dos métodos de desmontaje son irreversibles (§16.4 del prompt
+  // S7-S9): la orden directa exige confirmación informada explícita, nunca
+  // implícita por pulsar "Ordenar" una sola vez.
+  const isIrreversibleAction = selectedOption?.actionKey === "disassemble_selective" || selectedOption?.actionKey === "disassemble_destructive";
 
   function handleOrder() {
     if (!selectedPersonId || !selectedOption) return;
     const target = targets[targetIndex]?.target;
     if (!target) return;
-    onOrderContextualAction({ actionKey: selectedOption.actionKey, target, teamPersonIds: [] });
+    if (isIrreversibleAction && !irreversibleConfirmed) return;
+    onOrderContextualAction({
+      actionKey: selectedOption.actionKey,
+      target,
+      teamPersonIds: [],
+      disassemblyScope: selectedOption.actionKey === "disassemble_destructive" ? "destructive" : selectedOption.actionKey === "disassemble_selective" ? "selective" : undefined,
+      confirmIrreversible: isIrreversibleAction ? irreversibleConfirmed : undefined,
+    });
+    setIrreversibleConfirmed(false);
   }
 
   function handleCreateZone() {
@@ -131,7 +152,13 @@ export function WorkPanel({
                 ))}
               </select>
             </label>
-            <button style={{ marginTop: 8 }} disabled={!selectedPersonId || targets.length === 0} onClick={handleOrder}>
+            {isIrreversibleAction && (
+              <label style={{ display: "block", marginTop: 6, color: "var(--z-danger)" }}>
+                <input type="checkbox" checked={irreversibleConfirmed} onChange={(e) => setIrreversibleConfirmed(e.target.checked)} /> Confirmo que esta acción es irreversible y puede perder
+                componentes/función para siempre.
+              </label>
+            )}
+            <button style={{ marginTop: 8 }} disabled={!selectedPersonId || targets.length === 0 || (isIrreversibleAction && !irreversibleConfirmed)} onClick={handleOrder}>
               Ordenar
             </button>
           </>
