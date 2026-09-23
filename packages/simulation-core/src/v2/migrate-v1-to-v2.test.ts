@@ -18,13 +18,18 @@ describe("migrateV1ToV2", () => {
     expect(state.schemaVersion).toBe(SIMULATION_STATE_V2_SCHEMA_VERSION);
   });
 
-  it("preserva semilla, escenario, reloj, PRNG y orden de personas sin alterarlos", () => {
+  it("preserva semilla, escenario, reloj, PRNG (más un stream 'world' nuevo y sin usar) y orden de personas sin alterarlos", () => {
     const v1 = createInitialState("migration-seed-2");
     const { state } = migrateV1ToV2(v1);
     expect(state.seed).toBe(v1.seed);
     expect(state.scenario).toEqual(v1.scenario);
     expect(state.clock).toEqual(v1.clock);
-    expect(state.prng).toEqual(v1.prng);
+    // La migración es una traducción estructural, nunca invoca el generador semántico real (§7.1):
+    // los tres streams heredados de V1 se preservan intactos; solo se añade `world`, sin usar todavía.
+    expect(state.prng.cohort).toEqual(v1.prng.cohort);
+    expect(state.prng.fixture).toEqual(v1.prng.fixture);
+    expect(state.prng.navigation).toEqual(v1.prng.navigation);
+    expect(state.prng.world).toBeDefined();
     expect(state.peopleOrder).toEqual(v1.peopleOrder);
   });
 

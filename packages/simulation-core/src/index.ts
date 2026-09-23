@@ -11,3 +11,5 @@ export * from "./apply-command.js";
 export * from "./advance-simulation.js";
 export * from "./v2/migrate-v1-to-v2.js";
 export * from "./v2/invariants.js";
+export * from "./v2/create-initial-state-v2.js";
+export * from "./v2/generator/index.js";

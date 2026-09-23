@@ -3,6 +3,7 @@ import {
   PRNG_ALGORITHM_VERSION,
   type PrngDomain,
   type PrngStateByDomain,
+  type PrngStateByDomainV2,
   type PrngStreamState,
 } from "@z-world/contracts";
 
@@ -51,6 +52,21 @@ export function createPrngStateByDomain(seed: string): PrngStateByDomain {
     cohort: createPrngStreamState(seed, "cohort"),
     fixture: createPrngStreamState(seed, "fixture"),
     navigation: createPrngStreamState(seed, "navigation"),
+  };
+}
+
+/**
+ * Igual que `createPrngStateByDomain`, pero añade el stream `world` que usa
+ * el generador semántico real de partidas nuevas (S2 de WEB-002). `fixture`
+ * se conserva sin usar, reservado a la migración V1→V2 (§7.1: nunca se
+ * genera primero un V1 para migrarlo en una partida nueva).
+ */
+export function createPrngStateByDomainV2(seed: string): PrngStateByDomainV2 {
+  return {
+    cohort: createPrngStreamState(seed, "cohort"),
+    fixture: createPrngStreamState(seed, "fixture"),
+    navigation: createPrngStreamState(seed, "navigation"),
+    world: createPrngStreamState(seed, "world"),
   };
 }
 
