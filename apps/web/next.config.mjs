@@ -1,6 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  experimental: {
+    // El snapshot de `SimulationStateV2` de un pueblo generado (S2) ronda
+    // ~1.2 MB en JSON, por encima del límite por defecto de 1 MB de las
+    // Server Actions (S3 lo descubrió: el guardado fallaba en silencio
+    // hacia "Error al guardar" sin este ajuste). 10 MB deja margen real
+    // para semillas más grandes y para los subhitos futuros que añaden más
+    // colecciones al estado (trabajos, objetos, etc.).
+    serverActions: {
+      bodySizeLimit: "10mb",
+    },
+  },
   transpilePackages: [
     "@z-world/contracts",
     "@z-world/catalogs",

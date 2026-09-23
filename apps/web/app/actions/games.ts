@@ -1,7 +1,7 @@
 "use server";
 
 import { createInitialState, createInitialStateV2 } from "@z-world/simulation-core";
-import type { DomainEvent, SimulationStateV1, SimulationStateV2 } from "@z-world/contracts";
+import type { DomainEvent, DomainEventV2, SimulationStateV1, SimulationStateV2 } from "@z-world/contracts";
 import {
   createGame,
   createGameV2,
@@ -10,6 +10,7 @@ import {
   loadGameV2,
   RevisionConflictError,
   saveSnapshot,
+  saveSnapshotV2,
   type GameSaveSummary,
 } from "@z-world/persistence";
 import { prisma } from "@/lib/prisma";
@@ -57,7 +58,7 @@ export interface CreateGameV2Result {
 export async function createGameV2Action(seed: string, name?: string): Promise<CreateGameV2Result> {
   const normalizedSeed = seed.trim().length > 0 ? seed.trim() : crypto.randomUUID();
   const state = createInitialStateV2(normalizedSeed);
-  const initialEvents: DomainEvent[] = [
+  const initialEvents: DomainEventV2[] = [
     {
       type: "game_created",
       eventId: `evt-${state.sequences.nextDomainEventSequence}`,
@@ -101,6 +102,29 @@ export async function saveSnapshotAction(params: {
 }): Promise<SaveSnapshotActionResult | SaveSnapshotActionConflict> {
   try {
     const { revision } = await saveSnapshot(prisma, params);
+    return { ok: true, revision };
+  } catch (error) {
+    if (error instanceof RevisionConflictError) {
+      return { ok: false, code: "revision_conflict", actualRevision: error.actualRevision };
+    }
+    throw error;
+  }
+}
+
+/**
+ * Persiste un snapshot del runtime V2 (S3 de WEB-002). Misma forma y mismo
+ * control optimista de revisión que la ruta V1: rechaza explícitamente una
+ * revisión obsoleta en vez de fusionar o sobrescribir en silencio.
+ */
+export async function saveSnapshotV2Action(params: {
+  readonly gameSaveId: string;
+  readonly expectedRevision: number;
+  readonly state: SimulationStateV2;
+  readonly events: readonly DomainEventV2[];
+  readonly reason: string;
+}): Promise<SaveSnapshotActionResult | SaveSnapshotActionConflict> {
+  try {
+    const { revision } = await saveSnapshotV2(prisma, params);
     return { ok: true, revision };
   } catch (error) {
     if (error instanceof RevisionConflictError) {

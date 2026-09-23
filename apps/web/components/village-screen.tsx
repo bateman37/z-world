@@ -1,97 +1,118 @@
 "use client";
 
-import Link from "next/link";
-import type { SimulationStateV2 } from "@z-world/contracts";
-import { VillageMapCanvas } from "./village-map-canvas";
-
-const PROFILE_LABELS: Record<string, string> = {
-  "RES-10": "Casa familiar mediana",
-  "RES-17": "Cabaña",
-  "COM-02": "Supermercado pequeño",
-  "TAL-01": "Taller mecánico",
-  "ENV-01": "Fuente de agua",
-  "ENV-02": "Campo/parcela abierta",
-  "ENV-03": "Bosque/matorral",
-  "ENV-04": "Carretera/camino",
-};
+import { useState } from "react";
+import type { PriorityValue, SimulationStateV2, WorldPoint } from "@z-world/contracts";
+import { useSimulationWorkerV2, nextCommandIdV2 } from "@/lib/use-simulation-worker-v2";
+import { TopBar } from "@/components/top-bar";
+import { PersonList } from "@/components/person-list";
+import { PersonSheetPanel } from "@/components/person-sheet-panel";
+import { VillageMapCanvas } from "@/components/village-map-canvas";
+import { OperationalLog } from "@/components/operational-log";
 
 /**
- * Pantalla del pueblo semántico V2 (S2 de WEB-002): mapa de solo lectura
- * más un resumen del escenario generado (perfiles, protagonistas,
- * degradaciones si las hubo). No incluye todavía controles de juego: el
- * motor de resolución de acciones y el planificador llegan en subhitos
- * posteriores.
+ * Laboratorio jugable del pueblo semántico V2 (S3 de WEB-002 §5.9):
+ * sustituye al visor de solo lectura de S2. Reutiliza sin cambios los
+ * mismos componentes de presentación que `GameScreen` de WEB-001
+ * (`TopBar`, `PersonList`, `PersonSheetPanel`, `OperationalLog`) porque
+ * las proyecciones que consumen (reloj, estado de guardado, tarjetas y
+ * fichas de persona, registro operacional) son idénticas entre V1 y V2;
+ * solo el mapa cambia (`VillageMapCanvas`), porque el mundo espacial V2
+ * tiene lugares/edificios/estancias/aberturas que V1 no tenía.
  */
-export function VillageScreen({ gameSaveId, state, revision }: { readonly gameSaveId: string; readonly state: SimulationStateV2; readonly revision: number }) {
-  const countByProfile = new Map<string, number>();
-  for (const place of Object.values(state.world.places)) {
-    countByProfile.set(place.profileId, (countByProfile.get(place.profileId) ?? 0) + 1);
+export function VillageScreen({
+  gameSaveId,
+  initialState,
+  initialRevision,
+}: {
+  readonly gameSaveId: string;
+  readonly initialState: SimulationStateV2;
+  readonly initialRevision: number;
+}) {
+  const { projections, workerFatalError, sendCommand, requestManualSave } = useSimulationWorkerV2(
+    gameSaveId,
+    initialState,
+    initialRevision,
+  );
+  const [selectedPersonId, setSelectedPersonId] = useState<string | null>(initialState.peopleOrder[0] ?? null);
+  const [centerRequestId, setCenterRequestId] = useState(0);
+
+  if (workerFatalError) {
+    return (
+      <main style={{ maxWidth: 640, margin: "48px auto", padding: "0 16px" }}>
+        <h1>Error del simulador</h1>
+        <p className="z-panel" style={{ padding: 12, borderColor: "var(--z-danger)" }}>
+          {workerFatalError}
+        </p>
+        <p className="z-muted">La partida se ha detenido para no dibujar un estado inválido.</p>
+      </main>
+    );
   }
 
-  return (
-    <div style={{ display: "flex", height: "100vh" }}>
-      <aside className="z-panel" style={{ width: 320, padding: 16, overflowY: "auto", flexShrink: 0 }}>
-        <Link href="/">← Volver al inicio</Link>
-        <h1 style={{ fontSize: 18 }}>{state.scenario.title}</h1>
-        <p className="z-muted">
-          Semilla <code>{state.seed}</code> · generador <code>{state.world.generatorVersion}</code> · revisión {revision}
-        </p>
-        <p className="z-muted">
-          Día {Math.floor(state.clock.elapsedSimSeconds / 86400) + 1}, {Math.floor((state.clock.elapsedSimSeconds % 86400) / 3600)}:
-          {String(Math.floor((state.clock.elapsedSimSeconds % 3600) / 60)).padStart(2, "0")}
-        </p>
-
-        <h2 style={{ fontSize: 15 }}>Perfiles generados</h2>
-        <ul style={{ paddingLeft: 18, margin: 0 }}>
-          {Object.entries(PROFILE_LABELS).map(([id, label]) => (
-            <li key={id}>
-              {label} ({id}): {countByProfile.get(id) ?? 0}
-            </li>
-          ))}
-        </ul>
-        <p className="z-muted">Construcciones totales: {Object.keys(state.world.buildings).length}</p>
-
-        <h2 style={{ fontSize: 15 }}>Protagonistas</h2>
-        <ul style={{ paddingLeft: 18, margin: 0 }}>
-          {state.peopleOrder.map((personId) => {
-            const person = state.people[personId];
-            if (!person) return null;
-            return (
-              <li key={personId}>
-                {person.public.firstName} {person.public.lastName}
-              </li>
-            );
-          })}
-        </ul>
-
-        <h2 style={{ fontSize: 15 }}>Garantías del escenario</h2>
-        <ul style={{ paddingLeft: 18, margin: 0 }}>
-          <li>Medios de transporte: {Object.keys(state.transportMeans).length}</li>
-          <li>Parcelas de cultivo candidatas: {Object.keys(state.cultivationPlots).length}</li>
-          <li>Fuentes de agua: {Object.values(state.world.nodes).filter((n) => n.kind === "water_source").length}</li>
-        </ul>
-
-        {state.generationDegradations.length > 0 && (
-          <>
-            <h2 style={{ fontSize: 15 }}>Degradaciones registradas</h2>
-            <ul style={{ paddingLeft: 18, margin: 0 }}>
-              {state.generationDegradations.map((d, i) => (
-                <li key={i} className="z-muted">
-                  {d}
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-
-        <p className="z-muted" style={{ marginTop: 16 }}>
-          Visor de solo lectura (S2): el motor de resolución, el planificador de trabajos y las necesidades
-          jugables llegan en subhitos posteriores de WEB-002.
-        </p>
-      </aside>
-      <main style={{ flexGrow: 1 }}>
-        <VillageMapCanvas state={state} />
+  if (!projections) {
+    return (
+      <main style={{ padding: 24 }}>
+        <p>Cargando pueblo…</p>
       </main>
+    );
+  }
+
+  const selectedSheet = selectedPersonId ? (projections.personSheets[selectedPersonId] ?? null) : null;
+
+  function handleOrderMove(personId: string, destination: WorldPoint) {
+    sendCommand({ commandId: nextCommandIdV2(), type: "order_direct_move", personId, destination });
+  }
+
+  function handleUpdatePriority(priorityId: string, value: PriorityValue) {
+    if (!selectedPersonId) return;
+    sendCommand({ commandId: nextCommandIdV2(), type: "update_priority", personId: selectedPersonId, priorityId, value });
+  }
+
+  function handleCancelOrder() {
+    if (!selectedPersonId) return;
+    sendCommand({ commandId: nextCommandIdV2(), type: "cancel_direct_order", personId: selectedPersonId });
+  }
+
+  const selectedCard = projections.personCards.find((c) => c.personId === selectedPersonId);
+  const canCancel = selectedCard?.operationalState === "moving";
+
+  return (
+    <div style={{ display: "grid", gridTemplateRows: "auto 1fr auto", height: "100vh" }}>
+      <TopBar
+        clock={projections.clock}
+        saveStatus={projections.saveStatus}
+        seed={projections.gameSummary.seed}
+        onSetSpeed={(speed) => sendCommand({ commandId: nextCommandIdV2(), type: "set_speed", speed })}
+        onManualSave={requestManualSave}
+      />
+      <div style={{ display: "grid", gridTemplateColumns: "220px 1fr 320px", minHeight: 0 }}>
+        <PersonList
+          personCards={projections.personCards}
+          selectedPersonId={selectedPersonId}
+          onSelect={(id) => {
+            setSelectedPersonId(id);
+            setCenterRequestId((n) => n + 1);
+          }}
+        />
+        <VillageMapCanvas
+          mapEntities={projections.mapEntities}
+          fog={projections.fog}
+          movements={projections.movements}
+          personCards={projections.personCards}
+          selectedPersonId={selectedPersonId}
+          onSelectPerson={setSelectedPersonId}
+          onOrderMove={handleOrderMove}
+          centerOnPersonRequestId={centerRequestId}
+        />
+        <div style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
+          {canCancel && (
+            <div style={{ padding: 8 }}>
+              <button onClick={handleCancelOrder}>Cancelar orden de movimiento</button>
+            </div>
+          )}
+          <PersonSheetPanel sheet={selectedSheet} onUpdatePriority={handleUpdatePriority} />
+        </div>
+      </div>
+      <OperationalLog entries={projections.operationalLog} />
     </div>
   );
 }

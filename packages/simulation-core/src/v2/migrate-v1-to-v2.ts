@@ -138,7 +138,7 @@ function migrateWorld(v1: SimulationStateV1, degradations: string[]): SemanticWo
       activeFloorId: null,
     };
     degradations.push(
-      `Estructura ${structure.id}: sin programa/interior real (perfil CAT-004 asumido como RES-10); pendiente de S3.`,
+      `Estructura ${structure.id}: sin programa/interior real (perfil CAT-004 asumido como RES-10); el generador semántico real de S2 ya construye interiores completos para partidas nuevas, pero esta migración traduce una estructura V1 existente, no la regenera.`,
     );
   }
 

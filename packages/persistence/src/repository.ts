@@ -1,4 +1,4 @@
-import type { DomainEvent, SimulationStateV1, SimulationStateV2 } from "@z-world/contracts";
+import type { DomainEvent, DomainEventV2, SimulationStateV1, SimulationStateV2 } from "@z-world/contracts";
 import { parseSimulationStateV1, parseSimulationStateV2 } from "@z-world/contracts";
 import type { PrismaClient } from "../generated/index.js";
 
@@ -241,7 +241,7 @@ export async function saveMigratedV2Snapshot(
  */
 export async function createGameV2(
   prisma: PrismaClient,
-  params: { readonly name?: string; readonly state: SimulationStateV2; readonly initialEvents: readonly DomainEvent[] },
+  params: { readonly name?: string; readonly state: SimulationStateV2; readonly initialEvents: readonly DomainEventV2[] },
 ): Promise<{ readonly gameSaveId: string; readonly revision: number }> {
   return prisma.$transaction(async (tx) => {
     const gameSave = await tx.gameSave.create({
@@ -318,7 +318,7 @@ export async function saveSnapshotV2(
     readonly gameSaveId: string;
     readonly expectedRevision: number;
     readonly state: SimulationStateV2;
-    readonly events: readonly DomainEvent[];
+    readonly events: readonly DomainEventV2[];
     readonly reason: string;
   },
 ): Promise<{ readonly revision: number }> {

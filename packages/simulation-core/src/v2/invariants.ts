@@ -27,8 +27,124 @@ export function validateSimulationStateV2Invariants(state: SimulationStateV2): I
   checkGlobalIdUniqueness(state, violations);
   checkEntityLocationsResolve(state, violations);
   checkSpatialHierarchy(state, violations);
+  checkPersonPositionWithinBounds(state, violations);
+  checkPositionLocationCoherence(state, violations);
+  checkActiveMovementOrders(state, violations);
+  checkExteriorOpeningsConnectToRoom(state, violations);
+  checkDiscoveryRecordsValid(state, violations);
+  checkFogGridShape(state, violations);
 
   return { ok: violations.length === 0, violations };
+}
+
+/** Toda posición pública de persona cae dentro de los límites del mundo (S3 §8). */
+function checkPersonPositionWithinBounds(state: SimulationStateV2, violations: InvariantViolation[]): void {
+  const { bounds } = state.world;
+  for (const person of Object.values(state.people)) {
+    const { x, y } = person.public.position;
+    if (x < bounds.minX || x > bounds.maxX || y < bounds.minY || y > bounds.maxY) {
+      violations.push({ code: "person_position_outside_bounds", message: `Persona ${person.public.id} tiene una posición fuera de los límites del mundo.` });
+    }
+  }
+}
+
+/**
+ * `location: EntityLocation` es la única autoridad de posición (DEC-0017);
+ * `public.position` es una proyección derivada que debe permanecer
+ * sincronizada en todo momento. Cuando `location.kind === "world_point"`,
+ * ambos deben coincidir exactamente: cualquier divergencia indica que se
+ * mutó una de las dos representaciones sin la otra.
+ */
+function checkPositionLocationCoherence(state: SimulationStateV2, violations: InvariantViolation[]): void {
+  for (const person of Object.values(state.people)) {
+    if (person.location.kind !== "world_point") continue;
+    const { point } = person.location;
+    if (point.x !== person.public.position.x || point.y !== person.public.position.y) {
+      violations.push({
+        code: "position_location_divergence",
+        message: `Persona ${person.public.id} tiene \`location.point\` y \`public.position\` divergentes.`,
+      });
+    }
+  }
+}
+
+/** Toda orden de movimiento activa es internamente coherente: ruta dentro de límites, destino coincide con el final de la ruta, progreso no supera la distancia total (S3 §8). */
+function checkActiveMovementOrders(state: SimulationStateV2, violations: InvariantViolation[]): void {
+  const { bounds } = state.world;
+  const EPSILON = 0.5;
+  for (const person of Object.values(state.people)) {
+    const order = person.public.activeMovementOrder;
+    if (!order) continue;
+    if (order.travelledDistanceMeters > order.totalDistanceMeters + EPSILON) {
+      violations.push({ code: "movement_progress_exceeds_total", message: `Orden de ${person.public.id} avanzó más allá de su distancia total.` });
+    }
+    if (order.path.length === 0) {
+      violations.push({ code: "movement_path_empty", message: `Orden de ${person.public.id} no tiene ninguna ruta.` });
+      continue;
+    }
+    const last = order.path[order.path.length - 1]!;
+    if (Math.abs(last.x - order.destination.x) > EPSILON || Math.abs(last.y - order.destination.y) > EPSILON) {
+      violations.push({ code: "movement_destination_mismatch", message: `El último punto de la ruta de ${person.public.id} no coincide con el destino de la orden.` });
+    }
+    for (const point of order.path) {
+      if (point.x < bounds.minX - EPSILON || point.x > bounds.maxX + EPSILON || point.y < bounds.minY - EPSILON || point.y > bounds.maxY + EPSILON) {
+        violations.push({ code: "movement_path_point_outside_bounds", message: `La ruta de ${person.public.id} tiene un punto fuera de los límites del mundo.` });
+        break;
+      }
+    }
+  }
+}
+
+/** Una abertura que declara conectar con el exterior debe además conectar una estancia real: si no, no representa una entrada válida (S3 §5.4/§8). */
+function checkExteriorOpeningsConnectToRoom(state: SimulationStateV2, violations: InvariantViolation[]): void {
+  for (const opening of Object.values(state.world.openings)) {
+    if (opening.connectsToExterior && !opening.connectsRoomId) {
+      violations.push({ code: "exterior_opening_without_room", message: `Abertura ${opening.id} conecta con el exterior pero no con ninguna estancia interior.` });
+    }
+  }
+}
+
+/** Cada `DiscoveryRecord` referencia una entidad real de la faceta correspondiente y no hay pares (entidad, faceta) duplicados (S3 §5.6/§8: sin entidades inexistentes, conocimiento monótono representado como registro único). */
+function checkDiscoveryRecordsValid(state: SimulationStateV2, violations: InvariantViolation[]): void {
+  const seen = new Set<string>();
+  for (const record of state.discoveries) {
+    const key = `${record.entityId}:${record.facet}`;
+    if (seen.has(key)) {
+      violations.push({ code: "duplicate_discovery_record", message: `Registro de descubrimiento duplicado para ${key}.` });
+    }
+    seen.add(key);
+
+    // Un descubrimiento de faceta `exterior` puede referenciar tanto un
+    // `Place` (edificio/parcela) como un `NaturalOrTechnicalNode` (p. ej. un
+    // hito o fuente de agua): ambos son entidades exteriores observables
+    // por silueta/proximidad (§7.2 de WEB-002, discretos del generador S2).
+    const existsAsExteriorEntity = Boolean(
+      state.world.places[record.entityId] ?? state.world.buildings[record.entityId] ?? state.world.nodes[record.entityId],
+    );
+    if (record.facet === "rooms" && !state.world.rooms[record.entityId]) {
+      violations.push({ code: "orphan_discovery_room", message: `Descubrimiento referencia una estancia inexistente: ${record.entityId}.` });
+    }
+    if (record.facet === "accesses" && !state.world.openings[record.entityId]) {
+      violations.push({ code: "orphan_discovery_opening", message: `Descubrimiento referencia una abertura inexistente: ${record.entityId}.` });
+    }
+    if ((record.facet === "exterior" || record.facet === "structure") && !existsAsExteriorEntity) {
+      violations.push({ code: "orphan_discovery_place_or_building", message: `Descubrimiento referencia un lugar/edificio/nodo inexistente: ${record.entityId}.` });
+    }
+  }
+}
+
+/** La niebla cubre exactamente el rectángulo de límites del mundo a su propia resolución, sin celdas de más o de menos (S3 §8). */
+function checkFogGridShape(state: SimulationStateV2, violations: InvariantViolation[]): void {
+  const { fog, world } = state;
+  if (fog.cells.length !== fog.columns * fog.rows) {
+    violations.push({ code: "fog_cell_count_mismatch", message: "La niebla tiene un número de celdas distinto de columnas×filas." });
+    return;
+  }
+  const expectedColumns = Math.max(1, Math.ceil((world.bounds.maxX - world.bounds.minX) / fog.resolutionMeters));
+  const expectedRows = Math.max(1, Math.ceil((world.bounds.maxY - world.bounds.minY) / fog.resolutionMeters));
+  if (fog.columns !== expectedColumns || fog.rows !== expectedRows) {
+    violations.push({ code: "fog_dimensions_mismatch", message: "Las dimensiones de la niebla no corresponden a los límites del mundo a su resolución." });
+  }
 }
 
 function checkQuantitiesNonNegative(state: SimulationStateV2, violations: InvariantViolation[]): void {
