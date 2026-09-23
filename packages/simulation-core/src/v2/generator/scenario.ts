@@ -128,6 +128,51 @@ export function materializeScenarioGuarantees(
   const containerId = ids.next("container");
   const lightId = ids.next("object");
   const restId = ids.next("object");
+  const waterContainerId = ids.next("container");
+  const waterVesselId = ids.next("object");
+  const waterLotId = ids.next("resource-lot");
+  const foodLotId = ids.next("resource-lot");
+  // Garantías mínimas de S6 (WEB-002 §7.2 del prompt S4-S6): agua y comida
+  // localizadas y accesibles junto al refugio desde el Día 1, sin depender
+  // de que el contenido procedural de una cocina caiga cerca por azar.
+  extraResourceLots.push(
+    {
+      id: waterLotId,
+      family: "water",
+      quantity: 5 + prng.nextInt(0, 3),
+      unit: "liter",
+      location: { kind: "container", containerId: waterContainerId },
+      condition: 0.7 + prng.nextFloat() * 0.3,
+      reservedByJobId: null,
+    },
+    {
+      id: foodLotId,
+      family: "preserved_food",
+      quantity: 6,
+      unit: "unit",
+      location: { kind: "container", containerId: waterContainerId },
+      condition: 0.6 + prng.nextFloat() * 0.3,
+      reservedByJobId: null,
+    },
+  );
+  extraWorldObjects.push({
+    id: waterVesselId,
+    family: "work_container",
+    variant: "work_container.jerry_can",
+    location: { kind: "container", containerId: waterContainerId },
+    ownerOrReservedByJobId: null,
+    weightKg: 1.2,
+    bulk: "medium",
+    condition: 0.6,
+    quality: 0.5,
+    functionalState: "functional",
+  });
+  extraContainers.push({
+    id: waterContainerId,
+    location: shelterStorageRoom ? { kind: "room", roomId: shelterStorageRoom.id } : { kind: "world_point", point: shelter.position },
+    capacityUnits: 12,
+    contentIds: [waterVesselId, waterLotId, foodLotId],
+  });
   extraWorldObjects.push(
     {
       id: lightId,

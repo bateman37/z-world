@@ -195,6 +195,20 @@ const EVENT_MESSAGE_KEYS: Readonly<Record<DomainEventV2["type"], string>> = {
   room_entered: "log.room_entered",
   room_exited: "log.room_exited",
   discovery_upgraded: "log.discovery_upgraded",
+  job_created: "log.job_created",
+  job_state_changed: "log.job_state_changed",
+  job_phase_changed: "log.job_phase_changed",
+  job_assignment_changed: "log.job_assignment_changed",
+  reservation_created: "log.reservation_created",
+  reservation_released: "log.reservation_released",
+  work_episode_created: "log.work_episode_created",
+  need_changed: "log.need_changed",
+  consumption_happened: "log.consumption_happened",
+  rest_progressed: "log.rest_progressed",
+  systemic_intention_created: "log.systemic_intention_created",
+  work_interrupted: "log.work_interrupted",
+  zone_changed: "log.zone_changed",
+  designation_changed: "log.designation_changed",
 };
 
 export function toOperationalLogEntryV2(event: DomainEventV2): OperationalLogEntryProjection {

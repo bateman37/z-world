@@ -35,7 +35,7 @@ export function generatePeopleAtArrival(
   const worldObjects: WorldObject[] = [];
   const people: Record<string, PersonStateV2> = {};
 
-  for (const personId of cohort.peopleOrder) {
+  for (const [index, personId] of cohort.peopleOrder.entries()) {
     const person = cohort.people[personId];
     if (!person) continue;
 
@@ -54,10 +54,18 @@ export function generatePeopleAtArrival(
       });
     }
 
+    // Nadie empieza condenado por el tuning, pero al menos una persona llega
+    // especialmente fatigada tras cuatro días de marcha (§14.2 del prompt
+    // de subhitos S4-S6): la primera del orden estable de la cohorte.
+    const needsForPerson =
+      index === 0
+        ? INITIAL_NEEDS.map((n) => (n.dimension === "rest" ? { ...n, value: 16 } : n))
+        : INITIAL_NEEDS;
+
     people[personId] = {
       public: { ...person.public, position: arrivalPoint },
       hidden: person.hidden,
-      needs: INITIAL_NEEDS.map((n) => ({ ...n, band: needBandFor(n.value) })),
+      needs: needsForPerson.map((n) => ({ ...n, band: needBandFor(n.value) })),
       location: { kind: "world_point", point: arrivalPoint },
       carriedLoadBundleId: null,
       activeJobId: null,

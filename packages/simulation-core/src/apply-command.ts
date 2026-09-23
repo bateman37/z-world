@@ -30,6 +30,22 @@ export function applyCommand(state: SimulationStateV1, command: SimulationComman
       return applyCancelDirectOrder(state, command.personId, command.commandId);
     case "update_priority":
       return applyUpdatePriority(state, command.personId, command.priorityId, command.value, command.commandId);
+    // Los comandos de trabajos/zonas/designaciones de S4-S6 (WEB-002 §11)
+    // solo existen para el runtime V2 (ver `apply-command-v2.ts`): V1 los
+    // ignora sin efecto en vez de tratarlos como un comando desconocido,
+    // igual que `initialize_scenario` no aplica a V2 (DEC-0017).
+    case "order_contextual_action":
+    case "pause_job":
+    case "resume_job":
+    case "cancel_job":
+    case "reassign_job":
+    case "set_job_modes":
+    case "draw_zone":
+    case "edit_zone":
+    case "delete_zone":
+    case "create_area_designation":
+    case "cancel_designation":
+      return { state, events: [] };
     default: {
       const exhaustive: never = command;
       throw new Error(`Comando no reconocido: ${JSON.stringify(exhaustive)}`);

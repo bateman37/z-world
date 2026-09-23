@@ -5,3 +5,5 @@ export * from "./potential-phrases.js";
 export * from "./copy-keys.js";
 export * from "./validate.js";
 export * from "./place-profiles.js";
+export * from "./action-methods.js";
+export * from "./needs-tuning.js";
