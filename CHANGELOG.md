@@ -4,23 +4,38 @@ Registra entregas documentales y de diseño de Z-World. No atribuye código ni
 funcionalidad implementada salvo que se indique explícitamente como
 `implemented` en la documentación afectada.
 
-## WEB-002 (subhito S7, en curso) — Objetos profundos, inventarios y transformaciones (parcial)
+## WEB-002 (subhito S7, Puerta A) — Objetos profundos, inventarios y transformaciones
 
-Progreso parcial en `feat/web-002-s7-s9-objects-logistics-exploitation`,
-todavía sin cerrar (ver `docs/STATUS.md` §"S7 — Progreso parcial" para el
-detalle completo de lo hecho y la deuda honesta). Resumen:
+En `feat/web-002-s7-s9-objects-logistics-exploitation`, sin PR todavía
+(S8 y S9 no han empezado). La lista de deuda auditada de la Puerta A queda
+cerrada con pruebas en verde, con limitaciones explícitas (detalle en
+`docs/STATUS.md` §«S7 — Puerta A»). Resumen:
 
-- Modelo profundo de objetos/contenedores/recursos, aditivo sobre las
-  formas cerradas de `DEC-0015` (peso, bulto, volumen, etiquetas de
-  manipulación, capacidad/contenedor enlazado, funciones, portabilidad,
-  perfiles de reparación/desmontaje, procedencia).
-- Gramática de acciones recoger/almacenar/reparar/desmontar selectivo/
-  desguace destructivo, con perfiles de reparación/desmontaje versionados
-  y sin pila universal `repair_materials`.
-- Dos demostradores profundos completos (armario/estantería,
-  frigorífico) con generador y comportamiento causal real.
-- No incluye S8 (transporte) ni S9 (explotación de edificios), que no han
-  empezado.
+- Catálogo completo de las catorce familias de CAT-005 §3.1 con sus
+  variantes mínimas (`object-catalog.ts` `s7-v2`, `RESOURCE_CATALOG`) y
+  validación de cifras, perfiles y conservación de masa.
+- Los cuatro demostradores profundos de CAT-005 §3.2: armario/estantería
+  y frigorífico (ya parciales) más bomba de agua manual (instalada sobre
+  la fuente comunal, prueba/diagnóstico, avería por desgaste determinista,
+  reparación con piezas concretas, extracción de agua en recipientes
+  reales, desmontaje) y carretilla/carro como objeto completo (reparación
+  y desmontaje con perfiles propios).
+- `store`/`retrieve_from_storage` reales sobre contenedores con capacidad
+  y compatibilidad; división y fusión de lotes; recoger lotes sueltos;
+  vaciar antes de desmontar.
+- Deterioro determinista del alimento fresco (función cerrada del tiempo
+  simulado, sin doble contabilización); alimento echado a perder no
+  consumible.
+- Pertenencias iniciales de SCN-003 por persona, sin duplicar lo que v1
+  dejaba en el refugio; generador `web-002-semantic-v2` con trazado
+  espacial idéntico a v1.
+- Reservas profundas exclusivas de objeto/mueble/contenedor/medio.
+- Inventario localizado conocido en la interfaz y acciones de objetos en
+  el panel de trabajos.
+- Correcciones de determinismo tras recargar (IDs con contador global,
+  orden de iteración, precisión de `jsonb`) y de otros defectos previos
+  destapados por las nuevas pruebas.
+- Pruebas: 237 unitarias, 23 de integración PostgreSQL y 6 E2E en verde.
 
 ## WEB-002 (subhitos S4-S6) — Motor de resolución, trabajos planificados y necesidades causales
 

@@ -29,7 +29,10 @@ S2 (generador semántico determinista del pueblo,
 y S4-S6 (motor de resolución, trabajos planificados y necesidades
 causales, entregados juntos por decisión expresa de Dennis,
 [DEC-0018](decisions/DEC-0018_resolution-engine-planned-work-and-causal-needs.md))
-están completados técnicamente; quedan S7 a S11 sin fecha.
+están completados técnicamente. S7 (Puerta A de la entrega S7-S9: objetos
+profundos, inventarios, recursos y transformaciones) tiene cerrada su
+lista de deuda auditada, con limitaciones explícitas (ver «S7 — Puerta A»
+al final); S8 y S9 no han empezado, y quedan S8 a S11 sin fecha.
 
 El prototipo histórico Godot queda preservado íntegro, sin más desarrollo
 activo. Su historial de entregas de código:
@@ -1676,9 +1679,12 @@ semántico reproducible del pueblo), S3 (runtime jugable V2, navegación
 y descubrimiento progresivo) y S4-S6 (motor común de resolución,
 trabajos planificados y necesidades causales, ver
 [DEC-0018](decisions/DEC-0018_resolution-engine-planned-work-and-causal-needs.md))
-están completados técnicamente. El siguiente candidato de
-implementación es S7 — objetos profundos, inventarios, recursos y
-transformaciones —, que sigue sin iniciarse. Cada subhito requiere su
+están completados técnicamente. S7 (objetos profundos,
+inventarios, recursos y transformaciones) tiene su Puerta A cerrada
+respecto a la lista de deuda auditada, con limitaciones explícitas (ver
+«S7 — Puerta A» al final). El siguiente candidato de implementación es
+S8 — recogida, carga, transporte, transferencia y almacenamiento físico
+(Puerta B) —, en la misma rama `feat/web-002-s7-s9-objects-logistics-exploitation`. Cada subhito requiere su
 propia sesión y debe dejar el repositorio funcionando, probado y
 documentado antes de continuar al siguiente, sin cambiar de stack,
 rehacer los seis protagonistas, sustituir el reloj, romper guardados
@@ -1687,87 +1693,229 @@ existentes ni abandonar el modelo espacial ya construido en `WEB-001`.
 Godot en su rama histórica, pero no se retoma ni se porta automáticamente
 a la nueva línea de código.
 
-## S7 — Progreso parcial (Puerta A en curso, no cerrada)
+## S7 — Puerta A (objetos profundos): deuda auditada cerrada, con limitaciones explícitas
 
 Rama `feat/web-002-s7-s9-objects-logistics-exploitation`, partiendo de
-`main` en `3b6a581` (S4-S6). Esta sesión abrió la Puerta A de
-`prompts/WEB-002_jobs-needs-semantic-world-exploitation.md` §6-§17
-(objetos, S7) pero **no la cerró**: S8 (logística/transporte) y S9
-(explotación de edificios) no han empezado. No se abre PR todavía, por
-instrucción expresa del prompt de subhitos S7-S9 («No abras PR parciales
-ni solicites permiso entre A, B y C salvo bloqueo real»). El siguiente
-trabajo continúa desde el mismo repositorio y la misma rama.
+`main` en `3b6a581` (S4-S6). Sin PR todavía, por instrucción expresa del
+prompt de subhitos S7-S9 («No abras PR parciales ni solicites permiso
+entre A, B y C salvo bloqueo real»). S8 (Puerta B) y S9 (Puerta C) **no
+han empezado**: ningún contrato, generador ni comportamiento de
+transporte multi-método, cargas, puntos de transferencia, capas de
+edificio o accesos mutables existe todavía. `DEC-0019` se creará solo
+cuando S7+S8+S9 estén completos.
 
-**Hecho y verificado en esta sesión** (typecheck, lint, 196 tests unitarios
-—191 preexistentes + 5 nuevos— y build de `apps/web` en verde en cada
-commit):
+### Qué hay y cómo funciona
 
-- Modelo profundo de objetos aditivo sobre las formas cerradas de
-  `DEC-0015`: `WorldObject`/`Furniture` ganan peso, bulto, volumen,
-  etiquetas de manipulación, capacidad/contenedor enlazado, funciones
-  activas/inactivas con motivo, portabilidad, perfiles de
-  reparación/desmontaje y procedencia; `Container` gana enlace a su
-  mueble/objeto anfitrión; `ResourceLot` gana calidad conocida,
-  procedencia y marca de deterioro. Compatible con snapshots V2
-  anteriores a S7 (todos los campos nuevos tienen `.default()` seguro).
-- Nuevo tipo de ubicación `on_object` y blanco de trabajo `container`
-  (`EntityLocation`/`JobTarget`, §6.3/§8.4).
-- Perfiles de reparación y desmontaje versionados en
-  `packages/catalogs/src/repair-disassembly-profiles.ts` (nunca una pila
-  universal `repair_materials`, CAT-005 §4.3) y catálogo de variantes de
-  objeto en `object-catalog.ts`.
-- Gramática de acciones `collect`/`store`/`retrieve_from_storage`/
-  `repair`/`disassemble_selective`/`disassemble_destructive` declarada en
-  `packages/catalogs/src/action-methods.ts`, con requisitos duros
-  específicos (`requires_transformation_profile`,
-  `requires_concrete_materials`, `requires_irreversible_confirmation`).
-- Motor de avance de trabajos (`advance-jobs.ts`) con fases reales
-  `collect` (mueve el objeto suelto a la persona ejecutora) y `prepare`
-  (reserva/consume materiales concretos para reparar; exige confirmación
-  informada antes de un desmontaje), más las consecuencias reales de
-  reparar/desmontar en `execute`: eventos `object_repaired`/
-  `object_disassembled`, lotes de recurso producidos con conservación de
-  masa según el perfil (selectivo conserva más que destructivo), y
-  pérdida permanente de función declarada.
-- Dos de los cuatro demostradores profundos exigidos por §15.6:
-  **armario/estantería** (jerarquía real `Furniture → Container →
-  Content`, se registra/almacena/repara/desmonta) y **frigorífico**
-  (identidad persistente, nunca refrigera sin electricidad, reparación
-  causal con componentes concretos, desmontaje selectivo en chapa,
-  cableado, componentes eléctricos I y motor eléctrico II — desmontarlo
-  elimina para siempre su función). Ambos materializados por el
-  generador (`generator/buildings.ts`, rol `bedroom`/`kitchen`).
-- Interfaz mínima funcional: el panel de trabajos ya genérico expone
-  recoger/reparar/desmontar sin código nuevo por acción, con casilla de
-  confirmación informada obligatoria antes de un desmontaje (§16.4).
+Todo lo siguiente está implementado, probado y verificado en navegador
+real (detalle de validaciones más abajo):
 
-**Deuda honesta, explícita, sin arrastrar en silencio a S8/S9**:
+1. **Modelo profundo de objetos, contenedores y recursos**, aditivo sobre
+   `DEC-0015` (commits parciales previos de esta rama) y ampliado aquí:
+   `WorldObject.installedAt` (instalación conectada a su fuente real),
+   `ResourceLot.conditionAtDecayStart`, ciclo de vida de objeto en
+   `TransportMeans` (calidad, estado funcional, funciones activas/
+   inactivas, piezas ausentes, perfiles de reparación/desmontaje),
+   `JobTarget.transport_means`, `Job.storageItem` y `Job.storageQuantity`.
+   Todos con `.default()` seguro.
+2. **Catálogo completo de las catorce familias de CAT-005 §3.1**
+   (`packages/catalogs/src/object-catalog.ts`, versión `s7-v2`): trece
+   `WorldObjectFamily` con todas las variantes mínimas (botella,
+   cantimplora; cubo, bidón, garrafa, olla; mochila, saco, caja; armario,
+   estantería, caja de almacén; linterna, farol, mechero; cuchillo,
+   navaja, martillo, palanca, hacha de mano, sierra, pala, azada; cuatro
+   conjuntos de herramientas; colchón, cama sencilla, rollo de dormir;
+   banco de trabajo; frigorífico; bomba manual; puerta, portón; carretilla,
+   carro) y la quinta familia, «consumible localizado», como
+   `ResourceLot` (`RESOURCE_CATALOG`: agua, alimento fresco, alimento
+   conservado, material de cura, semillas, más los materiales de §4.2).
+   `validateObjectCatalog` comprueba familias, variantes mínimas, cifras
+   físicas razonables, perfiles existentes y conservación de masa de cada
+   desmontaje frente al peso de la variante. Cifras provisionales (CAT-005
+   §9 las deja abiertas).
+3. **Los cuatro demostradores profundos de CAT-005 §3.2**:
+   - *Armario/estantería* y *frigorífico* (commits previos): jerarquía
+     `Furniture → Container → Content`, reparación con madera o
+     componentes concretos, desmontaje selectivo/destructivo; ahora
+     además hay que vaciarlos antes de desmontar
+     (`block.container_not_empty`), su contenedor queda inutilizable tras
+     desmontarlos, y reparar el frigorífico nunca levanta
+     `refrigeration: no_electricity`.
+   - *Bomba de agua manual* (`technical_installation.hand_pump`): el
+     generador la instala sobre la fuente comunal `ENV-01` (pozo comunal o,
+     si no, la fuente principal), conectada a su nodo hídrico real, con un
+     cubo al pie. Averiada (junta gastada) en la mayoría de semillas.
+     `test_installation` revela su estado real; la reparación exige ese
+     diagnóstico previo (`block.requires_diagnosis`) y consume 1 pieza
+     mecánica I + 1 de chapa concretas; `draw_water` solo funciona con la
+     bomba funcional y conectada, llena recipientes reales (los que lleva
+     la persona o el cubo al pie, 10 L por extracción) y la desgasta de
+     forma determinista (−0,06 de condición por uso; por debajo de 0,25 se
+     avería con `object_broke_down`). Desmontarla elimina para siempre el
+     servicio.
+   - *Carretilla/carro* (`TransportMeans`): objeto completo con estado
+     funcional derivado de su condición (rueda rota por debajo de 0,55),
+     reparable con piezas concretas (`repair.human_transport.*`) y
+     desmontable en chapa/piezas mecánicas/madera según alcance. El
+     desgaste por uso está implementado y probado (`applyUseWear`), pero
+     solo el uso logístico de S8 lo aplicará en juego.
+4. **`store` y `retrieve_from_storage` reales** (v2 del método): el blanco
+   es un `Container` real y `Job.storageItem` el objeto o lote movido.
+   Almacenar exige que el elemento ya esté en el lugar (lo lleva la persona
+   ejecutora o está suelto en la misma estancia); si no,
+   `block.item_not_at_storage_site` (traerlo es S8). Capacidad real por
+   contenedor (objeto: `small` 1, `medium` 2, `large` 4, `bulky` 8
+   unidades; lote: 1 unidad por cada 5 L/kg o 6 raciones, mínimo 1),
+   compatibilidad por etiquetas y sin contención circular: un contenedor
+   lleno bloquea con `block.container_full`, nunca sobrecarga en silencio.
+   Se emiten `object_stored`/`object_retrieved`. Retirar una parte de un
+   lote lo **divide** y guardar un lote junto a otro compatible los
+   **fusiona** (`resource_lot_split`/`resource_lot_merged`), conservando
+   cantidad exacta, condición (media ponderada si difieren ≤ 0,1) y
+   procedencia; los perecederos solo se fusionan si comparten la misma
+   curva de deterioro. Recoger también admite lotes sueltos.
+5. **Deterioro determinista del alimento fresco**
+   (`packages/catalogs/src/decay-tuning.ts`, versión 1): `condición =
+   conditionAtDecayStart × max(0, 1 − Δh / 72)`, con `Δh` las horas
+   simuladas desde `decayStartedAtSimSeconds`, redondeada a 4 decimales.
+   Bandas: fresco ≥ 0,6 > empezando a deteriorarse ≥ 0,25 > echado a
+   perder. Al ser una función cerrada del instante absoluto, pausa,
+   velocidad, tamaño de paso, guardar y recargar dan exactamente el mismo
+   resultado (sin doble contabilización). Un alimento echado a perder no
+   es consumible (`block.food_spoiled`). El frigorífico no alarga la vida
+   sin electricidad. Un lote perecedero de una partida anterior a S7
+   empieza a deteriorarse la primera vez que avanza el reloj, sin
+   retroactividad.
+6. **Pertenencias iniciales de SCN-003 §3.5 por persona**, sin duplicados
+   (`generator/belongings.ts`): cada protagonista lleva su arma y su
+   mochila (con `Container` real) y dentro una cantimplora o botella y una
+   comida; el grupo reparte además linterna, mechero, navaja, olla y
+   material de cura. Recipientes 10,5 L, agua 5–8 L (el mismo presupuesto
+   que v1 dejaba en el refugio, que ya no lo contiene) y seis comidas.
+   `validateGeneratedVillage` exige este presupuesto y que cada
+   `PersonPublicFacts.possessions` exista como objeto real que lleva esa
+   persona; la ficha deriva sus pertenencias del inventario real.
+7. **Reservas profundas exclusivas** (`reserveExclusiveTarget`): objeto,
+   mueble, contenedor y medio de transporte usados por
+   `collect`/`store`/`retrieve_from_storage`/`repair`/`disassemble_*`/
+   `test_installation`/`draw_water`, más el elemento almacenado o retirado.
+   Todo o nada, readquiridas al revivir un bloqueo, y
+   `checkReservationExclusivity` las trata como exclusivas (también lotes).
+8. **Generador `web-002-semantic-v2`** (`generator/config.ts`): variantes de
+   catálogo en todo objeto generado, bomba, pertenencias y alimento fresco
+   con deterioro activo. Usa streams PRNG derivados propios, así que el
+   **trazado espacial de una semilla es idéntico al de v1** (verificado
+   con `probe-seed-92`, `work-panel-e2e-seed-1` y `aldea-regresion-3`).
+   Una partida v1 nunca se regenera: carga con los defaults, sin bomba ni
+   pertenencias nuevas (capacidades que legítimamente le faltan), y su
+   carretilla/carro usa el perfil versionado v1 de su método.
+9. **Proyecciones e interfaz**: inventario localizado conocido (nunca bolsa
+   global; cada entrada enlaza a su ubicación real — quién lo lleva, en qué
+   contenedor, en qué estancia registrada o en qué exterior a la vista —,
+   estado reconocido, capacidad de contenedores y banda de frescura con
+   hora aproximada de pérdida); acciones recoger/almacenar/retirar
+   (elemento → contenedor, cantidad parcial opcional)/reparar/desmontar/
+   probar instalación/extraer agua con la misma regla de conocimiento; una
+   instalación no probada aparece «sin probar».
+10. **Correcciones de defectos previos destapados por las pruebas de S7**:
+    IDs de trabajo/reserva/episodio con contador global de módulo (ahora
+    derivados de la secuencia causal); iteración dependiente del orden de
+    inserción, que `jsonb` no conserva; doubles de 17 cifras en episodios,
+    progreso y posiciones que `jsonb` no devuelve exactos (redondeo a 6
+    decimales); el planificador entregaba a otra persona una orden
+    directa con personas solicitadas; consumir o recoger dejaba contenido
+    huérfano en el contenedor; `Job.reservationIds` conservaba reservas ya
+    liberadas; un bloqueo por falta de materiales no se reanudaba nunca.
 
-- Los otros dos demostradores de §15.6 (**bomba de agua**, **carretilla/
-  carro**) no tienen todavía generador ni comportamiento propio de S7
-  (la carretilla/carro ya existe como `TransportMeans` desde S2, pero sin
-  reparación/bloqueo/desmontaje reales).
-- `store`/`retrieve_from_storage` están declarados y tipados en el
-  catálogo de métodos, pero sin lógica de fase en `advance-jobs.ts` ni
-  proyección de UI: pedir esa acción hoy completaría fases sin mover
-  nada, así que deliberadamente no se expusieron en
-  `buildContextualActionsProjection` todavía.
-- No hay deterioro de alimento fresco, división/fusión de lotes, ni
-  catálogo completo de las catorce familias con variantes mínimas de
-  §15.1 (solo las variantes que el generador o las pertenencias
-  iniciales materializan hoy tienen entrada en `object-catalog.ts`).
-- `§15.7` (pertenencias iniciales completas de `SCN-003`: agua/comida por
-  persona, yesquero, botiquín, olla) sigue sin materializarse; S6 solo
-  garantizó agua/comida/luz/descanso a nivel de refugio, no por persona.
-- No hay integración PostgreSQL ni E2E nuevos para S7 todavía; solo
-  unitarios.
-- S8 (transporte físico, cinco métodos, fases logísticas, puntos de
-  transferencia) y S9 (cinco capas de edificio, accesos mutables,
-  habitabilidad, demolición) no han empezado en absoluto: ningún
-  contrato, generador ni comportamiento de S8/S9 existe todavía en esta
-  rama.
+### Limitaciones explícitas (no se arrastran en silencio)
 
-Ninguna de estas líneas se declara cerrada. La continuación debe seguir
-completando la Puerta A (los dos demostradores restantes,
-`store`/`retrieve_from_storage`, deterioro, catálogo más completo) antes
-de abrir la Puerta B (S8), tal como exige el prompt de subhitos S7-S9.
+Los doce puntos de la lista de deuda auditada tras los commits parciales
+están cerrados con pruebas en verde. Quedan, de forma explícita:
+
+- **Dependientes de S8 (Puerta B)**: trasladar mobiliario (armario,
+  frigorífico) y cualquier carga desde otro lugar, porte coordinado,
+  bloqueo por bulto/giro/abertura, y el uso de la carretilla/carro como
+  medio (cargar, descargar, estacionar, abandonar, ruido, desgaste por
+  uso en juego). Hoy `collect` sobre mobiliario bloquea con
+  `block.requires_transport_method` y almacenar algo que no está en el
+  lugar bloquea con `block.item_not_at_storage_site`.
+- **Dependientes de S9 (Puerta C)**: retirar la bomba como objeto entero
+  («desinstalar» frente a desmontar), vaciar/desconectar/liberar anclajes
+  como acciones propias y desmontar una instalación como capa de edificio.
+- **Simplificaciones dentro de S7**: el rendimiento de un desmontaje es
+  el declarado por el perfil y el alcance (selectivo/destructivo); la
+  capacidad solo decide si el episodio B fracasa, no modula cuánto se
+  recupera, y no se exigen herramientas concretas para reparar o
+  desmontar. El desmontaje es atómico en `execute`: cancelarlo antes no
+  deja productos parciales. No hay acción genérica «usar», ni
+  mantener/limpiar. Solo se deteriora el alimento fresco. El diagnóstico
+  previo solo se exige a instalaciones técnicas.
+- **E2E del deterioro**: con la semilla estable no hay alimento fresco
+  alcanzable en pocos pasos (solo en la trastienda de un supermercado
+  lejano), así que `e2e/s7-objects.spec.ts` inyecta como fixture un lote
+  fresco en el snapshot guardado; el deterioro lo calcula el núcleo real
+  en el Worker real y lo muestra la interfaz real.
+- **Aceptación manual**: no ejecutada. El guion está abajo.
+
+### Validaciones de la Puerta A (esta sesión)
+
+Ejecutado y en verde al cerrar:
+
+- `npm run typecheck` (todos los paquetes y `apps/web`) y `npm run lint`:
+  sin errores ni avisos.
+- `npx vitest run`: **237 pruebas unitarias en verde** (196 preexistentes
+  de S1-S6 y commits parciales, todas sin regresión, más 41 nuevas:
+  30 de S7 en `jobs/s7-objects.test.ts` —almacenar/retirar, contenedor
+  lleno, sin teletransporte, reservas exclusivas, bomba, carretilla/carro,
+  deterioro, frigorífico, vaciar antes de desmontar, recoger lotes,
+  generación v2, compatibilidad, división/fusión, reanudación—, 5 de
+  catálogo, 5 de proyecciones y 1 de regresión de movimiento).
+- `npm run test:integration` (PostgreSQL 16 real, `zworld_test`): **23 en
+  verde** (18 preexistentes + 5 nuevas en
+  `packages/persistence/src/s7-objects.integration.test.ts`: mochila,
+  bomba, carretilla/carro, deterioro y snapshot con forma anterior a S7;
+  la de la bomba comprueba además que seguir tras recargar da exactamente
+  lo mismo que seguir en memoria).
+- `npm run build` de `apps/web` correcto.
+- `npx playwright test` (Chromium real, `next start` real, PostgreSQL
+  real): **6 E2E en verde**, dos ejecuciones consecutivas (las 5
+  preexistentes más `e2e/s7-objects.spec.ts`). La primera ejecución hizo
+  fallar `village-runtime.spec.ts` por un defecto introducido en esta
+  misma sesión (el redondeo de la distancia recorrida impedía llegar al
+  destino); corregido y con prueba de regresión.
+
+### Guion de aceptación manual para Dennis (S7)
+
+Semilla estable `probe-seed-92` (llegada en (13, 36); vivienda RES-10 a
+~16 m con su primer dormitorio centrado en (0,43, 25,30)):
+
+1. Crear la partida y seleccionar a la segunda protagonista. En
+   «Inventario conocido» aparecen solo sus pertenencias reales (botella con
+   agua dentro de su mochila, mechero, arma…); nada de la vivienda.
+2. «Retirar de almacenamiento» → «Botella (en Mochila)» → Ordenar; después
+   «Almacenar» → «Botella → Mochila». El inventario refleja cada cambio de
+   ubicación y el registro muestra «Se retiró…»/«Se almacenó…».
+3. Mover a la persona al dormitorio (clic derecho en el mapa) y
+   «Registrar» → «Dormitorio». Solo ahora aparecen el armario (con su
+   capacidad) y la madera dentro.
+4. «Reparar» → «Armario»: consume 2 kg de la madera concreta del propio
+   armario (nunca «materiales de reparación»).
+5. «Desmontar (selectivo)» → «Armario»: queda bloqueado con «Hay que vaciar
+   el contenedor…» mientras tenga madera; retirarla (opcionalmente solo una
+   parte, con «Cantidad») y volver a ordenar. «Ordenar» no se activa hasta
+   marcar la casilla de confirmación irreversible. Ordenado a la primera
+   protagonista (más técnica), en la misma secuencia que el E2E el
+   episodio no fracasa: el armario queda
+   «Solo piezas» y la madera producida queda suelta en el dormitorio.
+6. «Recoger» → «Madera y tablones» y guardarla en la mochila.
+7. Acercarse a la fuente comunal (bomba a unos 66 m de la llegada con esta
+   semilla), «Probar instalación» (aparece «Averiado»), intentar «Extraer
+   agua» (bloqueado) y, con piezas mecánicas I y chapa en la mano o al pie
+   de la bomba, repararla y extraer agua: llena el cubo o la botella.
+8. Guardar, recargar y comprobar que todo lo anterior persiste igual.
+
+## Deuda documental previa conservada
+
+La lista original de deuda de los commits parciales (bomba, carretilla/
+carro, `store`/`retrieve_from_storage`, deterioro, catálogo de catorce
+familias, pertenencias SCN-003 por persona, reservas profundas,
+integración PostgreSQL y E2E) queda cerrada por la sección anterior.
