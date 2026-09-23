@@ -11,12 +11,31 @@ import type {
   PersonStateV2,
   ResourceLot,
   SimulationStateV2,
+  StorageItemRef,
+  TransportMeans,
   WorkEpisode,
   WorldObject,
 } from "@z-world/contracts";
 import { bandForMargin, needBandFor, furnitureLocation } from "@z-world/contracts";
-import { ACTION_METHODS_BY_KEY, DISASSEMBLY_PROFILES_BY_ID, REPAIR_PROFILES_BY_ID } from "@z-world/catalogs";
-import { resolveTransformationProfileId } from "./eligibility.js";
+import {
+  ACTION_METHODS_BY_KEY,
+  DISASSEMBLY_PROFILES_BY_ID,
+  DRAW_WATER_LITERS_PER_JOB,
+  EXCLUSIVE_TARGET_ACTION_KEYS,
+  OBJECT_CATALOG_BY_VARIANT,
+  REPAIR_PROFILES_BY_ID,
+} from "@z-world/catalogs";
+import { installationBlockReason, resolveTransformationProfileId } from "./eligibility.js";
+import {
+  itemLocation,
+  liquidCapacityOf,
+  liquidHeldBy,
+  locationWorldPoint,
+  moveItem,
+  resolveHolderPersonId,
+  storageBlockReason,
+} from "../objects/storage.js";
+import { applyUseWear, REPAIRABLE_INACTIVE_REASONS } from "../objects/wear.js";
 import { nextEventId } from "../../sequences.js";
 import type { NavigationIndexV2 } from "../room-graph.js";
 import { findPathV2, resolveNavAnchor } from "../pathfinding-v2.js";
@@ -25,9 +44,9 @@ import { computeEffectiveCapacity, isUniversalCapacity } from "../resolution/cap
 import { sampleVariationB } from "../resolution/model-b.js";
 import { sampleVariationD } from "../resolution/model-d.js";
 import { checkHardRequirements, priorityAllowsWork } from "./eligibility.js";
-import { isPersonCoLocated, locationToNavPoint, resolveTargetLocation } from "./location-utils.js";
+import { isPersonCoLocated, locationToNavPoint, resolveRoomId, resolveTargetLocation } from "./location-utils.js";
 import { selectJobForPerson } from "./planner.js";
-import { releaseJobReservations, reserveResourceLot } from "./reservations.js";
+import { releaseJobReservations, reserveExclusiveTarget, reserveResourceLot, type ReserveResult } from "./reservations.js";
 import { resolveOwnNeedTarget } from "./own-need-resolution.js";
 import { createJob } from "./job-factory.js";
 import { transitionJob } from "./job-transitions.js";
@@ -126,8 +145,14 @@ function assignIdlePeople(ctx: Ctx): void {
         // autonomía discrecional: no la excluye `Nunca`.
         (job.origin === "systemic_need" || priorityAllowsWork(person.public.priorities[job.effectivePriority] ?? "never")),
     );
+    // Un trabajo de orden directa con personas solicitadas explícitamente
+    // (§11.9) no lo puebla el planificador con cualquier otra persona libre:
+    // solo lo toman las solicitadas.
     const currentOpenJobs = Object.values(ctx.state.jobs).filter(
-      (job) => (job.state === "proposed" || job.state === "available") && job.assignments.length < job.desiredTeamSize,
+      (job) =>
+        (job.state === "proposed" || job.state === "available") &&
+        job.assignments.length < job.desiredTeamSize &&
+        (job.requestedPersonIds.length === 0 || job.requestedPersonIds.includes(personId)),
     );
     const chosenJob = directJob ?? selectJobForPerson(ctx.state, personId, currentOpenJobs, ACTION_METHODS_BY_KEY);
     if (!chosenJob) continue;
@@ -158,20 +183,15 @@ function startJob(ctx: Ctx, jobId: string): void {
   let job = ctx.state.jobs[jobId];
   if (!job) return;
 
-  if (job.target.kind === "resource_lot") {
-    const reserveResult = reserveResourceLot(ctx.state, job, job.target.resourceLotId, "reserve");
-    if (!reserveResult) {
-      const blockedResult = transitionJob(ctx.state, job, "blocked", "block.resource_exhausted");
-      ctx.state = { ...ctx.state, sequences: blockedResult.sequences };
-      putJob(ctx, blockedResult.job);
-      ctx.events.push(...blockedResult.events);
-      return;
-    }
-    ctx.state = reserveResult.state;
-    ctx.events.push(...reserveResult.events);
-    job = { ...ctx.state.jobs[jobId]!, reservationIds: [...ctx.state.jobs[jobId]!.reservationIds, reserveResult.reservation.id] };
-    putJob(ctx, job);
+  const reserveFailure = acquireJobReservations(ctx, jobId);
+  if (reserveFailure) {
+    const blockedResult = transitionJob(ctx.state, ctx.state.jobs[jobId]!, "blocked", reserveFailure);
+    ctx.state = { ...ctx.state, sequences: blockedResult.sequences };
+    putJob(ctx, blockedResult.job);
+    ctx.events.push(...blockedResult.events);
+    return;
   }
+  job = ctx.state.jobs[jobId]!;
 
   const availableResult = transitionJob(ctx.state, job, "available", null);
   ctx.state = { ...ctx.state, sequences: availableResult.sequences };
@@ -192,6 +212,71 @@ function startJob(ctx: Ctx, jobId: string): void {
   ctx.state = { ...ctx.state, sequences: inProgressResult.sequences };
   putJob(ctx, markPhaseActive(inProgressResult.job, 0));
   ctx.events.push(...inProgressResult.events);
+}
+
+/**
+ * Blancos que un trabajo compromete en exclusiva (S5 para lotes consumidos;
+ * S7 para objeto/mueble/contenedor/medio y el elemento que se almacena o
+ * retira). Todo o nada: si una reserva falla, se liberan las ya hechas en
+ * esta llamada y se devuelve el motivo de bloqueo.
+ */
+function reservationTargetsFor(job: Job): { kind: "resource_lot" | "world_object" | "furniture" | "container" | "transport_means"; id: string }[] {
+  const targets: { kind: "resource_lot" | "world_object" | "furniture" | "container" | "transport_means"; id: string }[] = [];
+  const exclusive = EXCLUSIVE_TARGET_ACTION_KEYS.has(job.actionKey);
+  switch (job.target.kind) {
+    case "resource_lot":
+      // Beber/comer (S5) y recoger un lote suelto (S7) reservan el lote.
+      targets.push({ kind: "resource_lot", id: job.target.resourceLotId });
+      break;
+    case "world_object":
+      if (exclusive) targets.push({ kind: "world_object", id: job.target.worldObjectId });
+      break;
+    case "furniture":
+      if (exclusive) targets.push({ kind: "furniture", id: job.target.furnitureId });
+      break;
+    case "container":
+      if (exclusive) targets.push({ kind: "container", id: job.target.containerId });
+      break;
+    case "transport_means":
+      if (exclusive) targets.push({ kind: "transport_means", id: job.target.transportMeansId });
+      break;
+    default:
+      break;
+  }
+  if (exclusive && job.storageItem) targets.push({ kind: job.storageItem.kind, id: job.storageItem.id });
+  return targets;
+}
+
+function acquireJobReservations(ctx: Ctx, jobId: string): string | null {
+  const job = ctx.state.jobs[jobId];
+  if (!job) return null;
+  const already = new Set(Object.values(ctx.state.reservations).filter((r) => r.jobId === jobId).map((r) => `${r.targetKind}:${r.targetId}`));
+  const created: string[] = [];
+  for (const target of reservationTargetsFor(job)) {
+    if (already.has(`${target.kind}:${target.id}`)) continue;
+    const current = ctx.state.jobs[jobId]!;
+    let result: ReserveResult | null;
+    if (target.kind === "resource_lot") {
+      result = reserveResourceLot(ctx.state, current, target.id, "reserve");
+    } else {
+      result = reserveExclusiveTarget(ctx.state, current, target.kind, target.id, "reserve");
+    }
+    if (!result) {
+      if (created.length > 0) {
+        const releaseResult = releaseJobReservations(ctx.state, jobId);
+        ctx.state = releaseResult.state;
+        ctx.events.push(...releaseResult.events);
+        putJob(ctx, { ...ctx.state.jobs[jobId]!, reservationIds: ctx.state.jobs[jobId]!.reservationIds.filter((id) => !created.includes(id)) });
+      }
+      const exists = target.kind === "resource_lot" ? Boolean(ctx.state.resourceLots[target.id]) : true;
+      return target.kind === "resource_lot" ? (exists ? "block.resource_reserved" : "block.resource_exhausted") : "block.target_reserved";
+    }
+    ctx.state = result.state;
+    ctx.events.push(...result.events);
+    created.push(result.reservation.id);
+    putJob(ctx, { ...ctx.state.jobs[jobId]!, reservationIds: [...ctx.state.jobs[jobId]!.reservationIds, result.reservation.id] });
+  }
+  return null;
 }
 
 function markPhaseActive(job: Job, index: number): Job {
@@ -216,10 +301,35 @@ function reviveBlockedJobs(ctx: Ctx): void {
     }
     const hardCheck = checkHardRequirements(def, ctx.state, executorId, current.target);
     if (!hardCheck.ok) continue;
-    const result = transitionJob(ctx.state, current, "in_progress", null);
+    // Un bloqueo de fase (S7) solo se reevalúa cuando su causa concreta ha
+    // cambiado: reanudar y volver a bloquear en el mismo tick sería
+    // telemetría sin límite causal.
+    if (phaseBlockerStillApplies(ctx.state, current, executorId)) continue;
+    if (acquireJobReservations(ctx, current.id)) continue;
+    const result = transitionJob(ctx.state, ctx.state.jobs[current.id]!, "in_progress", null);
     ctx.state = { ...ctx.state, sequences: result.sequences };
     putJob(ctx, result.job);
     ctx.events.push(...result.events);
+  }
+}
+
+/** ¿Sigue vigente la causa concreta de un bloqueo de fase? Solo cubre los motivos de S7 y de materiales; el resto se reevalúa como en S4-S6. */
+function phaseBlockerStillApplies(state: SimulationStateV2, job: Job, executorId: string): boolean {
+  switch (job.blockReasonKey) {
+    case "block.irreversible_not_confirmed":
+      return !job.irreversibleConfirmed;
+    case "block.missing_materials":
+      return missingMaterialsForRepair(state, job, executorId) !== null;
+    case "block.container_full":
+    case "block.container_incompatible":
+    case "block.item_not_at_storage_site":
+    case "block.item_not_in_container":
+    case "block.container_not_empty":
+    case "block.transport_loaded":
+    case "block.no_liquid_vessel":
+      return storagePhaseBlockReason(state, job, executorId) !== null || disassemblyPreconditionReason(state, job) !== null || drawWaterVesselReason(state, job, executorId) !== null;
+    default:
+      return false;
   }
 }
 
@@ -328,6 +438,11 @@ function progressJob(ctx: Ctx, jobId: string): void {
         blockJob(ctx, jobId, hardCheck.reasonKey ?? "block.requirement_failed");
         return;
       }
+      const storageReason = storageValidationReason(ctx.state, job);
+      if (storageReason) {
+        blockJob(ctx, jobId, storageReason);
+        return;
+      }
       completePhase(ctx, jobId);
       return;
     }
@@ -346,7 +461,19 @@ function progressJob(ctx: Ctx, jobId: string): void {
       return;
     }
     case "collect": {
+      if (job.actionKey === "retrieve_from_storage") {
+        progressRetrievePhase(ctx, jobId, executorId);
+        return;
+      }
       progressCollectPhase(ctx, jobId, executorId);
+      return;
+    }
+    case "deliver": {
+      if (job.actionKey === "store") {
+        progressStorePhase(ctx, jobId, executorId);
+        return;
+      }
+      completePhase(ctx, jobId);
       return;
     }
     case "prepare": {
@@ -366,35 +493,119 @@ function progressJob(ctx: Ctx, jobId: string): void {
   }
 }
 
-/** Fase `collect` de §11.3/§15.7 (S7): mueve el objeto suelto a la persona ejecutora en un único límite causal, nunca por teletransporte silencioso. */
+/** Fase `collect` de §11.3/§15.7 (S7): mueve el objeto o lote suelto a la persona ejecutora en un único límite causal, nunca por teletransporte silencioso. */
 function progressCollectPhase(ctx: Ctx, jobId: string, executorId: string): void {
   const job = ctx.state.jobs[jobId];
   if (!job) return;
-  if (job.target.kind !== "world_object") {
+  if (job.target.kind !== "world_object" && job.target.kind !== "resource_lot") {
     // El mobiliario pesado exige un método de transporte de S8 (porte
     // coordinado, carretilla, carro), todavía sin implementar: bloquear con
     // motivo causal es más honesto que fingir una recogida a pulso.
     blockJob(ctx, jobId, "block.requires_transport_method");
     return;
   }
-  const obj = ctx.state.worldObjects[job.target.worldObjectId];
-  if (!obj) {
+  const ref: StorageItemRef = job.target.kind === "world_object" ? { kind: "world_object", id: job.target.worldObjectId } : { kind: "resource_lot", id: job.target.resourceLotId };
+  const location = itemLocation(ctx.state, ref);
+  if (!location) {
     failJobCausally(ctx, jobId, "block.target_no_longer_exists");
     return;
   }
-  ctx.state = { ...ctx.state, worldObjects: { ...ctx.state.worldObjects, [obj.id]: { ...obj, location: { kind: "carried_by_person", personId: executorId }, ownerOrReservedByJobId: null } } };
+  if (ref.kind === "world_object") {
+    const obj = ctx.state.worldObjects[ref.id]!;
+    if (obj.portability === "fixed" || obj.installedAt) {
+      blockJob(ctx, jobId, "block.requires_transport_method");
+      return;
+    }
+  }
+  ctx.state = moveItem(ctx.state, ref, { kind: "carried_by_person", personId: executorId });
   const eventId = withNextEventId(ctx);
-  emit(ctx, { type: "object_collected", eventId, simSeconds: ctx.state.clock.elapsedSimSeconds, causedByCommandId: null, objectId: obj.id, entityKind: "world_object", personId: executorId, jobId });
+  emit(ctx, { type: "object_collected", eventId, simSeconds: ctx.state.clock.elapsedSimSeconds, causedByCommandId: null, objectId: ref.id, entityKind: ref.kind, personId: executorId, jobId });
   completePhase(ctx, jobId);
 }
 
 /**
- * Fase `prepare` (S7 §16.2/§16.4): para `repair`, reserva y consume las
- * familias de recurso concretas de la receta en un único límite causal, sin
- * pila universal; para `disassemble_*`, exige la confirmación informada del
- * coste irreversible antes de tocar nada. Otros métodos que declaren
- * `prepare` sin lógica propia simplemente la completan (documentado como
- * deuda si llegara a ocurrir).
+ * Validación propia de `store`/`retrieve_from_storage` en la fase
+ * `validate` (S7 §6.3/§6.4): el elemento debe existir y, al almacenar,
+ * caber en el contenedor real (capacidad y compatibilidad); al retirar,
+ * estar realmente dentro de él.
+ */
+function storageValidationReason(state: SimulationStateV2, job: Job): string | null {
+  if (job.actionKey !== "store" && job.actionKey !== "retrieve_from_storage") return null;
+  if (job.target.kind !== "container") return "block.no_storage_container_selected";
+  const container = state.containers[job.target.containerId];
+  if (!container) return "block.target_no_longer_exists";
+  if (!job.storageItem) return "block.no_storage_item_selected";
+  const location = itemLocation(state, job.storageItem);
+  if (!location) return "block.target_no_longer_exists";
+  if (job.actionKey === "retrieve_from_storage") {
+    return location.kind === "container" && location.containerId === container.id ? null : "block.item_not_in_container";
+  }
+  return storageBlockReason(state, container, job.storageItem);
+}
+
+/** Motivo por el que la fase física de almacenar/retirar no puede ocurrir ahora mismo, o `null`. */
+function storagePhaseBlockReason(state: SimulationStateV2, job: Job, executorId: string): string | null {
+  if (job.actionKey !== "store" && job.actionKey !== "retrieve_from_storage") return null;
+  const validation = storageValidationReason(state, job);
+  if (validation) return validation;
+  if (job.actionKey === "retrieve_from_storage") return null;
+  // Almacenar: el elemento debe estar ya en el lugar (lo lleva la persona
+  // ejecutora, o está suelto en la misma estancia/alcance que el
+  // contenedor). Traerlo desde otra parte es transporte (S8), nunca un
+  // teletransporte implícito.
+  const container = state.containers[(job.target as { containerId: string }).containerId]!;
+  const location = itemLocation(state, job.storageItem!)!;
+  const holder = resolveHolderPersonId(state, location);
+  if (holder === executorId) return null;
+  if (holder !== null) return "block.item_not_at_storage_site";
+  if (!isPersonCoLocated(state, executorId, location)) return "block.item_not_at_storage_site";
+  const containerRoom = resolveRoomId(state, container.location);
+  const itemRoom = resolveRoomId(state, location);
+  if (containerRoom !== itemRoom) return "block.item_not_at_storage_site";
+  return null;
+}
+
+/** Fase `deliver` de `store` (S7 §6.4): deja el elemento dentro del contenedor real en un único límite causal. */
+function progressStorePhase(ctx: Ctx, jobId: string, executorId: string): void {
+  const job = ctx.state.jobs[jobId];
+  if (!job || job.target.kind !== "container" || !job.storageItem) return;
+  const reason = storagePhaseBlockReason(ctx.state, job, executorId);
+  if (reason) {
+    if (reason === "block.target_no_longer_exists") failJobCausally(ctx, jobId, reason);
+    else blockJob(ctx, jobId, reason);
+    return;
+  }
+  const containerId = job.target.containerId;
+  ctx.state = moveItem(ctx.state, job.storageItem, { kind: "container", containerId });
+  const eventId = withNextEventId(ctx);
+  emit(ctx, { type: "object_stored", eventId, simSeconds: ctx.state.clock.elapsedSimSeconds, causedByCommandId: null, objectId: job.storageItem.id, entityKind: job.storageItem.kind, containerId, jobId });
+  completePhase(ctx, jobId);
+}
+
+/** Fase `collect` de `retrieve_from_storage` (S7 §6.4): saca el elemento del contenedor real y lo deja en manos de la persona ejecutora. */
+function progressRetrievePhase(ctx: Ctx, jobId: string, executorId: string): void {
+  const job = ctx.state.jobs[jobId];
+  if (!job || job.target.kind !== "container" || !job.storageItem) return;
+  const reason = storagePhaseBlockReason(ctx.state, job, executorId);
+  if (reason) {
+    if (reason === "block.target_no_longer_exists") failJobCausally(ctx, jobId, reason);
+    else blockJob(ctx, jobId, reason);
+    return;
+  }
+  const containerId = job.target.containerId;
+  ctx.state = moveItem(ctx.state, job.storageItem, { kind: "carried_by_person", personId: executorId });
+  const eventId = withNextEventId(ctx);
+  emit(ctx, { type: "object_retrieved", eventId, simSeconds: ctx.state.clock.elapsedSimSeconds, causedByCommandId: null, objectId: job.storageItem.id, entityKind: job.storageItem.kind, containerId, jobId });
+  completePhase(ctx, jobId);
+}
+
+/**
+ * Fase `prepare` (S7 §16.2/§16.4, SET-009 §3.4 paso 5): para `repair`,
+ * reserva y consume las familias de recurso concretas de la receta en un
+ * único límite causal, sin pila universal; para `disassemble_*`, exige la
+ * confirmación informada del coste irreversible y que el objeto esté
+ * vaciado/descargado antes de tocar nada. Otros métodos que declaren
+ * `prepare` sin lógica propia simplemente la completan.
  */
 function progressPreparePhase(ctx: Ctx, jobId: string): void {
   const job = ctx.state.jobs[jobId];
@@ -405,34 +616,29 @@ function progressPreparePhase(ctx: Ctx, jobId: string): void {
       blockJob(ctx, jobId, "block.irreversible_not_confirmed");
       return;
     }
+    const precondition = disassemblyPreconditionReason(ctx.state, job);
+    if (precondition) {
+      blockJob(ctx, jobId, precondition);
+      return;
+    }
     completePhase(ctx, jobId);
     return;
   }
 
   if (job.actionKey === "repair") {
+    const executorId = primaryExecutorId(job);
     const profileId = resolveTransformationProfileId(ctx.state, job.target, "repair");
     const profile = profileId ? REPAIR_PROFILES_BY_ID.get(profileId) : undefined;
-    if (!profile) {
+    if (!profile || !executorId) {
       blockJob(ctx, jobId, "block.no_transformation_profile");
       return;
     }
-    const roomId = transformTargetRoomId(ctx.state, job.target);
-    const consumed: { lotId: string; quantity: number }[] = [];
-    for (const requirement of profile.requirements) {
-      const available = findCoLocatedResourceLots(ctx.state, roomId, requirement.resourceFamily);
-      let remaining = requirement.quantity;
-      for (const lot of available) {
-        if (remaining <= 0) break;
-        const take = Math.min(remaining, lot.quantity);
-        consumed.push({ lotId: lot.id, quantity: take });
-        remaining -= take;
-      }
-      if (remaining > 0) {
-        blockJob(ctx, jobId, "block.missing_materials");
-        return;
-      }
+    const plan = missingMaterialsForRepair(ctx.state, job, executorId);
+    if (plan === null || plan.missing) {
+      blockJob(ctx, jobId, "block.missing_materials");
+      return;
     }
-    for (const { lotId, quantity } of consumed) {
+    for (const { lotId, quantity } of plan.consumed) {
       consumeResourceLotQuantity(ctx, lotId, quantity, jobId);
     }
     completePhase(ctx, jobId);
@@ -442,42 +648,75 @@ function progressPreparePhase(ctx: Ctx, jobId: string): void {
   completePhase(ctx, jobId);
 }
 
-function transformTargetRoomId(state: SimulationStateV2, target: JobTarget): string | null {
-  if (target.kind === "world_object") {
-    const obj = state.worldObjects[target.worldObjectId];
-    return obj && obj.location.kind === "room" ? obj.location.roomId : null;
-  }
-  if (target.kind === "furniture") {
-    const furniture = state.furniture[target.furnitureId];
-    if (!furniture) return null;
-    const location = furnitureLocation(furniture);
-    return location.kind === "room" ? location.roomId : null;
-  }
+/** Desmontar exige vaciar el contenedor anfitrión y descargar el medio (SET-009 §3.4 paso 5). `null` si se puede desmontar ya. */
+function disassemblyPreconditionReason(state: SimulationStateV2, job: Job): string | null {
+  if (job.actionKey !== "disassemble_selective" && job.actionKey !== "disassemble_destructive") return null;
+  const resolved = resolveTransformEntity(state, job.target);
+  if (!resolved) return null;
+  if (resolved.kind === "transport_means") return resolved.entity.currentLoadBundleId ? "block.transport_loaded" : null;
+  const containerId = resolved.entity.containerId;
+  const container = containerId ? state.containers[containerId] : undefined;
+  if (container && container.contentIds.length > 0) return "block.container_not_empty";
   return null;
 }
 
-function findCoLocatedResourceLots(state: SimulationStateV2, roomId: string | null, family: ResourceLot["family"]): ResourceLot[] {
-  if (!roomId) return [];
-  return Object.values(state.resourceLots).filter((lot) => lot.family === family && lot.quantity > 0 && !lot.reservedByJobId && lotRoomId(state, lot) === roomId);
+/**
+ * Materiales concretos disponibles para una reparación en el lugar de
+ * trabajo (S7 §6.8, CAT-005 §4.3): lotes en la misma estancia que el
+ * objetivo (sueltos o en contenedores), lotes que lleva la propia persona
+ * ejecutora, o lotes al alcance (≤ 6 m) de un objetivo exterior como la
+ * bomba. Nunca de un almacén remoto ni de lo que lleva otra persona.
+ * Devuelve `null` si el trabajo no es una reparación con perfil; si no,
+ * el plan de consumo y si falta algo.
+ */
+function missingMaterialsForRepair(state: SimulationStateV2, job: Job, executorId: string): { consumed: { lotId: string; quantity: number }[]; missing: boolean } | null {
+  if (job.actionKey !== "repair") return null;
+  const profileId = resolveTransformationProfileId(state, job.target, "repair");
+  const profile = profileId ? REPAIR_PROFILES_BY_ID.get(profileId) : undefined;
+  if (!profile) return null;
+  const targetLocation = resolveTargetLocation(state, job.target);
+  if (!targetLocation) return null;
+  const consumed: { lotId: string; quantity: number }[] = [];
+  let missing = false;
+  for (const requirement of profile.requirements) {
+    const available = findWorkSiteResourceLots(state, targetLocation, executorId, requirement.resourceFamily);
+    let remaining = requirement.quantity;
+    for (const lot of available) {
+      if (remaining <= 0) break;
+      const take = Math.min(remaining, lot.quantity);
+      consumed.push({ lotId: lot.id, quantity: take });
+      remaining -= take;
+    }
+    if (remaining > 0) missing = true;
+  }
+  return { consumed, missing };
 }
 
-function lotRoomId(state: SimulationStateV2, lot: ResourceLot): string | null {
-  if (lot.location.kind === "room") return lot.location.roomId;
-  if (lot.location.kind === "container") {
-    const container = state.containers[lot.location.containerId];
-    return container && container.location.kind === "room" ? container.location.roomId : null;
-  }
-  return null;
+const WORK_SITE_REACH_METERS = 6;
+
+function findWorkSiteResourceLots(state: SimulationStateV2, targetLocation: Job["location"], executorId: string, family: ResourceLot["family"]): ResourceLot[] {
+  const targetRoomId = resolveRoomId(state, targetLocation);
+  const targetPoint = targetRoomId ? null : locationWorldPoint(state, targetLocation);
+  return Object.values(state.resourceLots)
+    .filter((lot) => lot.family === family && lot.quantity > 0 && !lot.reservedByJobId)
+    .filter((lot) => {
+      const holder = resolveHolderPersonId(state, lot.location);
+      if (holder === executorId) return true;
+      if (holder !== null) return false; // lo lleva otra persona: no se consume a distancia.
+      if (targetRoomId) return resolveRoomId(state, lot.location) === targetRoomId;
+      if (!targetPoint) return false;
+      if (resolveRoomId(state, lot.location) !== null) return false;
+      const lotPoint = locationWorldPoint(state, lot.location);
+      return lotPoint !== null && Math.hypot(lotPoint.x - targetPoint.x, lotPoint.y - targetPoint.y) <= WORK_SITE_REACH_METERS;
+    })
+    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 }
 
 function consumeResourceLotQuantity(ctx: Ctx, lotId: string, quantity: number, jobId: string): void {
   const lot = ctx.state.resourceLots[lotId];
   if (!lot) return;
   const nextQuantity = lot.quantity - quantity;
-  ctx.state = {
-    ...ctx.state,
-    resourceLots: nextQuantity <= 0 ? removeKey(ctx.state.resourceLots, lotId) : { ...ctx.state.resourceLots, [lotId]: { ...lot, quantity: nextQuantity } },
-  };
+  ctx.state = nextQuantity <= 0 ? removeResourceLot(ctx.state, lotId) : { ...ctx.state, resourceLots: { ...ctx.state.resourceLots, [lotId]: { ...lot, quantity: nextQuantity } } };
   const eventId = withNextEventId(ctx);
   emit(ctx, { type: "resource_lot_consumed", eventId, simSeconds: ctx.state.clock.elapsedSimSeconds, causedByCommandId: null, resourceLotId: lotId, jobId, quantity });
 }
@@ -651,10 +890,125 @@ function applyConsequences(ctx: Ctx, job: Job, def: ActionMethodDefinition, exec
   if (job.actionKey === "disassemble_selective" || job.actionKey === "disassemble_destructive") {
     applyDisassemblyConsequences(ctx, job);
   }
+  if (job.actionKey === "test_installation") {
+    applyInstallationTestConsequences(ctx, job);
+  }
+  if (job.actionKey === "draw_water") {
+    applyDrawWaterConsequences(ctx, job, executorId);
+  }
 }
 
-/** Objeto o mueble transformable referenciado por un `JobTarget` (S7 §16). `null` si el blanco no es transformable o ya no existe. */
-function resolveTransformEntity(state: SimulationStateV2, target: JobTarget): { kind: "world_object"; entity: WorldObject } | { kind: "furniture"; entity: Furniture } | null {
+/** Probar/diagnosticar (S7 §6.10): la comunidad reconoce el estado funcional real y las causas de las funciones inactivas. */
+function applyInstallationTestConsequences(ctx: Ctx, job: Job): void {
+  if (job.target.kind !== "world_object") return;
+  const obj = ctx.state.worldObjects[job.target.worldObjectId];
+  if (!obj) return;
+  const evidence = `tested@${ctx.state.clock.elapsedSimSeconds}`;
+  ctx.state = { ...ctx.state, worldObjects: { ...ctx.state.worldObjects, [obj.id]: { ...obj, knownEvidenceIds: [...obj.knownEvidenceIds, evidence] } } };
+  const eventId = withNextEventId(ctx);
+  emit(ctx, {
+    type: "installation_tested",
+    eventId,
+    simSeconds: ctx.state.clock.elapsedSimSeconds,
+    causedByCommandId: null,
+    objectId: obj.id,
+    jobId: job.id,
+    functionalState: obj.functionalState,
+    inactiveFunctionKeys: Object.keys(obj.inactiveFunctionReasons).sort(),
+  });
+}
+
+/** Recipientes de líquido con hueco que la persona lleva o que están al pie de la instalación, en orden estable. */
+function waterVesselsFor(state: SimulationStateV2, pump: WorldObject, executorId: string): { obj: WorldObject; free: number }[] {
+  const pumpPoint = locationWorldPoint(state, pump.location);
+  return Object.values(state.worldObjects)
+    .filter((o) => o.id !== pump.id)
+    .map((o) => ({ obj: o, capacity: liquidCapacityOf(o) }))
+    .filter((v): v is { obj: WorldObject; capacity: number } => v.capacity !== null)
+    .filter(({ obj }) => {
+      const holder = resolveHolderPersonId(state, obj.location);
+      if (holder === executorId) return true;
+      if (holder !== null || !pumpPoint) return false;
+      const point = locationWorldPoint(state, obj.location);
+      return point !== null && resolveRoomId(state, obj.location) === null && Math.hypot(point.x - pumpPoint.x, point.y - pumpPoint.y) <= WORK_SITE_REACH_METERS;
+    })
+    .map(({ obj, capacity }) => ({ obj, free: Math.max(0, capacity - liquidHeldBy(state, obj.id)) }))
+    .filter((v) => v.free > 0)
+    .sort((a, b) => (a.obj.id < b.obj.id ? -1 : a.obj.id > b.obj.id ? 1 : 0));
+}
+
+function drawWaterVesselReason(state: SimulationStateV2, job: Job, executorId: string): string | null {
+  if (job.actionKey !== "draw_water" || job.target.kind !== "world_object") return null;
+  const pump = state.worldObjects[job.target.worldObjectId];
+  if (!pump) return null;
+  return waterVesselsFor(state, pump, executorId).length === 0 ? "block.no_liquid_vessel" : null;
+}
+
+/**
+ * Extraer agua (S7 §6.10): una bomba funcional conectada a su fuente llena
+ * recipientes reales (que lleva la persona o que están al pie de la
+ * bomba), nunca crea agua suelta ni en un almacén abstracto. Cada
+ * extracción desgasta la bomba de forma determinista; al cruzar el umbral
+ * del catálogo se avería con motivo causal y deja de producir agua hasta
+ * que alguien la repare con piezas concretas.
+ */
+function applyDrawWaterConsequences(ctx: Ctx, job: Job, executorId: string): void {
+  if (job.target.kind !== "world_object") return;
+  const pump = ctx.state.worldObjects[job.target.worldObjectId];
+  if (!pump) return;
+  if (installationBlockReason(ctx.state, pump)) return; // se averió o desconectó entre tanto: no hay agua.
+  let remaining = DRAW_WATER_LITERS_PER_JOB;
+  for (const { obj, free } of waterVesselsFor(ctx.state, pump, executorId)) {
+    if (remaining <= 0) break;
+    const liters = Math.min(free, remaining);
+    remaining -= liters;
+    const existing = Object.values(ctx.state.resourceLots).find((lot) => lot.family === "water" && lot.location.kind === "on_object" && lot.location.objectId === obj.id);
+    let lotId: string;
+    if (existing) {
+      lotId = existing.id;
+      ctx.state = { ...ctx.state, resourceLots: { ...ctx.state.resourceLots, [lotId]: { ...existing, quantity: Math.round((existing.quantity + liters) * 1000) / 1000 } } };
+    } else {
+      lotId = `resource-lot-${ctx.state.sequences.nextEntityOrdinal}`;
+      ctx.state = { ...ctx.state, sequences: { ...ctx.state.sequences, nextEntityOrdinal: ctx.state.sequences.nextEntityOrdinal + 1 } };
+      const lot: ResourceLot = {
+        id: lotId,
+        family: "water",
+        quantity: liters,
+        unit: "liter",
+        location: { kind: "on_object", objectId: obj.id },
+        condition: 1,
+        reservedByJobId: null,
+        qualityKnown: true,
+        quality: 1,
+        provenance: `drawn_from:${pump.id}`,
+        decayStartedAtSimSeconds: null,
+        conditionAtDecayStart: null,
+      };
+      ctx.state = { ...ctx.state, resourceLots: { ...ctx.state.resourceLots, [lotId]: lot } };
+    }
+    const eventId = withNextEventId(ctx);
+    emit(ctx, { type: "water_drawn", eventId, simSeconds: ctx.state.clock.elapsedSimSeconds, causedByCommandId: null, objectId: pump.id, jobId: job.id, resourceLotId: lotId, quantity: liters });
+  }
+
+  const wear = OBJECT_CATALOG_BY_VARIANT.get(pump.variant)?.wear;
+  if (!wear) return;
+  const worn = applyUseWear(ctx.state.worldObjects[pump.id]!, wear);
+  const wornEntity = worn.brokeDown ? { ...worn.entity, knownEvidenceIds: [...worn.entity.knownEvidenceIds, `broke_down@${ctx.state.clock.elapsedSimSeconds}`] } : worn.entity;
+  ctx.state = { ...ctx.state, worldObjects: { ...ctx.state.worldObjects, [pump.id]: wornEntity } };
+  if (worn.brokeDown) {
+    const eventId = withNextEventId(ctx);
+    emit(ctx, { type: "object_broke_down", eventId, simSeconds: ctx.state.clock.elapsedSimSeconds, causedByCommandId: null, objectId: pump.id, entityKind: "world_object", jobId: job.id, reasonKey: "worn_out" });
+  }
+}
+
+type TransformEntity = { kind: "world_object"; entity: WorldObject } | { kind: "furniture"; entity: Furniture } | { kind: "transport_means"; entity: TransportMeans };
+
+/** Objeto, mueble o medio transformable referenciado por un `JobTarget` (S7 §16). `null` si el blanco no es transformable o ya no existe. */
+function resolveTransformEntity(state: SimulationStateV2, target: JobTarget): TransformEntity | null {
+  if (target.kind === "transport_means") {
+    const entity = state.transportMeans[target.transportMeansId];
+    return entity ? { kind: "transport_means", entity } : null;
+  }
   if (target.kind === "world_object") {
     const entity = state.worldObjects[target.worldObjectId];
     return entity ? { kind: "world_object", entity } : null;
@@ -666,9 +1020,11 @@ function resolveTransformEntity(state: SimulationStateV2, target: JobTarget): { 
   return null;
 }
 
-function putTransformEntity(ctx: Ctx, resolved: { kind: "world_object"; entity: WorldObject } | { kind: "furniture"; entity: Furniture }): void {
+function putTransformEntity(ctx: Ctx, resolved: TransformEntity): void {
   if (resolved.kind === "world_object") {
     ctx.state = { ...ctx.state, worldObjects: { ...ctx.state.worldObjects, [resolved.entity.id]: resolved.entity } };
+  } else if (resolved.kind === "transport_means") {
+    ctx.state = { ...ctx.state, transportMeans: { ...ctx.state.transportMeans, [resolved.entity.id]: resolved.entity } };
   } else {
     ctx.state = { ...ctx.state, furniture: { ...ctx.state.furniture, [resolved.entity.id]: resolved.entity } };
   }
@@ -683,10 +1039,31 @@ function applyRepairConsequences(ctx: Ctx, job: Job, band: OutcomeBand): void {
   if (!profile) return;
   if (resolved.entity.functionalState === "irreparable") return; // una reparación nunca recupera automáticamente una función declarada irreparable (§16.2).
 
+  if (resolved.entity.functionalState === "parts_only") return; // lo desmontado no se reconstruye reparando (§6.9: "cancelar no reconstruye lo ya retirado").
+
   const outcome: "complete" | "provisional" | "partial" = band === "exceptional" || band === "favorable" ? "complete" : band === "uncertain" ? "provisional" : "partial";
   const functionalStateAfter = outcome === "complete" ? profile.bestCaseFunctionalState : outcome === "provisional" ? "degraded" : resolved.entity.functionalState;
 
-  putTransformEntity(ctx, { ...resolved, entity: { ...resolved.entity, functionalState: functionalStateAfter, condition: Math.min(1, resolved.entity.condition + (outcome === "partial" ? 0.05 : 0.25)) } } as typeof resolved);
+  // Solo se recuperan funciones cuyo motivo de inactividad es reparable con
+  // piezas (S7 §6.8): `no_electricity` o `disassembled` nunca se levantan.
+  const restoresFunctions = outcome !== "partial";
+  const inactive = { ...resolved.entity.inactiveFunctionReasons };
+  const functions = [...resolved.entity.functions];
+  if (restoresFunctions) {
+    for (const [fn, reason] of Object.entries(resolved.entity.inactiveFunctionReasons)) {
+      if (!REPAIRABLE_INACTIVE_REASONS.has(reason)) continue;
+      delete inactive[fn];
+      if (!functions.includes(fn)) functions.push(fn);
+    }
+  }
+  const repairedFields = {
+    functionalState: functionalStateAfter,
+    condition: Math.round(Math.min(1, resolved.entity.condition + (outcome === "partial" ? 0.05 : 0.25)) * 10000) / 10000,
+    functions,
+    inactiveFunctionReasons: inactive,
+    knownEvidenceIds: [...resolved.entity.knownEvidenceIds, `repaired@${ctx.state.clock.elapsedSimSeconds}`],
+  };
+  putTransformEntity(ctx, { ...resolved, entity: { ...resolved.entity, ...repairedFields } } as TransformEntity);
 
   const eventId = withNextEventId(ctx);
   emit(ctx, {
@@ -718,7 +1095,7 @@ function applyDisassemblyConsequences(ctx: Ctx, job: Job): void {
   if (!profile) return;
   const scope = job.disassemblyScope ?? "selective";
 
-  const location = resolved.kind === "world_object" ? resolved.entity.location : furnitureLocation(resolved.entity);
+  const location = resolved.kind === "furniture" ? furnitureLocation(resolved.entity) : resolved.entity.location;
   const producedResourceLotIds: string[] = [];
   for (const output of profile.outputs) {
     const quantity = scope === "selective" ? output.selectiveQuantity : output.destructiveQuantity;
@@ -737,6 +1114,7 @@ function applyDisassemblyConsequences(ctx: Ctx, job: Job): void {
       quality: scope === "selective" ? 0.8 : 0.5,
       provenance: `disassembled_from:${resolved.entity.id}`,
       decayStartedAtSimSeconds: null,
+      conditionAtDecayStart: null,
     };
     ctx.state = { ...ctx.state, resourceLots: { ...ctx.state.resourceLots, [lotId]: lot } };
     producedResourceLotIds.push(lotId);
@@ -744,10 +1122,16 @@ function applyDisassemblyConsequences(ctx: Ctx, job: Job): void {
 
   const remainingInactive = { ...resolved.entity.inactiveFunctionReasons };
   for (const fn of profile.functionsLost) remainingInactive[fn] = "disassembled";
-  putTransformEntity(ctx, {
-    ...resolved,
-    entity: { ...resolved.entity, functionalState: "parts_only", functions: [], inactiveFunctionReasons: remainingInactive, capacityUnits: null },
-  } as typeof resolved);
+  const disassembledFields =
+    resolved.kind === "transport_means"
+      ? { functionalState: "parts_only" as const, functions: [], inactiveFunctionReasons: remainingInactive }
+      : { functionalState: "parts_only" as const, functions: [], inactiveFunctionReasons: remainingInactive, capacityUnits: null };
+  putTransformEntity(ctx, { ...resolved, entity: { ...resolved.entity, ...disassembledFields } } as TransformEntity);
+  // El contenedor que materializaba el almacenamiento deja de admitir
+  // contenido para siempre (ya se exigió vaciarlo en `prepare`).
+  const hostedContainerId = resolved.kind === "transport_means" ? null : resolved.entity.containerId;
+  const hostedContainer = hostedContainerId ? ctx.state.containers[hostedContainerId] : undefined;
+  if (hostedContainer) ctx.state = { ...ctx.state, containers: { ...ctx.state.containers, [hostedContainer.id]: { ...hostedContainer, capacityUnits: 0 } } };
 
   const eventId = withNextEventId(ctx);
   emit(ctx, {
@@ -812,10 +1196,10 @@ function consumeResourceLot(ctx: Ctx, job: Job, executorId: string, resourceLotI
   const consumed = Math.min(quantity, lot.quantity);
   if (consumed <= 0) return;
   const nextQuantity = lot.quantity - consumed;
-  ctx.state = {
-    ...ctx.state,
-    resourceLots: nextQuantity <= 0 ? removeKey(ctx.state.resourceLots, resourceLotId) : { ...ctx.state.resourceLots, [resourceLotId]: { ...lot, quantity: nextQuantity, reservedByJobId: null } },
-  };
+  ctx.state =
+    nextQuantity <= 0
+      ? removeResourceLot(ctx.state, resourceLotId)
+      : { ...ctx.state, resourceLots: { ...ctx.state.resourceLots, [resourceLotId]: { ...lot, quantity: nextQuantity, reservedByJobId: null } } };
   const eventId = withNextEventId(ctx);
   emit(ctx, {
     type: "consumption_happened",
@@ -832,6 +1216,18 @@ function consumeResourceLot(ctx: Ctx, job: Job, executorId: string, resourceLotI
   const nextNeeds = dimension === "hydration" ? applyHydrationRecovery(executor.needs, consumed) : applyNutritionRecovery(executor.needs, consumed);
   setPerson(ctx, executorId, { ...ctx.state.people[executorId]!, needs: nextNeeds });
   emitNeedChangedIfBandShifted(ctx, executorId, dimension, before, needOf(nextNeeds, dimension).value);
+}
+
+/** Elimina un lote agotado sin dejar contenido huérfano en su contenedor (jerarquía bidireccional, §6.4). */
+function removeResourceLot(state: SimulationStateV2, lotId: string): SimulationStateV2 {
+  const lot = state.resourceLots[lotId];
+  if (!lot) return state;
+  let containers = state.containers;
+  if (lot.location.kind === "container") {
+    const container = containers[lot.location.containerId];
+    if (container) containers = { ...containers, [container.id]: { ...container, contentIds: container.contentIds.filter((id) => id !== lotId) } };
+  }
+  return { ...state, containers, resourceLots: removeKey(state.resourceLots, lotId) };
 }
 
 function removeKey<T>(record: Readonly<Record<string, T>>, key: string): Readonly<Record<string, T>> {

@@ -188,6 +188,8 @@ export type JobTarget =
   | { readonly kind: "furniture"; readonly furnitureId: string }
   | { readonly kind: "world_object"; readonly worldObjectId: string }
   | { readonly kind: "container"; readonly containerId: string }
+  /** Carretilla/carro como objeto completo (S7 §6.10): reparar, desmontar, diagnosticar. El uso como medio de carga es S8. */
+  | { readonly kind: "transport_means"; readonly transportMeansId: string }
   | { readonly kind: "area"; readonly polygon: readonly WorldPoint[] }
   | { readonly kind: "own_need"; readonly personId: string; readonly dimension: NeedDimension };
 
@@ -200,9 +202,16 @@ export const jobTargetSchema: z.ZodType<JobTarget> = z.discriminatedUnion("kind"
   z.object({ kind: z.literal("furniture"), furnitureId: z.string() }),
   z.object({ kind: z.literal("world_object"), worldObjectId: z.string() }),
   z.object({ kind: z.literal("container"), containerId: z.string() }),
+  z.object({ kind: z.literal("transport_means"), transportMeansId: z.string() }),
   z.object({ kind: z.literal("area"), polygon: z.array(worldPointSchema) }),
   z.object({ kind: z.literal("own_need"), personId: z.string(), dimension: z.enum(NEED_DIMENSIONS) }),
 ]);
+
+/** Referencia a un objeto o lote que un trabajo de almacenamiento mueve (S7). */
+export interface StorageItemRef {
+  readonly kind: "world_object" | "resource_lot";
+  readonly id: string;
+}
 
 export interface JobTimeLimit {
   readonly kind: "until_complete" | "until_sim_seconds" | "quantity";
@@ -255,6 +264,13 @@ export interface Job {
    * `ActionMethodDefinition` nunca progresa de fase `prepare` sin esto.
    */
   readonly irreversibleConfirmed: boolean;
+  /**
+   * Elemento concreto que un trabajo `store`/`retrieve_from_storage` mueve
+   * hacia/desde el `Container` real del blanco (S7 §6.3/§6.4, CAT-005
+   * §4.4). `null` para cualquier otro método y para trabajos anteriores a
+   * S7 (default seguro).
+   */
+  readonly storageItem: StorageItemRef | null;
   readonly createdAtSimSeconds: number;
   readonly updatedAtSimSeconds: number;
 }
@@ -289,6 +305,10 @@ export const jobSchema = z.object({
   directOrder: z.boolean(),
   disassemblyScope: z.enum(["selective", "destructive"]).nullable().default(null),
   irreversibleConfirmed: z.boolean().default(false),
+  storageItem: z
+    .object({ kind: z.enum(["world_object", "resource_lot"]), id: z.string() })
+    .nullable()
+    .default(null),
   createdAtSimSeconds: z.number().int().nonnegative(),
   updatedAtSimSeconds: z.number().int().nonnegative(),
 });

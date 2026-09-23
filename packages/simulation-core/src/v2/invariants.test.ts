@@ -33,6 +33,7 @@ describe("validateSimulationStateV2Invariants", () => {
           quality: 1,
           provenance: null,
           decayStartedAtSimSeconds: null,
+          conditionAtDecayStart: null,
         },
       },
     };

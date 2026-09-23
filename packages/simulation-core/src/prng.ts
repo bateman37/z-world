@@ -47,6 +47,19 @@ export function createPrngStreamState(seed: string, domain: PrngDomain): PrngStr
   };
 }
 
+/**
+ * Stream derivado de uso local en generación (S7 de WEB-002): hash de la
+ * semilla con una etiqueta propia, independiente de los dominios
+ * persistidos. Permite añadir contenido nuevo en una versión posterior del
+ * generador sin consumir tiradas del stream `world`, de modo que el
+ * trazado de pueblo de una semilla ya verificada (E2E, guiones manuales)
+ * no se desplaza. Nunca se persiste: solo vive durante la generación.
+ */
+export function createDerivedPrngStreamState(seed: string, label: string): PrngStreamState {
+  const hash = xmur3(`${seed}::derived::${label}::v${PRNG_ALGORITHM_VERSION}`);
+  return { algorithm: PRNG_ALGORITHM, algorithmVersion: PRNG_ALGORITHM_VERSION, state: hash() };
+}
+
 export function createPrngStateByDomain(seed: string): PrngStateByDomain {
   return {
     cohort: createPrngStreamState(seed, "cohort"),

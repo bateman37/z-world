@@ -18,7 +18,7 @@ import type {
   WorldObject,
   WorldPoint,
 } from "@z-world/contracts";
-import { BUILDING_PROGRAMS_BY_PROFILE, type RoomProgramRole } from "@z-world/catalogs";
+import { BUILDING_PROGRAMS_BY_PROFILE, OBJECT_CATALOG_BY_VARIANT, type ObjectCatalogEntry, type RoomProgramRole } from "@z-world/catalogs";
 import { REPAIR_PROFILES_BY_ID, DISASSEMBLY_PROFILES_BY_ID } from "@z-world/catalogs";
 
 const WARDROBE_REPAIR_PROFILE_ID = "repair.storage_furniture.wardrobe_shelf.v1";
@@ -31,6 +31,37 @@ if (!REPAIR_PROFILES_BY_ID.has(WARDROBE_REPAIR_PROFILE_ID) || !REPAIR_PROFILES_B
 if (!DISASSEMBLY_PROFILES_BY_ID.has(WARDROBE_DISASSEMBLY_PROFILE_ID) || !DISASSEMBLY_PROFILES_BY_ID.has(FRIDGE_DISASSEMBLY_PROFILE_ID)) {
   throw new Error("Perfil de desmontaje de demostrador S7 no encontrado en el catálogo.");
 }
+
+/** Entrada de catálogo obligatoria: una variante generada sin catálogo es un error de programación, nunca un objeto silencioso. */
+export function catalogEntry(variant: string): ObjectCatalogEntry {
+  const found = OBJECT_CATALOG_BY_VARIANT.get(variant);
+  if (!found) throw new Error(`Variante de objeto sin entrada de catálogo: ${variant}.`);
+  return found;
+}
+
+/**
+ * Elección determinista de variante por clave estable (el ID ya asignado),
+ * sin consumir tiradas del stream `world`: el trazado de una semilla no
+ * cambia entre `web-002-semantic-v1` y `v2` (ver `config.ts`).
+ */
+function pickByKey<T>(key: string, items: readonly T[]): T {
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (Math.imul(h, 31) + key.charCodeAt(i)) >>> 0;
+  return items[h % items.length]!;
+}
+
+const OBJECT_VARIANTS_BY_ROLE_FAMILY: Readonly<Partial<Record<WorldObject["family"], readonly string[]>>> = {
+  personal_liquid_container: ["personal_liquid_container.bottle", "personal_liquid_container.canteen"],
+  tool_set: ["tool_set.basic", "tool_set.carpentry"],
+  storage_furniture: ["storage_furniture.storage_box"],
+};
+
+/** Mobiliario sin contenedor propio que representa una de las catorce familias (S7, CAT-005 §3.1). */
+const FAMILY_FURNITURE_BY_KIND: Readonly<Record<string, string>> = {
+  "furniture.bed": "rest_furniture.simple_bed",
+  "furniture.cot": "rest_furniture.simple_bed",
+  "furniture.workbench": "workbench.workbench",
+};
 import type { PrngStream } from "../../prng.js";
 import type { IdAllocator } from "./id-allocator.js";
 import { centroidOf, distance } from "./geometry-helpers.js";
@@ -137,18 +168,20 @@ function contentFor(role: RoomProgramRole): { readonly resourceFamilies: readonl
  * familia CAT-005 concreta ni perfiles de transformación.
  */
 function makeFurniture(base: { id: string; roomId: string; kind: string; condition: number; functionalState: Furniture["functionalState"] }): Furniture {
+  const familyVariant = FAMILY_FURNITURE_BY_KIND[base.kind];
+  const entry = familyVariant ? catalogEntry(familyVariant) : null;
   return {
     ...base,
-    family: null,
-    variant: "",
-    weightKg: 40,
-    bulk: "bulky",
+    family: entry?.family ?? null,
+    variant: entry?.variant ?? "",
+    weightKg: entry?.defaultWeightKg ?? 40,
+    bulk: entry?.defaultBulk ?? "bulky",
     quality: 0.5,
     capacityUnits: null,
     containerId: null,
     movedToLocation: null,
-    handlingTags: [],
-    functions: [],
+    handlingTags: entry ? [...entry.defaultHandlingTags] : [],
+    functions: entry ? [...entry.defaultFunctions] : [],
     inactiveFunctionReasons: {},
     repairProfileId: null,
     disassemblyProfileId: null,
@@ -157,51 +190,74 @@ function makeFurniture(base: { id: string; roomId: string; kind: string; conditi
   };
 }
 
-function makeWorldObject(base: {
+/** Objeto completo generado a partir de su entrada de catálogo (S7): peso, bulto, volumen, etiquetas, portabilidad, funciones y perfiles vienen del catálogo versionado, no de cifras sueltas. */
+export function makeWorldObject(base: {
   id: string;
-  family: WorldObject["family"];
   variant: string;
   location: WorldObject["location"];
-  weightKg: number;
-  bulk: WorldObject["bulk"];
   condition: number;
   quality: number;
   functionalState: WorldObject["functionalState"];
+  provenance?: string;
 }): WorldObject {
+  const entry = catalogEntry(base.variant);
   return {
-    ...base,
+    id: base.id,
+    family: entry.family,
+    variant: entry.variant,
+    location: base.location,
     ownerOrReservedByJobId: null,
-    handlingTags: [],
-    volumeLiters: 0,
-    capacityUnits: null,
+    weightKg: entry.defaultWeightKg,
+    bulk: entry.defaultBulk,
+    condition: base.condition,
+    quality: base.quality,
+    functionalState: base.functionalState,
+    handlingTags: [...entry.defaultHandlingTags],
+    volumeLiters: entry.defaultVolumeLiters,
+    capacityUnits: entry.defaultCapacityUnits,
     containerId: null,
-    functions: [],
+    functions: [...entry.defaultFunctions],
     inactiveFunctionReasons: {},
-    portability: "handheld",
-    minOperators: 1,
-    repairProfileId: null,
-    disassemblyProfileId: null,
-    provenance: "generated",
+    portability: entry.portability,
+    minOperators: entry.minOperators,
+    repairProfileId: entry.repairProfileId,
+    disassemblyProfileId: entry.disassemblyProfileId,
+    provenance: base.provenance ?? "generated",
     missingParts: [],
     knownEvidenceIds: [],
+    installedAt: null,
   };
 }
 
-function makeResourceLot(base: {
+/**
+ * Lote generado. El alimento fresco (S7 §6.6) nace ya deteriorándose desde
+ * el inicio del Día 1 (`decayStartedAtSimSeconds = 0`) con su condición
+ * generada como punto de partida: seis semanas tras el colapso, parte ya
+ * se habrá perdido al llegar (SCN-003 §3.1), sin ninguna tirada extra.
+ */
+export function makeResourceLot(base: {
   id: string;
   family: ResourceLot["family"];
   quantity: number;
   unit: ResourceLot["unit"];
   location: ResourceLot["location"];
   condition: number;
+  provenance?: string;
 }): ResourceLot {
+  const perishable = base.family === "fresh_food";
   return {
-    ...base,
+    id: base.id,
+    family: base.family,
+    quantity: base.quantity,
+    unit: base.unit,
+    location: base.location,
+    condition: base.condition,
     reservedByJobId: null,
     qualityKnown: true,
     quality: 1,
-    provenance: "generated",
-    decayStartedAtSimSeconds: null,
+    provenance: base.provenance ?? "generated",
+    decayStartedAtSimSeconds: perishable ? 0 : null,
+    conditionAtDecayStart: perishable ? base.condition : null,
   };
 }
 
@@ -342,11 +398,8 @@ export function generateBuildingContents(
             worldObjects.push(
               makeWorldObject({
                 id: objectId,
-                family: objectFamily,
                 variant: `${objectFamily}.bottle`,
                 location: { kind: "container", containerId },
-                weightKg: 0.8,
-                bulk: "small",
                 condition: 0.3 + prng.nextFloat() * 0.6,
                 quality: 0.2 + prng.nextFloat() * 0.6,
                 functionalState: prng.nextBool(0.75) ? "functional" : "degraded",
@@ -371,13 +424,13 @@ export function generateBuildingContents(
             functionalState,
             family: "storage_furniture",
             variant: labelKey === "furniture.wardrobe" ? "storage_furniture.wardrobe" : "storage_furniture.shelf",
-            weightKg: 45,
+            weightKg: catalogEntry(labelKey === "furniture.wardrobe" ? "storage_furniture.wardrobe" : "storage_furniture.shelf").defaultWeightKg,
             bulk: "bulky",
             quality: 0.3 + prng.nextFloat() * 0.5,
             capacityUnits: 20,
             containerId,
             movedToLocation: null,
-            handlingTags: [],
+            handlingTags: [...catalogEntry(labelKey === "furniture.wardrobe" ? "storage_furniture.wardrobe" : "storage_furniture.shelf").defaultHandlingTags],
             functions: ["storage"],
             inactiveFunctionReasons: {},
             repairProfileId: WARDROBE_REPAIR_PROFILE_ID,
@@ -457,14 +510,16 @@ export function generateBuildingContents(
           }
           for (const objFamily of content.objectFamilies) {
             const objectId = ids.next("object");
+            // v1 consumía aquí una tirada de peso (`1 + nextFloat() * 3`) para
+            // una variante `.generic`; v2 toma el peso del catálogo, pero la
+            // tirada se conserva para no desplazar el stream `world`.
+            prng.nextFloat();
+            const variants = roomInstances[i] === "parts_storage" && objFamily === "tool_set" ? ["tool_set.mechanics"] : (OBJECT_VARIANTS_BY_ROLE_FAMILY[objFamily] ?? []);
             worldObjects.push(
               makeWorldObject({
                 id: objectId,
-                family: objFamily,
-                variant: `${objFamily}.generic`,
+                variant: pickByKey(objectId, variants),
                 location: { kind: "container", containerId },
-                weightKg: 1 + prng.nextFloat() * 3,
-                bulk: "small",
                 condition: 0.3 + prng.nextFloat() * 0.6,
                 quality: 0.2 + prng.nextFloat() * 0.6,
                 functionalState: prng.nextBool(0.75) ? "functional" : "degraded",

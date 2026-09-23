@@ -1,5 +1,8 @@
-import type { ActionMethodDefinition, JobTarget, PriorityValue, SimulationStateV2 } from "@z-world/contracts";
+import type { ActionMethodDefinition, JobTarget, PriorityValue, SimulationStateV2, WorldObject } from "@z-world/contracts";
+import { OBJECT_CATALOG_BY_VARIANT, TRANSPORT_MEANS_VARIANT_BY_METHOD } from "@z-world/catalogs";
 import { resolveTargetLocation, isPersonCoLocated } from "./location-utils.js";
+import { isContainerUsable } from "../objects/storage.js";
+import { isLotSpoiled } from "../objects/decay.js";
 
 export interface EligibilityResult {
   readonly ok: boolean;
@@ -36,6 +39,7 @@ export function checkHardRequirements(
         if (target.kind !== "resource_lot") return fail("block.no_resource_lot_selected");
         const lot = state.resourceLots[target.resourceLotId];
         if (!lot || lot.quantity <= 0) return fail("block.resource_exhausted");
+        if (def.key === "eat" && isLotSpoiled(lot)) return fail("block.food_spoiled");
         continue;
       }
       case "requires_rest_support":
@@ -64,6 +68,21 @@ export function checkHardRequirements(
         // universal `repair_materials`); la disponibilidad real de
         // materiales se resuelve en fase `prepare`, no aquí.
         continue;
+      case "requires_storage_container": {
+        if (target.kind !== "container") return fail("block.no_storage_container_selected");
+        const container = state.containers[target.containerId];
+        if (!container) return fail("block.target_no_longer_exists");
+        if (!isContainerUsable(state, container)) return fail("block.container_unusable");
+        continue;
+      }
+      case "requires_functional_installation": {
+        if (target.kind !== "world_object") return fail("block.installation_disconnected");
+        const obj = state.worldObjects[target.worldObjectId];
+        if (!obj) return fail("block.target_no_longer_exists");
+        const reason = installationBlockReason(state, obj);
+        if (reason) return fail(reason);
+        continue;
+      }
       case "requires_irreversible_confirmation":
         continue; // comprobado aparte en `checkIrreversibleConfirmation` (depende de `Job.irreversibleConfirmed`, que no existe todavía al crear el trabajo).
       default: {
@@ -81,10 +100,40 @@ export function checkHardRequirements(
  * objetivo no tiene ese perfil: nunca se inventa una receta genérica.
  */
 export function resolveTransformationProfileId(state: SimulationStateV2, target: JobTarget, actionKey: string): string | null {
+  if (target.kind === "transport_means") {
+    const means = state.transportMeans[target.transportMeansId];
+    if (!means) return null;
+    // Compatibilidad explícita (S7): una carretilla/carro de una partida
+    // anterior a S7 no guarda perfil propio; se usa el perfil versionado v1
+    // de su método, declarado en el catálogo, nunca una receta genérica.
+    const catalogEntry = OBJECT_CATALOG_BY_VARIANT.get(means.variant || TRANSPORT_MEANS_VARIANT_BY_METHOD[means.method]);
+    if (actionKey === "repair") return means.repairProfileId ?? catalogEntry?.repairProfileId ?? null;
+    if (actionKey === "disassemble_selective" || actionKey === "disassemble_destructive") return means.disassemblyProfileId ?? catalogEntry?.disassemblyProfileId ?? null;
+    return null;
+  }
   const entity = target.kind === "world_object" ? state.worldObjects[target.worldObjectId] : target.kind === "furniture" ? state.furniture[target.furnitureId] : null;
   if (!entity) return null;
   if (actionKey === "repair") return entity.repairProfileId;
   if (actionKey === "disassemble_selective" || actionKey === "disassemble_destructive") return entity.disassemblyProfileId;
+  return null;
+}
+
+/**
+ * Motivo por el que una instalación técnica (bomba) no puede prestar su
+ * servicio hoy, o `null` si puede (S7 §6.10: "nunca produce agua solo por
+ * existir"): debe seguir conectada a una fuente de agua real del mundo y
+ * tener su función de bombeo activa.
+ */
+export function installationBlockReason(state: SimulationStateV2, obj: WorldObject): string | null {
+  if (!obj.installedAt) return "block.installation_disconnected";
+  const place = state.world.places[obj.installedAt.placeId];
+  if (!place) return "block.installation_disconnected";
+  if (obj.installedAt.nodeId) {
+    const node = state.world.nodes[obj.installedAt.nodeId];
+    if (!node || node.kind !== "water_source") return "block.installation_disconnected";
+  }
+  if (obj.functionalState !== "functional" && obj.functionalState !== "degraded") return "block.installation_not_functional";
+  if (!obj.functions.includes("water_pumping")) return "block.installation_not_functional";
   return null;
 }
 

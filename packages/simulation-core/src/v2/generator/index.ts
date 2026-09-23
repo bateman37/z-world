@@ -12,6 +12,8 @@ import { generateSettlement } from "./settlement.js";
 import { generateBuildingContents } from "./buildings.js";
 import { generateEnvironmentPlaces } from "./environment-places.js";
 import { materializeScenarioGuarantees } from "./scenario.js";
+import { materializeWaterPump } from "./installations.js";
+import { createDerivedPrngStreamState } from "../../prng.js";
 import { SHELTER_DISTANCE_METERS } from "@z-world/catalogs";
 
 export { VILLAGE_GENERATOR_VERSION, DEFAULT_VILLAGE_GENERATOR_CONFIG, type VillageGeneratorConfig };
@@ -32,8 +34,12 @@ export interface VillageGenerationResult {
   readonly shelterDistanceMeters: number;
   readonly shelterWasWithinBudget: boolean;
   readonly nextEntityOrdinal: number;
+  readonly groupSupplies: ReturnType<typeof materializeScenarioGuarantees>["groupSupplies"];
   readonly degradations: readonly string[];
 }
+
+/** Etiqueta del stream derivado de S7 (ver `createDerivedPrngStreamState`). */
+export const S7_OBJECTS_STREAM_LABEL = "s7-objects";
 
 /**
  * Orquestador puro del generador semántico determinista (§7.1 de
@@ -83,6 +89,12 @@ export function generateVillage(seed: string, worldStream: PrngStream, config: V
   );
   degradations.push(...scenario.degradations);
 
+  // S7 (v2): instalaciones técnicas con su propio stream derivado, para no
+  // desplazar ninguna tirada del stream `world` (trazado idéntico a v1).
+  const s7Stream = new PrngStream(createDerivedPrngStreamState(seed, S7_OBJECTS_STREAM_LABEL));
+  const installations = materializeWaterPump(s7Stream, ids, environment.updatedNodes, environment.places);
+  degradations.push(...installations.degradations);
+
   const terrainAreas = Object.fromEntries(environment.updatedAreas.map((a) => [a.id, a]));
   const linearFeatures = Object.fromEntries(environment.updatedLines.map((l) => [l.id, l]));
   const nodes = Object.fromEntries(environment.updatedNodes.map((n) => [n.id, n]));
@@ -117,7 +129,7 @@ export function generateVillage(seed: string, worldStream: PrngStream, config: V
     world,
     furniture: contents.furniture,
     containers: [...contents.containers, ...scenario.extraContainers],
-    worldObjects: [...contents.worldObjects, ...scenario.extraWorldObjects],
+    worldObjects: [...contents.worldObjects, ...scenario.extraWorldObjects, ...installations.worldObjects],
     resourceLots: [...contents.resourceLots, ...scenario.extraResourceLots],
     transportMeans: scenario.transportMeans,
     cultivationPlots: scenario.cultivationPlots,
@@ -127,6 +139,7 @@ export function generateVillage(seed: string, worldStream: PrngStream, config: V
     shelterDistanceMeters: scenario.shelterDistanceMeters,
     shelterWasWithinBudget: scenario.shelterDistanceMeters >= SHELTER_DISTANCE_METERS.min && scenario.shelterDistanceMeters <= SHELTER_DISTANCE_METERS.max,
     nextEntityOrdinal: ids.nextOrdinal,
+    groupSupplies: scenario.groupSupplies,
     degradations,
   };
 }

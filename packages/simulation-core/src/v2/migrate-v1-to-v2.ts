@@ -212,6 +212,7 @@ function migratePeopleAndPossessions(
         repairProfileId: null,
         disassemblyProfileId: null,
         provenance: "migrated_from_v1",
+        installedAt: null,
         missingParts: [],
         knownEvidenceIds: [],
       };

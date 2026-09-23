@@ -225,6 +225,10 @@ const EVENT_MESSAGE_KEYS: Readonly<Record<DomainEventV2["type"], string>> = {
   resource_lot_consumed: "log.resource_lot_consumed",
   resource_lot_split: "log.resource_lot_split",
   resource_lot_merged: "log.resource_lot_merged",
+  object_broke_down: "log.object_broke_down",
+  installation_tested: "log.installation_tested",
+  water_drawn: "log.water_drawn",
+  resource_lot_deteriorated: "log.resource_lot_deteriorated",
 };
 
 export function toOperationalLogEntryV2(event: DomainEventV2): OperationalLogEntryProjection {

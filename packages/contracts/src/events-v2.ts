@@ -172,7 +172,8 @@ export const designationChangedEventSchema = z.object({
  * S7-S9). Representan límites causales de la cadena
  * descubrir→recoger→almacenar→reparar/desmontar, nunca telemetría por tick.
  */
-export const OBJECT_LOCATION_ENTITY_KINDS = ["world_object", "furniture"] as const;
+/** `resource_lot` y `transport_means` se añaden en S7 de forma aditiva (almacenar lotes; reparar/desmontar la carretilla/carro): los eventos ya persistidos siguen validando. */
+export const OBJECT_LOCATION_ENTITY_KINDS = ["world_object", "furniture", "resource_lot", "transport_means"] as const;
 export type ObjectLocationEntityKind = (typeof OBJECT_LOCATION_ENTITY_KINDS)[number];
 
 export const objectCollectedEventSchema = z.object({
@@ -246,6 +247,47 @@ export const resourceLotMergedEventSchema = z.object({
   mergedResourceLotId: z.string(),
 });
 
+/** Avería causal (S7 §6.2/§6.10): el desgaste determinista por uso lleva un objeto por debajo de su umbral funcional. */
+export const objectBrokeDownEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("object_broke_down"),
+  objectId: z.string(),
+  entityKind: z.enum(OBJECT_LOCATION_ENTITY_KINDS),
+  jobId: z.string().nullable(),
+  reasonKey: z.string(),
+});
+
+/** Prueba/diagnóstico de una instalación (bomba, S7 §6.10): registra el estado funcional reconocido, no una tirada de dificultad. */
+export const installationTestedEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("installation_tested"),
+  objectId: z.string(),
+  jobId: z.string(),
+  functionalState: z.string(),
+  inactiveFunctionKeys: z.array(z.string()),
+});
+
+/** Extracción de agua potable con una bomba funcional conectada a su fuente real (S7 §6.10). */
+export const waterDrawnEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("water_drawn"),
+  objectId: z.string(),
+  jobId: z.string(),
+  resourceLotId: z.string(),
+  quantity: z.number().positive(),
+});
+
+export const FRESHNESS_BANDS = ["fresh", "deteriorating", "spoiled"] as const;
+export type FreshnessBand = (typeof FRESHNESS_BANDS)[number];
+
+/** Cambio de banda de deterioro de un lote perecedero (S7 §6.6). Solo en el límite de banda, nunca por tick. */
+export const resourceLotDeterioratedEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("resource_lot_deteriorated"),
+  resourceLotId: z.string(),
+  band: z.enum(FRESHNESS_BANDS),
+});
+
 export const domainEventV2Schema = z.discriminatedUnion("type", [
   gameCreatedEventSchema,
   speedOrPauseChangedEventSchema,
@@ -281,6 +323,10 @@ export const domainEventV2Schema = z.discriminatedUnion("type", [
   resourceLotConsumedEventSchema,
   resourceLotSplitEventSchema,
   resourceLotMergedEventSchema,
+  objectBrokeDownEventSchema,
+  installationTestedEventSchema,
+  waterDrawnEventSchema,
+  resourceLotDeterioratedEventSchema,
 ]);
 
 export type DomainEventV2 = z.infer<typeof domainEventV2Schema>;

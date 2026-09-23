@@ -19,3 +19,8 @@ export * from "./v2/pathfinding-v2.js";
 export * from "./v2/discovery.js";
 export * from "./v2/apply-command-v2.js";
 export * from "./v2/advance-simulation-v2.js";
+export * from "./v2/objects/storage.js";
+export * from "./v2/objects/decay.js";
+export * from "./v2/objects/wear.js";
+export { installationBlockReason, resolveTransformationProfileId } from "./v2/jobs/eligibility.js";
+export { resolveRoomId } from "./v2/jobs/location-utils.js";

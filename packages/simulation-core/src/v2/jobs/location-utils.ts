@@ -42,6 +42,10 @@ export function resolveTargetLocation(state: SimulationStateV2, target: JobTarge
       const container = state.containers[target.containerId];
       return container ? container.location : null;
     }
+    case "transport_means": {
+      const means = state.transportMeans[target.transportMeansId];
+      return means ? means.location : null;
+    }
     case "area":
       return { kind: "world_point", point: centroid(target.polygon) };
     case "own_need":

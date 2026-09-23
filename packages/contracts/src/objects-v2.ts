@@ -194,7 +194,24 @@ export interface WorldObject {
   readonly provenance: string | null;
   readonly missingParts: readonly string[];
   readonly knownEvidenceIds: readonly string[];
+  /**
+   * Instalación/conexión real de un objeto fijo (bomba de agua sobre una
+   * fuente `ENV-01`, S7 §6.10): el lugar y el nodo hídrico a los que está
+   * conectado. `null` para objetos sueltos o portátiles, y para cualquier
+   * objeto de una partida anterior a S7 (default seguro).
+   */
+  readonly installedAt: ObjectInstallation | null;
 }
+
+export interface ObjectInstallation {
+  readonly placeId: string;
+  readonly nodeId: string | null;
+}
+
+export const objectInstallationSchema = z.object({
+  placeId: z.string(),
+  nodeId: z.string().nullable(),
+});
 
 export const worldObjectSchema = z.object({
   id: z.string(),
@@ -220,6 +237,7 @@ export const worldObjectSchema = z.object({
   provenance: z.string().nullable().default(null),
   missingParts: z.array(z.string()).default([]),
   knownEvidenceIds: z.array(z.string()).default([]),
+  installedAt: objectInstallationSchema.nullable().default(null),
 });
 
 /** Familias de recursos localizados de §15.3 (subconjunto activo, no el horizonte). */
@@ -252,6 +270,17 @@ export interface ResourceLot {
   readonly provenance: string | null;
   /** Instante de simulación (segundos) desde el que este lote empezó a deteriorarse, o `null` si no aplica deterioro (§15.6). */
   readonly decayStartedAtSimSeconds: number | null;
+  /**
+   * Condición del lote en `decayStartedAtSimSeconds` (S7 §6.6): el
+   * deterioro es una función cerrada del tiempo transcurrido desde ese
+   * instante (`packages/catalogs/src/decay-tuning.ts`), nunca una resta
+   * acumulada por tick, así que la velocidad de juego y el tamaño del paso
+   * no alteran el resultado ni pueden contarlo dos veces. `null` si el lote
+   * no se deteriora o si procede de una partida anterior a S7 (el motor lo
+   * fija la primera vez que avanza el reloj con reglas S7, sin
+   * retroactividad).
+   */
+  readonly conditionAtDecayStart: number | null;
 }
 
 export const resourceLotSchema = z.object({
@@ -266,6 +295,7 @@ export const resourceLotSchema = z.object({
   quality: z.number().min(0).max(1).default(1),
   provenance: z.string().nullable().default(null),
   decayStartedAtSimSeconds: z.number().int().nonnegative().nullable().default(null),
+  conditionAtDecayStart: z.number().min(0).max(1).nullable().default(null),
 });
 
 /** Los cinco métodos activos de transporte (§18.1). */
@@ -278,6 +308,17 @@ export const TRANSPORT_METHODS = [
 ] as const;
 export type TransportMethod = (typeof TRANSPORT_METHODS)[number];
 
+/**
+ * Carretilla o carro como objeto completo de la familia `human_transport`
+ * (CAT-005 §3.2, demostrador S7). Conserva su identidad propia de
+ * `TransportMeans` (S8 la usará como medio de carga) y gana, de forma
+ * aditiva, el ciclo de vida de objeto de S7: calidad, estado funcional,
+ * funciones activas/inactivas, piezas ausentes y perfiles de
+ * reparación/desmontaje. Todos los campos nuevos tienen `.default()`
+ * seguro: una partida anterior a S7 carga como carretilla/carro funcional
+ * sin perfil explícito (el motor resuelve entonces el perfil versionado
+ * del método, ver `resolveTransformationProfileId`).
+ */
 export interface TransportMeans {
   readonly id: string;
   readonly method: Extract<TransportMethod, "wheelbarrow" | "handcart">;
@@ -285,6 +326,19 @@ export interface TransportMeans {
   readonly capacityKg: number;
   readonly condition: number;
   readonly currentLoadBundleId: string | null;
+  readonly variant: string;
+  readonly weightKg: number;
+  readonly bulk: BulkClass;
+  readonly quality: number;
+  readonly functionalState: FunctionalState;
+  readonly handlingTags: readonly HandlingTag[];
+  readonly functions: readonly string[];
+  readonly inactiveFunctionReasons: Readonly<Record<string, string>>;
+  readonly missingParts: readonly string[];
+  readonly repairProfileId: string | null;
+  readonly disassemblyProfileId: string | null;
+  readonly provenance: string | null;
+  readonly knownEvidenceIds: readonly string[];
 }
 
 export const transportMeansSchema = z.object({
@@ -294,6 +348,19 @@ export const transportMeansSchema = z.object({
   capacityKg: z.number().positive(),
   condition: z.number().min(0).max(1),
   currentLoadBundleId: z.string().nullable(),
+  variant: z.string().default(""),
+  weightKg: z.number().nonnegative().default(20),
+  bulk: bulkClassSchema.default("bulky"),
+  quality: z.number().min(0).max(1).default(0.5),
+  functionalState: functionalStateSchema.default("functional"),
+  handlingTags: z.array(handlingTagSchema).default(["bulky"]),
+  functions: z.array(z.string()).default(["hauling"]),
+  inactiveFunctionReasons: z.record(z.string(), z.string()).default({}),
+  missingParts: z.array(z.string()).default([]),
+  repairProfileId: z.string().nullable().default(null),
+  disassemblyProfileId: z.string().nullable().default(null),
+  provenance: z.string().nullable().default(null),
+  knownEvidenceIds: z.array(z.string()).default([]),
 });
 
 export interface LoadBundle {

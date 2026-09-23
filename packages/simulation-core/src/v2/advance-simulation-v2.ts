@@ -6,6 +6,7 @@ import { nextEventId } from "../sequences.js";
 import { updateDiscoveryV2 } from "./discovery.js";
 import type { NavigationIndexV2 } from "./room-graph.js";
 import { advanceJobs } from "./jobs/advance-jobs.js";
+import { applyResourceDecay } from "./objects/decay.js";
 import { declineNeedsForElapsedSimMinutes, declineNeedsForMovement, needOf } from "./needs/evolve-needs.js";
 
 /** Misma velocidad base provisional que V1 (DEC-0014); no se recalibra en S3. */
@@ -159,7 +160,12 @@ export function advanceSimulationV2(state: SimulationStateV2, elapsedRealSeconds
   const jobsResult = advanceJobs(stateAfterMovement, nav, simSecondsToAdvance);
   events.push(...jobsResult.events);
 
-  return { state: jobsResult.state, events };
+  // Deterioro de perecederos (S7 §6.6): función cerrada del instante del
+  // reloj, así que recalcularlo en cada tick nunca lo cuenta dos veces.
+  const decayResult = applyResourceDecay(jobsResult.state);
+  events.push(...decayResult.events);
+
+  return { state: decayResult.state, events };
 }
 
 const NEED_DIMENSIONS_ORDER: readonly NeedDimension[] = ["hydration", "nutrition", "rest"];

@@ -225,10 +225,11 @@ export const ACTION_METHODS: readonly ActionMethodDefinition[] = [
 export const OBJECT_ACTION_METHODS: readonly ActionMethodDefinition[] = [
   {
     key: "collect",
-    version: 1,
+    version: 2,
     labelKey: "action.collect.label",
     descriptionKey: "action.collect.description",
-    targetKinds: ["world_object", "furniture"],
+    // v2 (S7): también recoge lotes sueltos en una estancia (p. ej. productos de un desmontaje).
+    targetKinds: ["world_object", "resource_lot", "furniture"],
     requiredKnowledge: [{ facet: "content", minimumState: "inspected" }],
     revealsKnowledge: [],
     priority: "scavenge_recovery",
@@ -251,11 +252,14 @@ export const OBJECT_ACTION_METHODS: readonly ActionMethodDefinition[] = [
     irreversible: false,
   },
   {
+    // v2 (S7): el blanco es el `Container` real de destino (CAT-005 §4.4) y
+    // `Job.storageItem` el objeto/lote que se guarda. La v1 declaraba
+    // `world_object`/`furniture` como blanco pero nunca llegó a ejecutarse.
     key: "store",
-    version: 1,
+    version: 2,
     labelKey: "action.store.label",
     descriptionKey: "action.store.description",
-    targetKinds: ["world_object", "furniture"],
+    targetKinds: ["container"],
     requiredKnowledge: [],
     revealsKnowledge: [],
     priority: "logistics",
@@ -263,7 +267,7 @@ export const OBJECT_ACTION_METHODS: readonly ActionMethodDefinition[] = [
     skillIds: [],
     profile: "physical_70_30",
     classification: "open",
-    hardRequirements: [{ kind: "known_target" }, { kind: "requires_container_or_lot_present" }, { kind: "requires_shared_location_or_reach" }],
+    hardRequirements: [{ kind: "known_target" }, { kind: "requires_storage_container" }, { kind: "requires_shared_location_or_reach" }],
     difficulty: 1,
     model: "direct",
     baseWorkUnits: 3,
@@ -279,10 +283,10 @@ export const OBJECT_ACTION_METHODS: readonly ActionMethodDefinition[] = [
   },
   {
     key: "retrieve_from_storage",
-    version: 1,
+    version: 2,
     labelKey: "action.retrieve_from_storage.label",
     descriptionKey: "action.retrieve_from_storage.description",
-    targetKinds: ["world_object", "furniture"],
+    targetKinds: ["container"],
     requiredKnowledge: [],
     revealsKnowledge: [],
     priority: "logistics",
@@ -290,7 +294,7 @@ export const OBJECT_ACTION_METHODS: readonly ActionMethodDefinition[] = [
     skillIds: [],
     profile: "physical_70_30",
     classification: "open",
-    hardRequirements: [{ kind: "known_target" }, { kind: "requires_shared_location_or_reach" }],
+    hardRequirements: [{ kind: "known_target" }, { kind: "requires_storage_container" }, { kind: "requires_shared_location_or_reach" }],
     difficulty: 1,
     model: "direct",
     baseWorkUnits: 3,
@@ -306,10 +310,11 @@ export const OBJECT_ACTION_METHODS: readonly ActionMethodDefinition[] = [
   },
   {
     key: "repair",
-    version: 1,
+    version: 2,
     labelKey: "action.repair.label",
     descriptionKey: "action.repair.description",
-    targetKinds: ["world_object", "furniture"],
+    // v2 (S7): la carretilla/carro (`TransportMeans`) es un objeto completo reparable/desmontable.
+    targetKinds: ["world_object", "furniture", "transport_means"],
     requiredKnowledge: [{ facet: "content", minimumState: "inspected" }],
     revealsKnowledge: [],
     priority: "repair",
@@ -338,10 +343,11 @@ export const OBJECT_ACTION_METHODS: readonly ActionMethodDefinition[] = [
   },
   {
     key: "disassemble_selective",
-    version: 1,
+    version: 2,
     labelKey: "action.disassemble_selective.label",
     descriptionKey: "action.disassemble_selective.description",
-    targetKinds: ["world_object", "furniture"],
+    // v2 (S7): la carretilla/carro (`TransportMeans`) es un objeto completo reparable/desmontable.
+    targetKinds: ["world_object", "furniture", "transport_means"],
     requiredKnowledge: [{ facet: "content", minimumState: "inspected" }],
     revealsKnowledge: [],
     priority: "dismantling_recycling",
@@ -370,10 +376,11 @@ export const OBJECT_ACTION_METHODS: readonly ActionMethodDefinition[] = [
   },
   {
     key: "disassemble_destructive",
-    version: 1,
+    version: 2,
     labelKey: "action.disassemble_destructive.label",
     descriptionKey: "action.disassemble_destructive.description",
-    targetKinds: ["world_object", "furniture"],
+    // v2 (S7): la carretilla/carro (`TransportMeans`) es un objeto completo reparable/desmontable.
+    targetKinds: ["world_object", "furniture", "transport_means"],
     requiredKnowledge: [{ facet: "content", minimumState: "inspected" }],
     revealsKnowledge: [],
     priority: "dismantling_recycling",
@@ -400,7 +407,82 @@ export const OBJECT_ACTION_METHODS: readonly ActionMethodDefinition[] = [
     attentionApplies: false,
     irreversible: true,
   },
+  {
+    // Bomba de agua (CAT-005 §3.2): probar/diagnosticar revela su estado
+    // funcional real y las funciones inactivas con su causa. Prioridad
+    // `repair`: el diagnóstico forma parte de la cadena de reparación.
+    key: "test_installation",
+    version: 1,
+    labelKey: "action.test_installation.label",
+    descriptionKey: "action.test_installation.description",
+    targetKinds: ["world_object"],
+    requiredKnowledge: [],
+    revealsKnowledge: [],
+    priority: "repair",
+    characteristicIds: ["technique"],
+    skillIds: ["mechanics"],
+    profile: "technical_30_70",
+    classification: "open",
+    hardRequirements: [{ kind: "known_target" }, { kind: "requires_shared_location_or_reach" }],
+    difficulty: 2,
+    model: "d",
+    baseWorkUnits: 10,
+    unit: "minutes",
+    minParticipants: 1,
+    recommendedParticipants: 1,
+    maxParticipants: 2,
+    rolesAllowed: ["responsible", "primary_executor", "operational_helper"],
+    phases: ["validate", "travel", "execute", "record_result"],
+    paceApplies: true,
+    attentionApplies: false,
+    irreversible: false,
+  },
+  {
+    // Extraer agua con una bomba funcional conectada a su fuente real: produce
+    // un lote de agua localizado junto a la bomba y la desgasta de forma
+    // determinista (avería causal por uso, nunca por azar).
+    key: "draw_water",
+    version: 1,
+    labelKey: "action.draw_water.label",
+    descriptionKey: "action.draw_water.description",
+    targetKinds: ["world_object"],
+    requiredKnowledge: [],
+    revealsKnowledge: [],
+    priority: "water_supply",
+    characteristicIds: ["strength"],
+    skillIds: [],
+    profile: "physical_70_30",
+    classification: "open",
+    hardRequirements: [{ kind: "known_target" }, { kind: "requires_shared_location_or_reach" }, { kind: "requires_functional_installation" }],
+    difficulty: 1,
+    model: "d",
+    baseWorkUnits: 10,
+    unit: "minutes",
+    minParticipants: 1,
+    recommendedParticipants: 1,
+    maxParticipants: 2,
+    rolesAllowed: ["responsible", "primary_executor", "operational_helper"],
+    phases: ["validate", "travel", "execute", "record_result"],
+    paceApplies: true,
+    attentionApplies: false,
+    irreversible: false,
+  },
 ];
+
+/** Litros que produce una extracción completa de `draw_water` (S7, provisional y documentado en `docs/STATUS.md`). */
+export const DRAW_WATER_LITERS_PER_JOB = 10;
+
+/** Métodos S7 cuyo blanco (y, en almacenamiento, el elemento movido) se reserva en exclusiva (S7 §7.7/§9: "reservas impiden doble uso"). */
+export const EXCLUSIVE_TARGET_ACTION_KEYS: ReadonlySet<string> = new Set([
+  "collect",
+  "store",
+  "retrieve_from_storage",
+  "repair",
+  "disassemble_selective",
+  "disassemble_destructive",
+  "test_installation",
+  "draw_water",
+]);
 
 export const ACTION_METHODS_BY_KEY: ReadonlyMap<string, ActionMethodDefinition> = new Map(
   [...ACTION_METHODS, ...OBJECT_ACTION_METHODS].map((m) => [m.key, m]),

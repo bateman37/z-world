@@ -23,6 +23,7 @@ export const ACTION_TARGET_KINDS = [
   "furniture",
   "world_object",
   "container",
+  "transport_means",
   "area",
   "own_need",
 ] as const;
@@ -51,6 +52,10 @@ export const HARD_REQUIREMENT_KINDS = [
   "requires_concrete_materials",
   /** Una orden directa de un método marcado `irreversible` exige `Job.irreversibleConfirmed` (§16.4). */
   "requires_irreversible_confirmation",
+  /** El blanco es un `Container` real existente, con anfitrión no desmontado (S7, CAT-005 §4.4: nunca un almacén infinito abstracto). */
+  "requires_storage_container",
+  /** El blanco es una instalación técnica funcional conectada a su fuente real (bomba de agua, S7 §6.10: nunca produce agua solo por existir). */
+  "requires_functional_installation",
 ] as const;
 export type HardRequirementKind = (typeof HARD_REQUIREMENT_KINDS)[number];
 

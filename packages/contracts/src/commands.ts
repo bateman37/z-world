@@ -75,6 +75,8 @@ export const orderContextualActionCommandSchema = z.object({
   disassemblyScope: z.enum(["selective", "destructive"]).optional(),
   /** Confirmación informada del coste irreversible del método (§16.4, S7). Un método `irreversible` sin esto queda bloqueado, nunca se ejecuta en silencio. */
   confirmIrreversible: z.boolean().optional(),
+  /** Objeto o lote concreto que `store`/`retrieve_from_storage` mueve hacia/desde el contenedor del blanco (S7). */
+  storageItem: z.object({ kind: z.enum(["world_object", "resource_lot"]), id: z.string().min(1) }).optional(),
 });
 
 export const pauseJobCommandSchema = z.object({ ...baseCommandFields, type: z.literal("pause_job"), jobId: z.string().min(1) });

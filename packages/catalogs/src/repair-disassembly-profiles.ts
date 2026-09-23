@@ -4,9 +4,11 @@ import type { DisassemblyOutput, RepairRequirement, FunctionalState } from "@z-w
  * Recetas de reparación y desmontaje versionadas de S7 (`DEC-0019`, §16.2/
  * §16.3 y CAT-005 §4.3). Datos puros: nunca existe una pila universal
  * `repair_materials` — cada perfil declara familias de recurso concretas.
- * Cubre, en esta entrega, los perfiles necesarios para los demostradores
- * armario/estantería y frigorífico (§15.6); el resto de familias
- * conceptuales quedan documentadas como deuda honesta en `DEC-0019`.
+ * Cubre los perfiles de los cuatro demostradores profundos de CAT-005
+ * §3.2 (armario/estantería, frigorífico, bomba de agua manual y
+ * carretilla/carro). Las cantidades de desmontaje se expresan en kg de la
+ * familia producida y nunca superan el peso de la variante
+ * (`validateObjectCatalog`, conservación de masa con tolerancia cero).
  */
 
 export interface RepairProfile {
@@ -35,6 +37,36 @@ export const REPAIR_PROFILES: readonly RepairProfile[] = [
     ],
     bestCaseFunctionalState: "degraded",
     baseWorkUnits: 90,
+  },
+  {
+    // Bomba manual (CAT-005 §3.2): junta/pistón y cuerpo, nunca "materiales de reparación" genéricos.
+    id: "repair.technical_installation.hand_pump.v1",
+    version: 1,
+    requirements: [
+      { resourceFamily: "mechanical_parts_i", quantity: 1 },
+      { resourceFamily: "sheet_metal", quantity: 1 },
+    ],
+    bestCaseFunctionalState: "functional",
+    baseWorkUnits: 60,
+  },
+  {
+    // Carretilla: rueda/eje (piezas mecánicas I) y chapa de la caja.
+    id: "repair.human_transport.wheelbarrow.v1",
+    version: 1,
+    requirements: [
+      { resourceFamily: "mechanical_parts_i", quantity: 1 },
+      { resourceFamily: "sheet_metal", quantity: 1 },
+    ],
+    bestCaseFunctionalState: "functional",
+    baseWorkUnits: 40,
+  },
+  {
+    // Carro de compra/mano: ruedas y ejes.
+    id: "repair.human_transport.handcart.v1",
+    version: 1,
+    requirements: [{ resourceFamily: "mechanical_parts_i", quantity: 2 }],
+    bestCaseFunctionalState: "functional",
+    baseWorkUnits: 40,
   },
 ];
 
@@ -71,6 +103,41 @@ export const DISASSEMBLY_PROFILES: readonly DisassemblyProfile[] = [
     functionsLost: ["refrigeration", "storage"],
     baseWorkUnitsSelective: 150,
     baseWorkUnitsDestructive: 45,
+  },
+  {
+    // Desmontar la bomba inutiliza el servicio de agua de esa fuente para siempre (CAT-005 §10).
+    id: "disassembly.technical_installation.hand_pump.v1",
+    version: 1,
+    outputs: [
+      { resourceFamily: "sheet_metal", selectiveQuantity: 4, destructiveQuantity: 5 },
+      { resourceFamily: "mechanical_parts_i", selectiveQuantity: 2, destructiveQuantity: 0 },
+    ],
+    functionsLost: ["water_pumping"],
+    baseWorkUnitsSelective: 90,
+    baseWorkUnitsDestructive: 30,
+  },
+  {
+    id: "disassembly.human_transport.wheelbarrow.v1",
+    version: 1,
+    outputs: [
+      { resourceFamily: "sheet_metal", selectiveQuantity: 6, destructiveQuantity: 8 },
+      { resourceFamily: "mechanical_parts_i", selectiveQuantity: 2, destructiveQuantity: 1 },
+      { resourceFamily: "wood_and_planks", selectiveQuantity: 2, destructiveQuantity: 2 },
+    ],
+    functionsLost: ["hauling"],
+    baseWorkUnitsSelective: 60,
+    baseWorkUnitsDestructive: 20,
+  },
+  {
+    id: "disassembly.human_transport.handcart.v1",
+    version: 1,
+    outputs: [
+      { resourceFamily: "sheet_metal", selectiveQuantity: 8, destructiveQuantity: 10 },
+      { resourceFamily: "mechanical_parts_i", selectiveQuantity: 3, destructiveQuantity: 1 },
+    ],
+    functionsLost: ["hauling"],
+    baseWorkUnitsSelective: 60,
+    baseWorkUnitsDestructive: 20,
   },
 ];
 

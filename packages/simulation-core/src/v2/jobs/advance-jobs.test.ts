@@ -29,6 +29,7 @@ function withWaterInHallway(base: SimulationStateV2): { state: SimulationStateV2
     quality: 1,
     provenance: null,
     decayStartedAtSimSeconds: null,
+    conditionAtDecayStart: null,
   };
   return {
     state: { ...base, containers: { ...base.containers, [containerId]: container }, resourceLots: { ...base.resourceLots, [resourceLotId]: lot } },

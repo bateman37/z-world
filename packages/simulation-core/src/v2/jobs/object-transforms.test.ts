@@ -38,6 +38,7 @@ function withBottleInHallway(base: SimulationStateV2): { state: SimulationStateV
     provenance: "test",
     missingParts: [],
     knownEvidenceIds: [],
+    installedAt: null,
   };
   return { state: { ...base, worldObjects: { ...base.worldObjects, [worldObjectId]: obj } }, worldObjectId };
 }
@@ -97,6 +98,7 @@ function withWoodInHallway(base: SimulationStateV2, quantity: number): { state: 
     quality: 1,
     provenance: "test",
     decayStartedAtSimSeconds: null,
+    conditionAtDecayStart: null,
   };
   return { state: { ...base, resourceLots: { ...base.resourceLots, [resourceLotId]: lot } }, resourceLotId };
 }

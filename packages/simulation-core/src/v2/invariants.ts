@@ -1,4 +1,5 @@
 import type { EntityLocation, SimulationStateV2 } from "@z-world/contracts";
+import { containerUsedUnits } from "./objects/storage.js";
 
 /**
  * Validador de invariantes relacionales de `SimulationStateV2` (§6.2,
@@ -23,6 +24,10 @@ export function validateSimulationStateV2Invariants(state: SimulationStateV2): I
   checkContainerCyclesAndOrphans(state, violations);
   checkReservationExclusivity(state, violations);
   checkReservationsReferenceRealJobs(state, violations);
+  checkJobReservationsBidirectional(state, violations);
+  checkContainerContentConsistency(state, violations);
+  checkPartsOnlyHasNoActiveFunctions(state, violations);
+  checkBundleContentNotAlsoContained(state, violations);
   checkClosureObstructionExclusivity(state, violations);
   checkGlobalIdUniqueness(state, violations);
   checkEntityLocationsResolve(state, violations);
@@ -204,11 +209,84 @@ function checkReservationExclusivity(state: SimulationStateV2, violations: Invar
   }
   for (const [key, jobIds] of reservedByTarget) {
     const uniqueJobs = new Set(jobIds);
-    if (uniqueJobs.size > 1 && (key.startsWith("world_object:") || key.startsWith("transport_means:"))) {
+    // S7: objeto, mueble, contenedor, medio y lote son reservas exclusivas
+    // (un único trabajo a la vez). Persona y estancia admiten varios.
+    const exclusive = EXCLUSIVE_RESERVATION_PREFIXES.some((prefix) => key.startsWith(prefix));
+    if (uniqueJobs.size > 1 && exclusive) {
       violations.push({
         code: "double_exclusive_reservation",
         message: `${key} está reservado simultáneamente por varios trabajos: ${[...uniqueJobs].join(", ")}.`,
       });
+    }
+  }
+}
+
+const EXCLUSIVE_RESERVATION_PREFIXES = ["world_object:", "transport_means:", "container:", "furniture:", "resource_lot:"] as const;
+
+/** `Job.reservationIds` lista exactamente reservas vigentes de ese mismo trabajo (reservas bidireccionales, §12 del prompt S7-S9). */
+function checkJobReservationsBidirectional(state: SimulationStateV2, violations: InvariantViolation[]): void {
+  for (const job of Object.values(state.jobs)) {
+    for (const reservationId of job.reservationIds) {
+      const reservation = state.reservations[reservationId];
+      if (!reservation || reservation.jobId !== job.id) {
+        violations.push({ code: "job_reservation_not_bidirectional", message: `El trabajo ${job.id} lista la reserva ${reservationId}, que no existe o pertenece a otro trabajo.` });
+      }
+    }
+  }
+}
+
+/**
+ * Jerarquía `Container → Content` coherente en ambos sentidos y dentro de
+ * capacidad (S7 §6.4/§12): todo contenido listado está realmente ubicado
+ * en ese contenedor, todo objeto/lote ubicado en un contenedor figura en su
+ * lista, y nunca hay sobrecapacidad silenciosa.
+ */
+function checkContainerContentConsistency(state: SimulationStateV2, violations: InvariantViolation[]): void {
+  for (const container of Object.values(state.containers)) {
+    for (const contentId of container.contentIds) {
+      const location = state.worldObjects[contentId]?.location ?? state.resourceLots[contentId]?.location;
+      if (!location) continue; // ya lo informa `orphan_container_content`.
+      if (location.kind !== "container" || location.containerId !== container.id) {
+        violations.push({ code: "container_content_location_mismatch", message: `El contenedor ${container.id} lista ${contentId}, pero ese elemento está en otra ubicación.` });
+      }
+    }
+    if (containerUsedUnits(state, container) > container.capacityUnits) {
+      violations.push({ code: "container_over_capacity", message: `El contenedor ${container.id} supera su capacidad útil (${container.capacityUnits}).` });
+    }
+  }
+  const check = (id: string, location: EntityLocation): void => {
+    if (location.kind !== "container") return;
+    const container = state.containers[location.containerId];
+    if (container && !container.contentIds.includes(id)) {
+      violations.push({ code: "contained_item_not_listed", message: `${id} está en el contenedor ${container.id}, que no lo lista como contenido.` });
+    }
+  };
+  for (const obj of Object.values(state.worldObjects)) check(obj.id, obj.location);
+  for (const lot of Object.values(state.resourceLots)) check(lot.id, lot.location);
+}
+
+/** Un objeto reducido a piezas no conserva funciones activas (S7 §12: "objeto destruido no conserva funciones incompatibles"; frigorífico desmontado no refrigera ni almacena; bomba desmontada no bombea). */
+function checkPartsOnlyHasNoActiveFunctions(state: SimulationStateV2, violations: InvariantViolation[]): void {
+  const entities: { id: string; functionalState: string; functions: readonly string[] }[] = [
+    ...Object.values(state.worldObjects),
+    ...Object.values(state.furniture),
+    ...Object.values(state.transportMeans),
+  ];
+  for (const entity of entities) {
+    if (entity.functionalState === "parts_only" && entity.functions.length > 0) {
+      violations.push({ code: "parts_only_with_functions", message: `${entity.id} está reducido a piezas pero conserva funciones activas: ${entity.functions.join(", ")}.` });
+    }
+  }
+}
+
+/** Una carga nunca aparece simultáneamente en un contenedor y en un bulto de transporte (§12). */
+function checkBundleContentNotAlsoContained(state: SimulationStateV2, violations: InvariantViolation[]): void {
+  for (const bundle of Object.values(state.loadBundles)) {
+    for (const id of [...bundle.contentObjectIds, ...bundle.contentResourceLotIds]) {
+      const location = state.worldObjects[id]?.location ?? state.resourceLots[id]?.location;
+      if (location && location.kind === "container") {
+        violations.push({ code: "bundle_content_also_contained", message: `${id} figura en la carga ${bundle.id} y a la vez dentro del contenedor ${location.containerId}.` });
+      }
     }
   }
 }
