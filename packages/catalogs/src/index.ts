@@ -4,3 +4,4 @@ export * from "./priorities.js";
 export * from "./potential-phrases.js";
 export * from "./copy-keys.js";
 export * from "./validate.js";
+export * from "./place-profiles.js";

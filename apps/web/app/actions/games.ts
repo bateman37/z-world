@@ -1,11 +1,13 @@
 "use server";
 
-import { createInitialState } from "@z-world/simulation-core";
-import type { DomainEvent, SimulationStateV1 } from "@z-world/contracts";
+import { createInitialState, createInitialStateV2 } from "@z-world/simulation-core";
+import type { DomainEvent, SimulationStateV1, SimulationStateV2 } from "@z-world/contracts";
 import {
   createGame,
+  createGameV2,
   listGames,
   loadGame,
+  loadGameV2,
   RevisionConflictError,
   saveSnapshot,
   type GameSaveSummary,
@@ -37,6 +39,39 @@ export async function createGameAction(seed: string, name?: string): Promise<Cre
   ];
   const { gameSaveId, revision } = await createGame(prisma, { name, state, initialEvents });
   return { gameSaveId, revision, state };
+}
+
+export interface CreateGameV2Result {
+  readonly gameSaveId: string;
+  readonly revision: number;
+  readonly state: SimulationStateV2;
+}
+
+/**
+ * Crea una partida nueva con el generador semántico determinista de S2
+ * (WEB-002 §7/§9.1 del encargo): produce directamente un `SimulationStateV2`
+ * válido y lo persiste de una sola vez, nunca a través de la ruta V1/
+ * migración. Es el flujo real de creación de partida para el pueblo
+ * semántico, no una utilidad aislada de pruebas.
+ */
+export async function createGameV2Action(seed: string, name?: string): Promise<CreateGameV2Result> {
+  const normalizedSeed = seed.trim().length > 0 ? seed.trim() : crypto.randomUUID();
+  const state = createInitialStateV2(normalizedSeed);
+  const initialEvents: DomainEvent[] = [
+    {
+      type: "game_created",
+      eventId: `evt-${state.sequences.nextDomainEventSequence}`,
+      simSeconds: state.clock.elapsedSimSeconds,
+      causedByCommandId: null,
+      seed: normalizedSeed,
+    },
+  ];
+  const { gameSaveId, revision } = await createGameV2(prisma, { name, state, initialEvents });
+  return { gameSaveId, revision, state };
+}
+
+export async function loadGameV2Action(gameSaveId: string): Promise<{ state: SimulationStateV2; revision: number }> {
+  return loadGameV2(prisma, gameSaveId);
 }
 
 export async function listGamesAction(): Promise<readonly GameSaveSummary[]> {

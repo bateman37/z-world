@@ -1,5 +1,5 @@
-import type { DomainEvent, SimulationStateV1 } from "@z-world/contracts";
-import { parseSimulationStateV1 } from "@z-world/contracts";
+import type { DomainEvent, SimulationStateV1, SimulationStateV2 } from "@z-world/contracts";
+import { parseSimulationStateV1, parseSimulationStateV2 } from "@z-world/contracts";
 import type { PrismaClient } from "../generated/index.js";
 
 export class RevisionConflictError extends Error {
@@ -30,6 +30,8 @@ export interface GameSaveSummary {
   readonly simSeconds: number;
   readonly updatedAt: Date;
   readonly lastUsedAt: Date;
+  /** `1` = fixture de WEB-001 (`/game/[id]`), `2` = pueblo semántico de WEB-002 S2 (`/village/[id]`). */
+  readonly schemaVersion: number;
 }
 
 function eventSequenceFromId(eventId: string): number {
@@ -228,6 +230,142 @@ export async function saveMigratedV2Snapshot(
   });
 }
 
+/**
+ * Crea una partida nueva ya generada como `SimulationStateV2` (S2 de
+ * WEB-002 §7.1/§9.1 del encargo): mismo contrato transaccional que
+ * `createGame`, pero el generador semántico produce directamente el V2,
+ * nunca un V1 intermedio que luego se migra (§6.2.7). La versión del
+ * generador queda en `GameSave.generatorVersion`, así que una versión
+ * futura del generador (§7.4/§25.2) nunca reescribe esta partida al
+ * recargarla.
+ */
+export async function createGameV2(
+  prisma: PrismaClient,
+  params: { readonly name?: string; readonly state: SimulationStateV2; readonly initialEvents: readonly DomainEvent[] },
+): Promise<{ readonly gameSaveId: string; readonly revision: number }> {
+  return prisma.$transaction(async (tx) => {
+    const gameSave = await tx.gameSave.create({
+      data: {
+        name: params.name ?? null,
+        seed: params.state.seed,
+        generatorVersion: params.state.world.generatorVersion,
+        schemaVersion: params.state.schemaVersion,
+        revision: 0,
+      },
+    });
+
+    const snapshot = await tx.simulationSnapshot.create({
+      data: {
+        gameSaveId: gameSave.id,
+        revision: 0,
+        schemaVersion: params.state.schemaVersion,
+        reason: "game_created",
+        state: params.state as unknown as object,
+        simSeconds: params.state.clock.elapsedSimSeconds,
+      },
+    });
+
+    await tx.gameSave.update({
+      where: { id: gameSave.id },
+      data: { currentSnapshotId: snapshot.id },
+    });
+
+    if (params.initialEvents.length > 0) {
+      await tx.domainEventRecord.createMany({
+        data: params.initialEvents.map((event) => ({
+          gameSaveId: gameSave.id,
+          sequence: eventSequenceFromId(event.eventId),
+          type: event.type,
+          simSeconds: event.simSeconds,
+          causedByCommandId: event.causedByCommandId,
+          payload: event as unknown as object,
+        })),
+      });
+    }
+
+    return { gameSaveId: gameSave.id, revision: 0 };
+  });
+}
+
+/** Carga el último snapshot válido de una partida V2, validando esquema y contenido (equivalente V2 de `loadGame`). */
+export async function loadGameV2(
+  prisma: PrismaClient,
+  gameSaveId: string,
+): Promise<{ readonly state: SimulationStateV2; readonly revision: number }> {
+  const gameSave = await prisma.gameSave.findUnique({
+    where: { id: gameSaveId },
+    include: { currentSnapshot: true },
+  });
+
+  if (!gameSave || !gameSave.currentSnapshot) {
+    throw new CorruptOrIncompatibleSnapshotError(gameSaveId, "no existe snapshot vigente para esta partida.");
+  }
+
+  const parsed = parseSimulationStateV2(gameSave.currentSnapshot.state);
+  if (!parsed.success || !parsed.data) {
+    throw new CorruptOrIncompatibleSnapshotError(gameSaveId, parsed.error ?? "forma desconocida.");
+  }
+
+  await prisma.gameSave.update({ where: { id: gameSaveId }, data: { lastUsedAt: new Date() } });
+
+  return { state: parsed.data, revision: gameSave.revision };
+}
+
+/** Guarda snapshot + eventos pendientes de una partida V2, con el mismo control optimista de revisión que `saveSnapshot`. */
+export async function saveSnapshotV2(
+  prisma: PrismaClient,
+  params: {
+    readonly gameSaveId: string;
+    readonly expectedRevision: number;
+    readonly state: SimulationStateV2;
+    readonly events: readonly DomainEvent[];
+    readonly reason: string;
+  },
+): Promise<{ readonly revision: number }> {
+  return prisma.$transaction(async (tx) => {
+    const current = await tx.gameSave.findUnique({ where: { id: params.gameSaveId } });
+    if (!current) {
+      throw new CorruptOrIncompatibleSnapshotError(params.gameSaveId, "la partida no existe.");
+    }
+    if (current.revision !== params.expectedRevision) {
+      throw new RevisionConflictError(params.gameSaveId, params.expectedRevision, current.revision);
+    }
+
+    const nextRevision = current.revision + 1;
+
+    const snapshot = await tx.simulationSnapshot.create({
+      data: {
+        gameSaveId: params.gameSaveId,
+        revision: nextRevision,
+        schemaVersion: params.state.schemaVersion,
+        reason: params.reason,
+        state: params.state as unknown as object,
+        simSeconds: params.state.clock.elapsedSimSeconds,
+      },
+    });
+
+    if (params.events.length > 0) {
+      await tx.domainEventRecord.createMany({
+        data: params.events.map((event) => ({
+          gameSaveId: params.gameSaveId,
+          sequence: eventSequenceFromId(event.eventId),
+          type: event.type,
+          simSeconds: event.simSeconds,
+          causedByCommandId: event.causedByCommandId,
+          payload: event as unknown as object,
+        })),
+      });
+    }
+
+    await tx.gameSave.update({
+      where: { id: params.gameSaveId },
+      data: { revision: nextRevision, currentSnapshotId: snapshot.id, lastUsedAt: new Date() },
+    });
+
+    return { revision: nextRevision };
+  });
+}
+
 export async function listGames(prisma: PrismaClient): Promise<readonly GameSaveSummary[]> {
   const rows = await prisma.gameSave.findMany({
     orderBy: { lastUsedAt: "desc" },
@@ -239,6 +377,7 @@ export async function listGames(prisma: PrismaClient): Promise<readonly GameSave
     seed: row.seed,
     revision: row.revision,
     simSeconds: row.currentSnapshot?.simSeconds ?? 0,
+    schemaVersion: row.schemaVersion,
     updatedAt: row.updatedAt,
     lastUsedAt: row.lastUsedAt,
   }));

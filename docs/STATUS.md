@@ -19,10 +19,12 @@ y la sección «Última entrega de código (línea activa)» más abajo. La hoja
 de ruta activa de implementación es
 [RDM-003](roadmap/RDM-003_simulation-first-playable-roadmap.md). `WEB-002`
 extiende esa fundación con trabajos/necesidades y el generador semántico
-del pueblo (incrementos 4+5), ejecutado por subhitos verificables; el
-primero (S1, esqueleto de `SimulationStateV2` y migración V1→V2) está
-completado técnicamente (ver
-[DEC-0015](decisions/DEC-0015_simulation-state-v2-skeleton-and-v1-migration.md)).
+del pueblo (incrementos 4+5), ejecutado por subhitos verificables. S1
+(esqueleto de `SimulationStateV2` y migración V1→V2,
+[DEC-0015](decisions/DEC-0015_simulation-state-v2-skeleton-and-v1-migration.md))
+y S2 (generador semántico determinista del pueblo,
+[DEC-0016](decisions/DEC-0016_semantic-village-generator.md)) están
+completados técnicamente; quedan S3 a S11 sin fecha.
 
 El prototipo histórico Godot queda preservado íntegro, sin más desarrollo
 activo. Su historial de entregas de código:
@@ -462,6 +464,63 @@ no se amplió `RDM-001` y `CHR-005`/`RDM-002` siguen `draft`. Ver
 
 ## Última entrega de código (línea activa Node.js/TypeScript)
 
+`WEB-002` (subhito S2) — generador semántico determinista del pueblo (23
+de septiembre de 2026): segundo subhito de `WEB-002`, sobre el esqueleto
+de `SimulationStateV2` aceptado en S1 (ver
+[DEC-0016](decisions/DEC-0016_semantic-village-generator.md)).
+**Completado técnicamente.**
+
+- Sustituye el fixture de `WEB-001` como generador activo de partidas
+  nuevas: `createInitialStateV2` (`packages/simulation-core/src/v2/`)
+  produce directamente un `SimulationStateV2` válido (nunca un V1
+  intermedio), determinista por semilla + `VILLAGE_GENERATOR_VERSION`
+  (`web-002-semantic-v1`) + configuración.
+- Generador separado en configuración, terreno/hidrología/vías,
+  asentamiento, programa/contenido de edificios, lugares no edificados y
+  garantías del escenario (`packages/simulation-core/src/v2/generator/`),
+  con catálogo de perfiles/programas/presupuesto versionado en
+  `packages/catalogs/src/place-profiles.ts`.
+- Presupuesto obligatorio de §7.2 de `WEB-002` cumplido y verificado por
+  recuento real (no solo por el objetivo interno): `55-85` construcciones,
+  `28-42` viviendas, `10-18` anexos, `6-10` comercial/técnico, `3-7`
+  colapsadas, red de vías e hidrología completas, cobertura de terreno
+  orgánica calculada de forma cerrada.
+- Los ocho perfiles de `CAT-004` existen como `Place` generados con
+  contenido: los cuatro programas de edificio (§8.2) con estancias
+  obligatorias, conectividad interior verificada, mobiliario/
+  contenedores/objetos/recursos; `ENV-01`-`ENV-04` enlazados a su
+  geometría real.
+- Escenario inicial materializado: llegada Día 1 · 17:30, seis
+  protagonistas ubicados en el punto de llegada, refugio provisional
+  dentro de 100-250 m, medio de transporte, parcela de cultivo candidata,
+  dos fuentes de agua, pertenencias reales como `WorldObject`.
+- `validateSimulationStateV2Invariants` ampliado (integridad referencial
+  de ubicaciones, jerarquía espacial, unicidad global de ID) y nueva
+  `validateGeneratedVillage` (presupuesto, coherencia de edificios,
+  conectividad); se ejecutan siempre antes de exponer una partida.
+- Persistencia real (`createGameV2`/`loadGameV2`/`saveSnapshotV2`,
+  `packages/persistence/src/repository.ts`): una partida V2 nueva
+  conserva semilla/versión/resultado y la recarga recupera exactamente
+  el mismo mundo (verificado con PostgreSQL real); la migración V1→V2 y
+  los snapshots de S1 quedan intactos.
+- Integración mínima con la app: `createGameV2Action` desde la pantalla
+  de inicio (botón «Generar pueblo (WEB-002 S2)») y un visor de solo
+  lectura en `/village/[gameSaveId]` (`VillageScreen`/
+  `VillageMapCanvas`) que consume el `SimulationStateV2` real.
+- 44 pruebas unitarias nuevas, 5 de integración PostgreSQL nuevas y 1 E2E
+  nueva, sumadas a las 69 pruebas unitarias, 15 de integración y 2 E2E ya
+  existentes, todas en verde.
+
+No implementa: motor de resolución directa/D/B, trabajos/designaciones/
+planificador, necesidades causales evolutivas, transporte operativo,
+explotación progresiva de edificios, desmontaje, ciclo agrícola jugable,
+ni amenazas/autonomía/narrativa (deliberadamente fuera de alcance de S2)
+— todo ello permanece en los subhitos S3 a S11, sin fecha, según
+[RDM-003](roadmap/RDM-003_simulation-first-playable-roadmap.md). Los
+detalles de interpretación del presupuesto y las extensiones aditivas al
+esqueleto de contratos de S1 están documentados en
+[DEC-0016](decisions/DEC-0016_semantic-village-generator.md).
+
 `WEB-002` (subhito S1) — esqueleto de `SimulationStateV2` y migración
 V1→V2 (23 de septiembre de 2026): primer subhito de `WEB-002`
 (incrementos 4+5 de `RDM-003`), ejecutado por instrucción expresa de
@@ -667,10 +726,50 @@ Desde `WEB-002` S1, además: forma completa (tipos y esquemas Zod) de
 `SimulationStateV2`, migración determinista V1→V2 por traducción
 estructural, validador de invariantes relacionales y persistencia no
 destructiva del snapshot migrado — ver «Última entrega de código» más
-arriba. Ningún flujo de la aplicación web lee ni escribe todavía
-`SimulationStateV2` en producción: el Worker, la interfaz y la carga real
-de partidas siguen operando exclusivamente sobre `SimulationStateV1`
-hasta que un subhito posterior lo requiera.
+arriba.
+
+Desde `WEB-002` S2, además: generador semántico determinista del pueblo
+que produce directamente un `SimulationStateV2` jugable (terreno, vías,
+hidrología, ocho perfiles de lugar con contenido, escenario inicial
+completo); persistencia real de partidas V2
+(`createGameV2`/`loadGameV2`/`saveSnapshotV2`); botón «Generar pueblo
+(WEB-002 S2)» en la pantalla de inicio y visor de solo lectura en
+`/village/[gameSaveId]` que sí lee y muestra `SimulationStateV2` real en
+producción — ver «Cómo generar y verificar un pueblo manualmente» más
+abajo. El Worker, el motor de resolución de acciones y la interfaz
+jugable completa (movimiento, trabajos, necesidades) siguen operando
+exclusivamente sobre `SimulationStateV1` en `/game/[gameSaveId]`: ese
+motor para `SimulationStateV2` es responsabilidad de S4 en adelante, no
+de S2.
+
+## Cómo generar y verificar un pueblo manualmente (`WEB-002` S2)
+
+1. Con PostgreSQL accesible según `DATABASE_URL` (ver `.env.example`) y
+   las migraciones aplicadas (`npm run db:migrate --workspace
+   packages/persistence` o `npx prisma migrate deploy` dentro de
+   `packages/persistence`), levanta la aplicación (`npm run dev` o `npm
+   run build && npm start --workspace apps/web`).
+2. En la pantalla de inicio, escribe una semilla (o déjala vacía para
+   que se genere una) y pulsa «Generar pueblo (WEB-002 S2)». La partida
+   se crea con `createGameV2Action` y navega a `/village/[gameSaveId]`.
+3. El panel lateral muestra la semilla, `generatorVersion`
+   (`web-002-semantic-v1`), el recuento de cada uno de los ocho perfiles
+   generados, los seis protagonistas, las garantías del escenario
+   (medios de transporte, parcelas de cultivo candidatas, fuentes de
+   agua) y cualquier degradación explícita registrada por el generador.
+   El Canvas dibuja terreno, vías, edificios (coloreados por perfil,
+   semitransparentes si están colapsados/sin interior), fuentes de agua
+   y a los seis protagonistas en el punto de llegada; admite zoom
+   (rueda) y paneo (arrastrar).
+4. Recargar la página (`F5`) recupera exactamente la misma partida desde
+   PostgreSQL, sin regenerarla: la semilla, el `generatorVersion` y el
+   contenido mostrado no cambian.
+5. Para verificar por código en vez de a ojo: `packages/simulation-core/
+   src/v2/create-initial-state-v2.test.ts` y `generator/index.test.ts`
+   cubren determinismo/variación/invariantes/coherencia; `packages/
+   persistence/src/repository-v2.integration.test.ts` cubre la
+   persistencia real; `e2e/village-generation.spec.ts` cubre el
+   recorrido completo en navegador.
 
 ## Funcionalidad realmente implementada en el prototipo histórico Godot
 
@@ -845,6 +944,51 @@ posteriores de `RDM-001`.
   íntegro (el generador semántico completo, el motor de resolución de
   `ARC-006`–`ARC-008`, el sistema de objetos y el primer bucle causal
   siguen sin implementar).
+
+## Validaciones de `WEB-002` (subhito S2)
+
+Validación completa desde el estado limpio del monorepo (23 de
+septiembre de 2026), tras el generador semántico determinista del
+pueblo, ejecutada realmente en el entorno de implementación:
+
+- `npm run typecheck` (las seis capas): sin errores.
+- `npm run lint` (`lint:packages` + `lint --workspace apps/web`): sin
+  advertencias ni errores.
+- `npx vitest run` (raíz del monorepo): **69 pruebas unitarias en
+  verde** — las 25 de S1/`WEB-001` sin modificar (salvo una aserción de
+  `migrate-v1-to-v2.test.ts` actualizada al nuevo stream `world` del
+  PRNG, sin cambiar su intención) más 44 nuevas: 25 de
+  `create-initial-state-v2.test.ts` (determinismo, variación por
+  semilla, validez Zod, invariantes, IDs estables/únicos, ausencia de
+  huérfanos, ubicación única, presencia y cantidades de los ocho
+  perfiles, coherencia de edificios/estancias/aberturas, conectividad
+  mínima, escenario inicial, garantías, sellado de versión, y una
+  regresión de robustez sobre 12 semillas adicionales) y 5 de
+  `generator/index.test.ts` (dependencia de configuración, aislamiento
+  de versión, ausencia de dependencia del reloj del sistema, detección
+  explícita de violaciones en `validateGeneratedVillage`). Verificado
+  además, fuera de la suite permanente, con una tanda de 80 semillas
+  adicionales sin ningún fallo.
+- `npm run test:integration` (PostgreSQL real, `zworld_test`): **15
+  pruebas en verde** — las 10 de S1/`WEB-001` sin modificar más 5 nuevas
+  (`repository-v2.integration.test.ts`): creación atómica de partida V2,
+  `generatorVersion` persistido en el registro de la partida, guardado
+  con control optimista, rechazo explícito de revisión obsoleta, y
+  recarga byte a byte idéntica al estado generado (esta prueba detectó
+  en el propio desarrollo una pérdida de precisión de punto flotante en
+  el redondeo JSONB de PostgreSQL, corregida y documentada en
+  `DEC-0016`).
+- `npm run build`: compila y tipa correctamente; genera la ruta nueva
+  `/village/[gameSaveId]` además de las cuatro ya existentes.
+- `npm run test:e2e` (Playwright, Chromium real, `next start` real,
+  PostgreSQL real): **3 pruebas en verde** — las 2 de `WEB-001` sin
+  modificación (confirmando ausencia de regresión) más 1 nueva
+  (`village-generation.spec.ts`): crear un pueblo desde la pantalla de
+  inicio, ver el mapa semántico con los ocho perfiles listados y
+  recargar sin regenerar.
+
+No se ejecutó ninguna aceptación manual nueva por parte de Dennis para
+S2 (ver «Aceptación manual pendiente»).
 
 ## Validaciones de `WEB-002` (subhito S1)
 
@@ -1100,6 +1244,11 @@ Godot en el entorno de implementación (ver sección de validaciones de
 `IMPLEMENTATION-003`).
 
 ## Aceptación manual pendiente
+
+`WEB-002` S1 y S2 — completados técnicamente, sin lista de aceptación
+manual formal propia todavía; ver «Cómo generar y verificar un pueblo
+manualmente» más arriba para reproducir S2 a mano. No se declaran
+superados por el agente que implementó la entrega.
 
 `WEB-001` — completada técnicamente y probada en navegador (Chromium)
 contra un servidor de producción real y PostgreSQL real, pero **la

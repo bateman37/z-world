@@ -34,6 +34,7 @@ documento canónico de dominio correspondiente.
 | [DEC-0013](DEC-0013_implementable-catalog-and-mutable-world.md) | `approved` | Catálogo implementable pequeño y profundo (`CAT-004`/`CAT-005`) y mundo local como realidad transformable de primera clase (`WLD-010`/`WLD-011`/`SET-010`/`SET-011`), separando alcance inicial y horizonte máximo. |
 | [DEC-0014](DEC-0014_web-runtime-foundation-and-initial-simulation-contracts.md) | `approved` | Fundación del runtime web (`WEB-001`): estructura de paquetes, Web Worker como runtime activo, comandos/eventos/proyecciones, persistencia snapshot+eventos con revisión optimista, PRNG determinista y valores técnicos provisionales de navegación/niebla/movimiento. |
 | [DEC-0015](DEC-0015_simulation-state-v2-skeleton-and-v1-migration.md) | `approved` | Esqueleto de `SimulationStateV2` (`WEB-002` S1): forma completa de las entidades nuevas con la mayoría de colecciones vacías, migración V1→V2 como traducción estructural (no generación), capa de invariantes relacionales adicional a Zod, y snapshot V1 nunca destruido al migrar. |
+| [DEC-0016](DEC-0016_semantic-village-generator.md) | `approved` | Generador semántico determinista del pueblo (`WEB-002` S2): interpretación del presupuesto obligatorio de construcciones/perfiles, reconciliación de anexos/colapso/franja comercial-técnica, extensiones aditivas al esqueleto de contratos de S1, y redondeo determinista de coordenadas para persistencia exacta. |
 
 ## Dependencias con otros dominios
 

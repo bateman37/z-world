@@ -1,4 +1,4 @@
-import type { FogGrid, LocalSectorFixture, WorldPoint } from "@z-world/contracts";
+import type { FogGrid, LocalSectorFixture, WorldBounds, WorldPoint } from "@z-world/contracts";
 import { fogCellIndex } from "@z-world/contracts";
 
 /**
@@ -8,7 +8,15 @@ import { fogCellIndex } from "@z-world/contracts";
 export const OBSERVATION_RADIUS_METERS = 25;
 export const FOG_RESOLUTION_METERS = 5;
 
-export function createInitialFogGrid(fixture: LocalSectorFixture, resolutionMeters: number = FOG_RESOLUTION_METERS): FogGrid {
+/**
+ * Acepta cualquier valor que declare unos límites de mundo (el fixture V1
+ * completo, o solo `{ bounds }`, como usa el mundo semántico V2 de S2): la
+ * niebla nunca ha dependido de más que eso.
+ */
+export function createInitialFogGrid(
+  fixture: Pick<LocalSectorFixture, "bounds"> | { readonly bounds: WorldBounds },
+  resolutionMeters: number = FOG_RESOLUTION_METERS,
+): FogGrid {
   const { bounds } = fixture;
   const columns = Math.max(1, Math.ceil((bounds.maxX - bounds.minX) / resolutionMeters));
   const rows = Math.max(1, Math.ceil((bounds.maxY - bounds.minY) / resolutionMeters));

@@ -8,7 +8,7 @@ import {
   type PersonPublicFacts,
 } from "./person.js";
 import { fogGridSchema, type FogGrid } from "./fog-grid.js";
-import { prngStateByDomainSchema, type PrngStateByDomain } from "./prng.js";
+import { prngStateByDomainV2Schema, type PrngStateByDomainV2 } from "./prng.js";
 import { needStateSchema, type NeedState } from "./needs-v2.js";
 import { entityLocationSchema, type EntityLocation } from "./location-v2.js";
 import {
@@ -220,7 +220,7 @@ export interface SimulationStateV2 {
   readonly cultivationPlots: Readonly<Record<string, CultivationPlot>>;
   readonly cropCycles: Readonly<Record<string, CropCycle>>;
   readonly terrainChanges: Readonly<Record<string, PersistentTerrainChange>>;
-  readonly prng: PrngStateByDomain;
+  readonly prng: PrngStateByDomainV2;
   readonly sequences: {
     readonly nextDomainEventSequence: number;
     readonly nextPersonOrdinal: number;
@@ -228,6 +228,13 @@ export interface SimulationStateV2 {
     readonly nextEntityOrdinal: number;
   };
   readonly migration: MigrationRecord | null;
+  /**
+   * Degradaciones o decisiones excepcionales del generador semántico (S2
+   * de WEB-002 §7.5), nunca en silencio: p. ej. un refugio provisional
+   * colocado fuera del rango de distancia acordado por falta de candidatos
+   * válidos en esa semilla. Vacío en el caso normal.
+   */
+  readonly generationDegradations: readonly string[];
 }
 
 export const simulationStateV2Schema = z.object({
@@ -259,7 +266,7 @@ export const simulationStateV2Schema = z.object({
   cultivationPlots: z.record(z.string(), cultivationPlotSchema),
   cropCycles: z.record(z.string(), cropCycleSchema),
   terrainChanges: z.record(z.string(), persistentTerrainChangeSchema),
-  prng: prngStateByDomainSchema,
+  prng: prngStateByDomainV2Schema,
   sequences: z.object({
     nextDomainEventSequence: z.number().int().nonnegative(),
     nextPersonOrdinal: z.number().int().nonnegative(),
@@ -267,6 +274,7 @@ export const simulationStateV2Schema = z.object({
     nextEntityOrdinal: z.number().int().nonnegative(),
   }),
   migration: migrationRecordSchema.nullable(),
+  generationDegradations: z.array(z.string()).default([]),
 });
 
 export interface ParseSimulationStateV2Result {
