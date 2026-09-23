@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { GameSaveSummary } from "@z-world/persistence";
-import { createGameAction } from "@/app/actions/games";
+import { createGameAction, createGameV2Action } from "@/app/actions/games";
 
 function normalizeSeed(raw: string): string {
   return raw.trim().replace(/\s+/g, "-").slice(0, 64);
@@ -35,6 +35,22 @@ export function HomeScreen({
           err instanceof Error
             ? `No se pudo crear la partida: ${err.message}`
             : "No se pudo crear la partida (error de configuración de PostgreSQL).",
+        );
+      }
+    });
+  }
+
+  function handleCreateVillage() {
+    setError(null);
+    startTransition(async () => {
+      try {
+        const result = await createGameV2Action(normalizedSeed, nameInput.trim() || undefined);
+        router.push(`/village/${result.gameSaveId}`);
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? `No se pudo generar el pueblo: ${err.message}`
+            : "No se pudo generar el pueblo (error de configuración de PostgreSQL).",
         );
       }
     });
@@ -83,8 +99,15 @@ export function HomeScreen({
           style={{ width: "100%", padding: 8, marginBottom: 12 }}
         />
         <button onClick={handleCreate} disabled={isPending}>
-          {isPending ? "Creando…" : "Crear partida"}
+          {isPending ? "Creando…" : "Crear partida (fixture WEB-001)"}
         </button>
+        <button onClick={handleCreateVillage} disabled={isPending} style={{ marginLeft: 8 }}>
+          {isPending ? "Generando…" : "Generar pueblo (WEB-002 S2)"}
+        </button>
+        <p className="z-muted" style={{ marginTop: 8 }}>
+          «Generar pueblo» usa el generador semántico determinista de WEB-002 S2 (pueblo procedural de ~3×3 km con
+          lugares, edificios y escenario inicial reales) en lugar del fixture provisional de WEB-001.
+        </p>
       </section>
 
       <section>
@@ -102,7 +125,9 @@ export function HomeScreen({
                       Semilla: {game.seed} · Último uso: {new Date(game.lastUsedAt).toLocaleString("es-ES")}
                     </div>
                   </div>
-                  <button onClick={() => router.push(`/game/${game.id}`)}>Continuar</button>
+                  <button onClick={() => router.push(game.schemaVersion >= 2 ? `/village/${game.id}` : `/game/${game.id}`)}>
+                    Continuar
+                  </button>
                 </div>
               </li>
             ))}

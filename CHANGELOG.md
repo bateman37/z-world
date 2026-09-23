@@ -4,6 +4,75 @@ Registra entregas documentales y de diseño de Z-World. No atribuye código ni
 funcionalidad implementada salvo que se indique explícitamente como
 `implemented` en la documentación afectada.
 
+## WEB-002 (subhito S2) — Generador semántico determinista del pueblo
+
+Segundo subhito de `WEB-002`, sobre el esqueleto aceptado de S1 (ver
+[DEC-0015](docs/decisions/DEC-0015_simulation-state-v2-skeleton-and-v1-migration.md)).
+Sustituye el fixture provisional de `300 × 300 m` de `WEB-001` como
+generador activo de partidas nuevas por un generador semántico,
+determinista, versionado y persistible que produce directamente un
+`SimulationStateV2` válido y jugable como escenario inicial completo. No
+introduce todavía el motor de resolución de acciones, el planificador de
+trabajos ni las necesidades causales (S4 en adelante); ver
+[DEC-0016](docs/decisions/DEC-0016_semantic-village-generator.md) para las
+decisiones de interpretación del presupuesto y las extensiones aditivas
+al esqueleto de contratos de S1.
+
+- **Generador semántico** (`packages/simulation-core/src/v2/generator/`,
+  `packages/catalogs/src/place-profiles.ts`): separado en configuración
+  (`config.ts`), terreno/hidrología/vías (`terrain.ts`), huella del
+  asentamiento (`settlement.ts`), programa/estancias/contenido de
+  edificios (`buildings.ts`), lugares no edificados y saqueo
+  (`environment-places.ts`), garantías del escenario inicial
+  (`scenario.ts`) y validación de generación (`validate-generation.ts`).
+  Determinista por semilla, `VILLAGE_GENERATOR_VERSION`
+  (`web-002-semantic-v1`) y configuración; sin `Math.random()`, reloj del
+  sistema, UUID aleatorio ni locale.
+- **Presupuesto obligatorio por semilla** (§7.2 de `WEB-002`): `55-85`
+  construcciones totales, `28-42` viviendas (`RES-10`/`RES-17`, con
+  subconjunto rural/aislado), `10-18` anexos/cobertizos ligados a una
+  vivienda, `6-10` construcciones comerciales/técnicas (`COM-02`/`TAL-01`
+  repetidos, nunca un noveno perfil), `3-7` colapsadas, red de vías
+  (principal, secundarias, rurales, accesos bloqueados), hidrología (una
+  fuente principal + 1-3 secundarias), cobertura de terreno orgánica
+  (bosque/matorral, campo, resto) calculada de forma cerrada por área.
+- **Ocho perfiles de `CAT-004` implementados**: los cuatro programas de
+  edificio de §8.2 con estancias obligatorias, conectividad interior real
+  (estancias encadenadas por aberturas, salida exterior garantizada),
+  mobiliario, contenedores y contenido (jerarquía `Building → Room →
+  Furniture → Container → Content`); `ENV-01` a `ENV-04` como lugares
+  enlazados a su geometría real (nodo/área/línea).
+- **Escenario inicial materializado**: llegada Día 1 · 17:30, seis
+  protagonistas ubicados en el punto de llegada (reutiliza
+  `generateCohort` de `WEB-001` sin cambios), refugio provisional
+  dentro de 100-250 m (con degradación explícita si una semilla no
+  encuentra candidato, nunca en silencio), medio de transporte
+  recuperable, parcela de cultivo candidata con semillas/herramienta,
+  dos fuentes de agua, y pertenencias de los protagonistas materializadas
+  como `WorldObject` reales.
+- **Integración con `SimulationStateV2`**: produce el V2 directamente
+  (nunca genera primero un V1 para migrarlo); ejecuta Zod,
+  `validateSimulationStateV2Invariants` (ampliado con integridad
+  referencial de ubicaciones, jerarquía espacial y unicidad global de ID)
+  y una validación propia de generación
+  (`validateGeneratedVillage`) antes de exponer la partida.
+- **Persistencia** (`createGameV2`/`loadGameV2`/`saveSnapshotV2` en
+  `packages/persistence`): una partida V2 nueva conserva semilla,
+  versión de generador y resultado generado; la recarga recupera
+  exactamente el mismo mundo (se corrigió una pérdida de precisión de
+  punto flotante en el redondeo JSONB de PostgreSQL, documentada en
+  `round-state.ts`); la migración V1→V2 y la preservación de snapshots de
+  S1 quedan intactas.
+- **Integración mínima con la aplicación**: `createGameV2Action` conecta
+  el generador al flujo real de creación de partida; un visor de solo
+  lectura (`/village/[gameSaveId]`, `VillageScreen`/`VillageMapCanvas`)
+  demuestra que el mapa consume el nuevo estado, sin adelantar la
+  interfaz completa de explotación/trabajos/necesidades.
+- 44 pruebas unitarias nuevas (generador, estado inicial, invariantes
+  ampliados) y 5 de integración PostgreSQL nuevas, más 1 E2E nueva
+  (`village-generation.spec.ts`), todas en verde junto con las 69 pruebas
+  unitarias, 15 de integración y 2 E2E ya existentes.
+
 ## WEB-002 (subhito S1) — Esqueleto de SimulationStateV2 y migración V1→V2
 
 Primer subhito de `WEB-002` (incrementos 4+5 de `RDM-003`, agrupados por

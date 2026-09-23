@@ -16,6 +16,12 @@ export interface TerrainArea {
   readonly polygon: readonly WorldPoint[];
   readonly transitable: boolean;
   readonly traversalCostMultiplier: number;
+  /**
+   * `Place` (perfil `ENV-02`/`ENV-03`) que representa esta área como punto
+   * de interés jugable, si aplica (S2 de WEB-002). `null` para terreno de
+   * fondo sin perfil interactivo propio.
+   */
+  readonly placeId: string | null;
 }
 
 export const terrainAreaSchema = z.object({
@@ -24,6 +30,7 @@ export const terrainAreaSchema = z.object({
   polygon: z.array(worldPointSchema).min(3),
   transitable: z.boolean(),
   traversalCostMultiplier: z.number().positive(),
+  placeId: z.string().nullable().default(null),
 });
 
 export interface LinearFeature {
@@ -33,6 +40,8 @@ export interface LinearFeature {
   readonly widthMeters: number;
   /** Estado mutable de la carretera/camino (§19.6). Irrelevante para agua. */
   readonly wayState: "transitable" | "obstructed" | "cleared" | "function_removed" | null;
+  /** `Place` (perfil `ENV-04`) que representa este tramo como punto de interés, si aplica (S2). */
+  readonly placeId: string | null;
 }
 
 export const linearFeatureSchema = z.object({
@@ -41,6 +50,7 @@ export const linearFeatureSchema = z.object({
   polyline: z.array(worldPointSchema).min(2),
   widthMeters: z.number().positive(),
   wayState: z.enum(["transitable", "obstructed", "cleared", "function_removed"]).nullable(),
+  placeId: z.string().nullable().default(null),
 });
 
 export const NATURAL_OR_TECHNICAL_NODE_KINDS = ["water_source", "landmark", "silhouette"] as const;
@@ -152,11 +162,19 @@ export const roomSchema = z.object({
   programRoleKey: z.string().nullable(),
 });
 
-/** Abertura física: hueco y espacios que conecta (§17.1). Distinta del cierre instalado. */
+/**
+ * Abertura física: hueco y espacios que conecta (§17.1). Distinta del
+ * cierre instalado. `connectsRoomId` es la estancia principal (el lado
+ * "interior" cuando `connectsToExterior` es verdadero); `connectsOtherRoomId`
+ * es la segunda estancia cuando la abertura conecta dos estancias interiores
+ * (S2 de WEB-002: el esqueleto de S1 solo preveía un lado, insuficiente
+ * para representar puertas entre dos habitaciones reales).
+ */
 export interface Opening {
   readonly id: string;
   readonly position: WorldPoint;
   readonly connectsRoomId: string | null;
+  readonly connectsOtherRoomId: string | null;
   readonly connectsToExterior: boolean;
   readonly widthClass: "narrow" | "normal" | "wide" | "gate";
   readonly installedClosureId: string | null;
@@ -166,6 +184,7 @@ export const openingSchema = z.object({
   id: z.string(),
   position: worldPointSchema,
   connectsRoomId: z.string().nullable(),
+  connectsOtherRoomId: z.string().nullable().default(null),
   connectsToExterior: z.boolean(),
   widthClass: z.enum(["narrow", "normal", "wide", "gate"]),
   installedClosureId: z.string().nullable(),

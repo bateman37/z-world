@@ -12,6 +12,7 @@ import type {
   WorldObject,
 } from "@z-world/contracts";
 import { SIMULATION_STATE_V2_SCHEMA_VERSION } from "@z-world/contracts";
+import { createPrngStreamState } from "../prng.js";
 
 export const MIGRATED_FROM_V1_GENERATOR_VERSION = "migrated-from-v1-fixture" as const;
 
@@ -63,7 +64,10 @@ export function migrateV1ToV2(v1: SimulationStateV1): MigrationResult {
     cultivationPlots: {},
     cropCycles: {},
     terrainChanges: {},
-    prng: v1.prng,
+    // La migración es una traducción estructural (§7.1): nunca invoca el
+    // generador semántico real, así que el stream `world` nace fresco y sin
+    // usar, sin alterar los streams originales de la partida V1.
+    prng: { ...v1.prng, world: createPrngStreamState(v1.seed, "world") },
     sequences: {
       nextDomainEventSequence: v1.sequences.nextDomainEventSequence,
       nextPersonOrdinal: v1.sequences.nextPersonOrdinal,
@@ -76,6 +80,7 @@ export function migrateV1ToV2(v1: SimulationStateV1): MigrationResult {
       migratedAtSimSeconds: v1.clock.elapsedSimSeconds,
       degradations,
     },
+    generationDegradations: [],
   };
 
   return { state, degradations };
@@ -84,9 +89,9 @@ export function migrateV1ToV2(v1: SimulationStateV1): MigrationResult {
 function migrateWorld(v1: SimulationStateV1, degradations: string[]): SemanticWorldV2 {
   const terrainAreas: Record<string, TerrainArea> = {};
   for (const area of v1.world.areas) {
-    // AreaFeature (V1) y TerrainArea (V2) comparten la misma forma exacta:
-    // id, kind, polygon, transitable, traversalCostMultiplier.
-    terrainAreas[area.id] = area;
+    // AreaFeature (V1) y TerrainArea (V2) comparten la misma forma, salvo
+    // `placeId` (S2): el fixture V1 no tenía lugares ENV-02/ENV-03 propios.
+    terrainAreas[area.id] = { ...area, placeId: null };
   }
 
   const linearFeatures: Record<string, LinearFeature> = {};
@@ -97,6 +102,7 @@ function migrateWorld(v1: SimulationStateV1, degradations: string[]): SemanticWo
       polyline: line.polyline,
       widthMeters: line.widthMeters,
       wayState: line.kind === "road" ? "transitable" : null,
+      placeId: null,
     };
   }
 

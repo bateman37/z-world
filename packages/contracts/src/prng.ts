@@ -21,12 +21,36 @@ export const prngStreamStateSchema = z.object({
   state: z.number().int().min(0).max(0xffffffff),
 });
 
-export type PrngDomain = "cohort" | "fixture" | "navigation";
+export type PrngDomain = "cohort" | "fixture" | "navigation" | "world";
 
-export type PrngStateByDomain = Readonly<Record<PrngDomain, PrngStreamState>>;
+/**
+ * Forma exacta de WEB-001/S1: nunca se cambia, para que un snapshot V1 (o
+ * el `prng` heredado de una migración V1→V2) siga validando exactamente
+ * igual que antes de S2. Deliberadamente no es `Record<PrngDomain, ...>`:
+ * `world` (S2) no existe en esta forma.
+ */
+export interface PrngStateByDomain {
+  readonly cohort: PrngStreamState;
+  readonly fixture: PrngStreamState;
+  readonly navigation: PrngStreamState;
+}
 
 export const prngStateByDomainSchema = z.object({
   cohort: prngStreamStateSchema,
   fixture: prngStreamStateSchema,
   navigation: prngStreamStateSchema,
 });
+
+/**
+ * Forma del PRNG por dominio para partidas V2 generadas por el generador
+ * semántico real (S2 de WEB-002 §7.4): añade el stream `world`, dedicado a
+ * la generación espacial/semántica, sin tocar el stream `fixture` legado
+ * (reservado a la migración V1→V2, nunca usado por partidas nuevas).
+ */
+export const prngStateByDomainV2Schema = z.object({
+  cohort: prngStreamStateSchema,
+  fixture: prngStreamStateSchema,
+  navigation: prngStreamStateSchema,
+  world: prngStreamStateSchema,
+});
+export type PrngStateByDomainV2 = z.infer<typeof prngStateByDomainV2Schema>;
