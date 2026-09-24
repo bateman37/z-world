@@ -4,6 +4,64 @@ Registra entregas documentales y de diseño de Z-World. No atribuye código ni
 funcionalidad implementada salvo que se indique explícitamente como
 `implemented` en la documentación afectada.
 
+## WEB-002 (subhito S9, Puerta C) — Explotación progresiva de edificios y cierre de S7–S9
+
+En `feat/web-002-s7-s9-objects-logistics-exploitation`, con una única PR
+contra `main` que agrupa S7, S8 y S9. Los dieciséis puntos de S9 quedan
+implementados y probados, con limitaciones explícitas (detalle en
+`docs/STATUS.md` §«S9 — Puerta C»), y se crea
+[DEC-0019](docs/decisions/DEC-0019_deep-objects-physical-logistics-and-building-exploitation.md).
+Resumen:
+
+- Cinco capas de edificio independientes (contenido suelto, mobiliario,
+  instalaciones, acabados, estructura), cada una con estado físico y de
+  conocimiento propios, y tres vidas persistentes (saqueo, desmontaje,
+  desmantelamiento o demolición) en `BuildingFabric`.
+- Catálogo `building-exploitation.ts` (`s9-v1`): 12 variantes de
+  instalación, 20 de acabado, 8 perfiles estructurales y el tuning de
+  accesos; 7 familias de recurso nuevas (tuberías, vidrio, cerámica,
+  mampostería, tejas, acero estructural, escombros).
+- Registro técnico de instalaciones (`d_then_b`), desconectar, desmontar y
+  desinstalar instalaciones (la bomba ENV-01 se retira entera), retirar
+  acabados, desmantelar por etapas y demoler con confirmación informada y
+  el edificio vacío; la demolición destruye lo que queda, deja escombros
+  transitables y es irreversible también tras recargar.
+- Accesos mutables: abrir, cerrar, bloquear, desbloquear, forzar, despejar,
+  atrancar, tapiar con madera concreta, reforzar, reparar, retirar
+  conservando la puerta (el hueco sigue transitable), destruir e instalar;
+  destinos de traslado «instalar en abertura» e «instalar en lugar».
+- Invalidación dirigida de navegación (`navigationRevision` por edificio,
+  `ensureNavigationCurrent`) y revalidación de movimientos en curso; los
+  cambios de acceso alteran también la compatibilidad logística de S8.
+- Habitabilidad por edificio integrada con el descanso de S6.
+- Generador `web-002-semantic-v4` (tejido de edificio con stream PRNG
+  derivado, sin alterar trazado ni IDs de v3).
+- Interfaz: sección «Edificios conocidos» con capas, accesos,
+  habitabilidad y previsualización irreversible; confirmación explícita de
+  toda acción irreversible; el mapa marca edificios terminales y accesos
+  no transitables.
+- Correcciones: inspeccionar un edificio en pie ahora lleva a su estancia
+  de entrada (la posición de su lugar cae dentro de la huella y no tenía
+  ruta); y, defecto previo de S4–S6, una orden directa interrumpida por
+  autoprotección ya no deja a su persona enganchada sin descansar y con toda
+  orden posterior «propuesta» para siempre: la persona descansa y la retoma
+  sola al recuperarse, conservando el trabajo hecho, sin remuestrear su
+  episodio ni duplicar la orden; defecto previo de S6/S7, la autoprotección ya reconoce el agua y
+  la comida que cada persona lleva en su mochila y no hace que todas se
+  disputen el mismo lote; y el material para tapiar una puerta interior vale
+  desde cualquiera de sus dos lados.
+- Autoprotección (defectos previos de S6 destapados por los E2E largos):
+  una persona con un trabajo bloqueado se desengancha para atender una
+  necesidad crítica; agua y comida solo se eligen con ruta conocida; sin
+  solución para la peor necesidad se atiende la siguiente y no se abandona
+  el trabajo para quedar ociosa; un solo aviso «sin solución» por episodio
+  (`NeedState.noSolutionReported`, aditivo); y un bloqueo por ruta ya no se
+  reanuda y rebloquea en cada tick.
+- Pruebas: 297 unitarias, 30 de integración PostgreSQL y 12 E2E en
+  Chromium real en verde sobre el árbol final de la rama; guion manual de
+  diecisiete puntos para Dennis en `docs/STATUS.md` (aceptación manual
+  pendiente).
+
 ## WEB-002 (subhito S8, Puerta B) — Transporte y logística local
 
 En `feat/web-002-s7-s9-objects-logistics-exploitation`, sin PR todavía

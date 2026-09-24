@@ -32,9 +32,13 @@ causales, entregados juntos por decisión expresa de Dennis,
 están completados técnicamente. S7 (Puerta A de la entrega S7-S9: objetos
 profundos, inventarios, recursos y transformaciones) tiene cerrada su
 lista de deuda auditada, con limitaciones explícitas (ver «S7 — Puerta A»
-al final). S8 (Puerta B: transporte y logística local) está cerrado con
-limitaciones explícitas (ver «S8 — Puerta B» al final); S9 no ha empezado,
-y quedan S9 a S11 sin fecha.
+al final). S8 (Puerta B: transporte y logística local) y S9 (Puerta C: explotación
+progresiva de edificios y accesos mutables) están cerrados con
+limitaciones explícitas (ver «S8 — Puerta B» y «S9 — Puerta C» al final);
+la entrega S7–S9 queda registrada en
+[DEC-0019](decisions/DEC-0019_deep-objects-physical-logistics-and-building-exploitation.md)
+y propuesta en una única PR contra `main`, sin fusionar. Quedan S10 y S11
+sin fecha.
 
 El prototipo histórico Godot queda preservado íntegro, sin más desarrollo
 activo. Su historial de entregas de código:
@@ -1636,6 +1640,12 @@ Godot en el entorno de implementación (ver sección de validaciones de
 
 ## Aceptación manual pendiente
 
+`WEB-002` S7 a S9 — cerrados técnicamente con limitaciones explícitas;
+la aceptación manual de Dennis está **pendiente**, con el guion de
+diecisiete puntos en «S9 — Puerta C» al final (y los guiones parciales de
+S7 y S8 en sus secciones). No se declara superada por haber ejecutado los
+E2E.
+
 `WEB-002` S1 a S6 — completados técnicamente, sin lista de aceptación
 manual formal propia todavía; ver «Cómo jugar el runtime V2
 manualmente» más arriba para reproducir S3 (incluye reproducir la
@@ -1684,9 +1694,13 @@ trabajos planificados y necesidades causales, ver
 están completados técnicamente. S7 (objetos profundos,
 inventarios, recursos y transformaciones) tiene su Puerta A cerrada
 respecto a la lista de deuda auditada, con limitaciones explícitas (ver
-«S7 — Puerta A» al final). El siguiente candidato de implementación es
-S8 — recogida, carga, transporte, transferencia y almacenamiento físico
-(Puerta B) —, en la misma rama `feat/web-002-s7-s9-objects-logistics-exploitation`. Cada subhito requiere su
+«S7 — Puerta A» al final), y S8 (transporte y logística local) y S9
+(explotación progresiva de edificios) están cerrados con limitaciones
+explícitas (ver
+[DEC-0019](decisions/DEC-0019_deep-objects-physical-logistics-and-building-exploitation.md)).
+El siguiente candidato de implementación es S10 — agricultura y terreno
+mutable inicial —, que no debe empezar hasta que la PR de S7–S9 se revise
+y fusione. Cada subhito requiere su
 propia sesión y debe dejar el repositorio funcionando, probado y
 documentado antes de continuar al siguiente, sin cambiar de stack,
 rehacer los seis protagonistas, sustituir el reloj, romper guardados
@@ -1702,8 +1716,8 @@ Rama `feat/web-002-s7-s9-objects-logistics-exploitation`, partiendo de
 prompt de subhitos S7-S9 («No abras PR parciales ni solicites permiso
 entre A, B y C salvo bloqueo real»). En el momento de cerrar la Puerta A,
 S8 y S9 no habían empezado; S8 se cerró después (ver «S8 — Puerta B»), y
-S9 (Puerta C: capas de edificio, accesos mutables) sigue sin empezar.
-`DEC-0019` se creará solo cuando S7+S8+S9 estén completos.
+S9 (Puerta C: capas de edificio, accesos mutables) se cerró al final (ver
+«S9 — Puerta C») y `DEC-0019` recoge la entrega completa.
 
 ### Qué hay y cómo funciona
 
@@ -1922,8 +1936,9 @@ todavía. Canon: [SET-010](40-settlement/SET-010_local-hauling-and-transport.md)
 [WLD-011 §3.7](20-world/WLD-011_openings-access-and-connectivity.md#37-compatibilidad-de-accesos-y-transporte)
 (anchura de accesos) y la arquitectura de trabajos/reservas de
 [DEC-0018](decisions/DEC-0018_resolution-engine-planned-work-and-causal-needs.md),
-que se reutiliza sin tuberías paralelas. S9 (Puerta C) no ha empezado y
-`DEC-0019` no se ha creado.
+que se reutiliza sin tuberías paralelas. En el momento de cerrar S8, S9
+no había empezado; se cerró después (ver «S9 — Puerta C») y `DEC-0019`
+recoge la entrega completa.
 
 ### Qué hay y cómo funciona
 
@@ -2117,6 +2132,261 @@ supermercado en (132,5, 12,5); carretilla junto al refugio en
 5. Probar «Auto» con el cubo (elige a pulso) y con algo pesado cerca de un
    medio (elige carretilla o carro), y ver el motivo al imponer un método
    inviable.
+
+## S9 — Puerta C (explotación progresiva de edificios y accesos): cerrado con limitaciones explícitas
+
+Misma rama `feat/web-002-s7-s9-objects-logistics-exploitation`, con una
+única PR contra `main` que agrupa S7, S8 y S9 (sin fusionar). Canon:
+[SET-007](40-settlement/SET-007_building-exploitation-reuse-and-demolition.md)
+(capas, vidas, desmontar/desmantelar/demoler, habitabilidad),
+[WLD-011](20-world/WLD-011_openings-access-and-connectivity.md) (hueco,
+cierre y obstrucción) y la arquitectura de trabajos/reservas de
+[DEC-0018](decisions/DEC-0018_resolution-engine-planned-work-and-causal-needs.md).
+La decisión de toda la entrega es
+[DEC-0019](decisions/DEC-0019_deep-objects-physical-logistics-and-building-exploitation.md).
+
+### Qué hay y cómo funciona
+
+Los dieciséis puntos de la lista de cierre de S9, verificados contra el
+código:
+
+1. **Cinco capas independientes** (`contracts/src/building-exploitation-v2.ts`,
+   `simulation-core/src/v2/exploitation/layers.ts`): contenido suelto,
+   mobiliario y equipamiento, instalaciones, acabados y estructura, cada
+   una con estado físico (intacta, parcialmente explotada, agotada,
+   inaccesible) y de conocimiento propios. Nunca hay una cifra única: la
+   ficha «Edificios conocidos» muestra una fila por capa.
+2. **Tres vidas persistentes** en los hitos del tejido (`BuildingFabric`):
+   primera (saqueo), segunda (desmontaje de mobiliario, instalaciones y
+   acabados) y tercera (desmantelar o demoler), guardadas en el snapshot.
+3. **Estados de explotación** Desconocido → Reconocido → Explorado →
+   Registrado → Registrado por especialista → Vaciado → Desmontando →
+   Desmantelado → Demolido, derivados de los hitos y separados de la niebla
+   y de las facetas de descubrimiento. Vaciar el contenido suelto nunca
+   presenta el edificio como agotado.
+4. **Habitabilidad** (`computeHabitability`): bandas habitable, precario,
+   inhabitable, sin acceso utilizable y demolido, con factores visibles
+   (ventanas retiradas, acabados, instalaciones, estructura, accesos
+   expuestos). Integrada con el descanso de S6.
+5. **Cuatro acciones distintas**: recuperar (retirar/recoger, sin daño),
+   desmontar (mueble, instalación, acabado; irreversible, conserva
+   materiales), desmantelar la estructura por etapas y demoler; las dos
+   últimas con confirmación informada y previsualización cualitativa.
+6. **Acciones propias sobre accesos**: abrir, cerrar, bloquear,
+   desbloquear, forzar, despejar, reforzar con barricada, tapiar, reforzar,
+   reparar, retirar preservando, destruir e instalar (13 métodos de
+   `action-methods.ts`, cifras en `ACCESS_TUNING` `s9-v1`).
+7. **Retirar una puerta conserva el hueco transitable**: la puerta pasa a
+   ser un `WorldObject` con la misma identidad y procedencia
+   `closure_removed:<abertura>`; se puede transportar e instalar en otro
+   hueco compatible (un portón no cabe en un hueco normal).
+8. **Tapiar con material concreto**: consume 12 kg de madera real
+   reservada en la fase de preparación (una barricada, 6 kg); sin madera,
+   `block.missing_materials`; despejar recupera parte (50 % / 75 %).
+9. **Compatibilidad logística**: la ruta de S8 consulta el mismo índice de
+   accesos, así que tapiar o retirar una puerta cambia qué métodos caben y
+   por dónde (COM-02: tapiado el acceso de clientes, el traslado se
+   replantea por el de carga).
+10. **Invalidación dirigida**: `navigationRevision` por edificio y
+    `ensureNavigationCurrent` rehacen solo la huella afectada (1,7 ms frente
+    a 144 ms completos en `probe-seed-92`); los movimientos en curso que
+    cruzaban el acceso se detienen donde están (`access_no_longer_passable`)
+    y un trabajo bloqueado por ruta continúa solo al reabrirse el paso.
+11. **Demolición irreversible**: destruye lo que queda dentro
+    (`DemolitionLosses`), exige el edificio vacío de personas, deja
+    escombros transitables y lotes de escombro con procedencia; el
+    edificio es terminal también tras recargar y sus estancias dejan de
+    ofrecerse.
+12. **Recorridos de los cuatro perfiles** sobre el pueblo generado real
+    (`exploitation/s9-profiles.test.ts`, `s9-buildings.test.ts`): RES-10
+    (capas, tres vidas y demolición), RES-17 (refuerzo, vaciado y
+    desmantelamiento en tres etapas hasta solar), COM-02 (accesos de
+    cliente/carga, estantería desmontada, traslado replanteado) y TAL-01
+    (banco desmontado que da la madera con la que se repara el portón,
+    puerta personal retirada y su hueco tapiado).
+13. **Bomba ENV-01**: `uninstall_installation` la retira entera (la fuente
+    deja de dar agua) y un traslado con destino «Instalar en la fuente de
+    agua» encadena una instalación real que la reconecta a su nodo
+    hídrico. «Desconectar instalación» es una acción propia para las
+    instalaciones de edificio (agua incluida) y desmontar una instalación
+    conectada empieza por desconectarla dentro del mismo trabajo.
+14. **Persistencia aditiva**: `buildingFabrics`, `buildingInstallations`,
+    `buildingFinishes`, `navigationRevision` y los campos nuevos de cierres
+    y obstrucciones llevan `.default()`; una partida v1–v3 carga sin tejido
+    (capas 3–5 no disponibles) con los accesos intactos. Generador
+    `web-002-semantic-v4` con stream PRNG `s9-buildings` propio: trazado e
+    IDs de v3 sin cambios.
+15. **Integración PostgreSQL** (`packages/persistence/src/s9-exploitation.integration.test.ts`):
+    guardar a mitad de una demolición y continuar igual; puerta retirada y
+    hueco tapiado tras recargar con la ruta respetando el tapiado; snapshot
+    sin tejido S9.
+16. **E2E en Chromium real** (`e2e/s9-exploitation.spec.ts`): RES-10 de
+    extremo a extremo (inspeccionar, registrar, saquear, desmontar mueble,
+    registro técnico, desmontar instalación, retirar ventana, salir con lo
+    saqueado y demoler con confirmación, demolido también tras recargar) y
+    accesos (retirar puerta con hueco transitable, desmontar el sofá para
+    obtener madera, tapiar con ella bloqueando la ruta, despejar y ver
+    continuar el trabajo bloqueado).
+
+Correcciones de esta puerta destapadas por los recorridos largos (detalle
+en DEC-0019 §12): inspeccionar un edificio en pie lleva a su estancia de
+entrada; la autoprotección reconoce el agua y la comida de la mochila y no
+hace que varias personas se disputen el mismo lote; el material para
+tapiar una puerta interior vale desde cualquiera de sus lados; y una orden
+directa interrumpida por autoprotección ya no deja a la persona enganchada:
+la **retoma sola** al recuperarse, conservando el trabajo hecho, sin
+remuestrear su episodio, sin duplicar la orden y sin repetir una ejecución
+ya terminada.
+
+Al cerrar la rama, los E2E largos destaparon defectos de la autoprotección
+de S6 que los accesos mutables vuelven frecuentes, corregidos con pruebas de
+regresión en `exploitation/s9-profiles.test.ts` (§«autoprotección frente a
+accesos cambiados»): una persona asignada a un trabajo bloqueado nunca se
+protegía (llegaba a 0 en todo); el agua o la comida elegidas no tenían por
+qué tener ruta (el agua tras un tapiado); sin agua alcanzable nunca pasaba a
+descansar y además abandonaba su trabajo para quedarse ociosa; el aviso «sin
+solución conocida» se emitía en cada tick y desplazaba el registro
+operativo (tope de 50 entradas); y un trabajo bloqueado por ruta se
+reanudaba y rebloqueaba en cada tick (miles de transiciones). Detalle en
+DEC-0019 §12. El panel expone además `data-job-action` en cada trabajo, que
+los E2E usan para no confundir una intención de autoprotección con la orden
+recién dada.
+
+### Limitaciones explícitas (no se arrastran en silencio)
+
+- **Ventanas no navegables**: son acabados y cierres, no aberturas por las
+  que entrar o salir.
+- **Sin obstrucciones generadas**: el generador no produce obstrucciones ni
+  cierres bloqueados de origen; se crean en juego (barricada, tapiado).
+- **Sin reinstalar acabados**: solo puertas, portones y la bomba se
+  instalan; una ventana o un sanitario retirados quedan como material.
+- **Bomba sin desconexión separada**: se desinstala entera; no se
+  desconecta de su nodo dejándola en su sitio.
+- **Una sola planta**: sin escaleras ni plantas superiores.
+- **Terreno**: pendiente, escaleras, barro, grava y agua siguen sin
+  generarse (los escombros sí, al demoler).
+- **Ruido sin consumidor**: forzar, demoler y transportar registran ruido,
+  sin amenazas que reaccionen.
+- **Perfiles fuera del E2E**: RES-17, COM-02 y TAL-01 se recorren en
+  pruebas unitarias sobre el pueblo generado real, no en Chromium.
+- **Cifras provisionales**: tiempos, materiales, penalizaciones de
+  habitabilidad y perfiles estructurales (SET-007 los deja abiertos).
+- **Fixture de conocimiento en los E2E**: como en S7/S8, se inyecta solo el
+  conocimiento que daría la exploración; nada se mueve ni se crea a mano.
+- **Aceptación manual**: no ejecutada. El guion está abajo.
+
+### Validaciones del cierre de la rama S7–S9 (esta sesión)
+
+Ejecutado y en verde al cerrar, sobre el árbol final de la rama:
+
+- `npm run typecheck` (todos los paquetes y `apps/web`) y `npm run lint`
+  (paquetes y web): sin errores ni avisos.
+- `npx vitest run`: **297 pruebas unitarias en 31 ficheros en verde**
+  (267 de S1–S8 sin regresión —una de S7 ajustada: prepara descansada a la
+  persona antes de comprobar el bloqueo de la bomba desmontada, porque con
+  necesidad crítica atendible ahora solo toma su autoprotección— y 30
+  nuevas de S9: 11 de accesos, 6 de generación y RES-10, 10 de perfiles,
+  bomba, habitabilidad, reanudación y autoprotección, y 3 de proyecciones y
+  motor).
+- `npm run test:integration` (PostgreSQL 16 real, `zworld_test`): **30 en
+  verde** (27 previas + 3 de `s9-exploitation.integration.test.ts`).
+- `npm run build` (incluido `apps/web`) correcto.
+- `npx playwright test` (Chromium real `/opt/pw-browsers/chromium-1194`,
+  `next start` real, PostgreSQL real): **12 E2E en verde en dos
+  ejecuciones consecutivas** (los 10 de S1–S8 y los 2 de
+  `e2e/s9-exploitation.spec.ts`). Las primeras ejecuciones de esta sesión
+  fallaban en S9 y destaparon los defectos de autoprotección descritos
+  arriba; ninguna aserción se relajó para ocultarlos.
+
+### Guion de aceptación manual para Dennis (S7 + S8 + S9, diecisiete puntos)
+
+Semilla estable `probe-seed-92`, generador `web-002-semantic-v4`. Llegada
+en (13, 36); vivienda RES-10 a ~16 m (lugar en (2,6, 23,7)); bomba de la
+fuente comunal ENV-01 en (−28, 88), a ~66 m; supermercado COM-02 a ~121 m
+(lugar en (129,0, 3,1), carro de mano ante el acceso de clientes en
+(132,5, 12,5)); taller TAL-01 a ~171 m (lugar en (173,4, −22,4)); cabaña
+RES-17 a ~256 m (lugar en (170,1, −166,1)); carretilla junto al refugio en
+(−217,5, 52,5). Jugar a ×10 salvo que se indique. Todo se hace en
+`/village/[id]`:
+
+1. **Crear y comprobar que no hay fugas.** Crear la partida con la semilla.
+   «Inventario conocido» muestra solo las pertenencias reales de cada
+   protagonista; «Edificios conocidos» no nombra ningún edificio sin
+   observar (ni el supermercado ni el taller).
+2. **Reconocer y registrar RES-10.** Con la segunda protagonista, entrar en
+   la vivienda: aparece en «Edificios conocidos». «Inspeccionar» →
+   edificio: la ficha muestra «Construcción» y «0/4 etapas desmanteladas».
+   «Registrar» → cocina y dormitorio: solo entonces aparecen armario,
+   frigorífico, sofá y su contenido; las instalaciones siguen sin detalle.
+3. **Primera vida.** «Retirar de almacenamiento» un objeto del armario: la
+   capa «1. Contenido suelto» pasa a parcialmente explotada y aparece
+   «Primera vida (saqueo)»; el edificio **no** figura como agotado.
+4. **Almacén físico.** «Almacenar» ese objeto en otro contenedor con
+   capacidad; llenar un contenedor hasta ver el bloqueo «contenedor lleno»
+   (nunca sobrecarga).
+5. **Reparar con material concreto.** «Reparar» → armario: consume madera
+   concreta del lugar (nunca «materiales de reparación»).
+6. **Segunda vida: mobiliario.** «Desmontar (selectivo)» → Sofá: «Ordenar»
+   está desactivado hasta marcar «Confirmar acción irreversible». La
+   madera queda suelta en la sala; la capa 2 pasa a parcialmente explotada,
+   aparece «Segunda vida (desmontaje)» y la etapa «Desmontando».
+7. **Segunda vida: instalaciones y reanudación.** Seleccionar a la primera
+   protagonista (especialista, llega agotada) y ordenar «Registro técnico
+   de instalaciones» → edificio. La orden queda «interrumpida», la persona
+   descansa y **la retoma sola** sin dar una orden nueva; la capa 3 pasa a
+   registrada (parcial o por especialista). «Desconectar instalación» →
+   agua (el servicio queda inactivo) y «Desmontar instalación» →
+   «Instalación eléctrica» con confirmación: aparecen componentes.
+8. **Segunda vida: acabados.** «Retirar acabado» → Ventana: la capa 4 pasa a
+   parcialmente explotada, la habitabilidad baja y aparece el factor
+   «Ventanas retiradas (estancias expuestas)». La estructura sigue intacta.
+9. **Retirar una puerta.** «Retirar puerta (preservándola)» → puerta
+   recibidor ↔ sala: el acceso dice «sin cierre (hueco)» y sigue
+   transitable (mover a alguien a través); la puerta aparece como objeto
+   en «Inventario conocido».
+10. **Tapiar y comprobar navegación.** «Tapiar acceso» → puerta sala ↔
+    cocina (usa la madera del sofá; sin madera queda bloqueado por
+    materiales): el acceso aparece «tapiado», no transitable y el mapa lo
+    marca. Ordenar «Registrar» → cocina: queda bloqueado con «No hay ruta
+    conocida». Con otra persona, «Despejar obstrucción»: el paso se reabre,
+    se recupera parte de la madera y el registro bloqueado continúa solo.
+11. **Transportar e instalar la puerta.** «Transportar» → la puerta retirada
+    → destino «Instalar en una abertura sin cierre» → el hueco del paso 9:
+    se traslada con el método elegido y se instala con la misma identidad.
+12. **Bomba ENV-01.** Ir a la fuente: «Probar instalación» (averiada),
+    «Extraer agua con la bomba» (bloqueado), repararla con piezas mecánicas
+    I y chapa, y extraer agua a un recipiente real. Después «Desinstalar
+    bomba entera»: la fuente deja de dar agua; «Transportar» la bomba con
+    destino «Instalar en la fuente de agua»: vuelve a funcionar.
+13. **Cinco métodos y bloqueos (S8).** Mover el cubo a pulso, en recipiente
+    personal, en porte coordinado (dos personas), en carretilla y en carro
+    de mano; comprobar el motivo al imponer un método inviable por peso,
+    bulto o anchura de acceso, y qué elige «Auto».
+14. **COM-02 y transferencia.** En el supermercado, «Registrar» la
+    trastienda y transportar el cubo en carro al contenedor de la
+    trastienda: el carro se detiene ante el acceso de carga, descarga en un
+    punto de transferencia y una etapa a pulso sigue por las puertas
+    interiores. Después «Tapiar acceso» el de clientes: un traslado nuevo
+    entra por el de carga; «Desmontar (selectivo)» una estantería da chapa.
+15. **TAL-01.** En el taller, desmontar el banco de trabajo (da madera),
+    «Reparar cierre» → portón con esa madera, «Retirar puerta
+    (preservándola)» → puerta personal y «Tapiar acceso» su hueco: se sigue
+    entrando por el portón.
+16. **Cancelar, guardar y recargar.** A ×1, cancelar un traslado en
+    «Recorriendo la ruta» y un desmontaje a medias: la carga y el medio
+    quedan donde estaban y los materiales reservados se liberan. Pausar
+    (se guarda), recargar la página y comprobar capas, vidas, accesos,
+    tapiados, puerta instalada y habitabilidad idénticos.
+17. **Tercera vida: demoler RES-10.** Llevar lo saqueado al punto de
+    llegada y sacar a todo el mundo. La ficha previsualiza «Destruye todo
+    lo que quede dentro». «Demoler edificio» exige la confirmación; si
+    alguien sigue dentro queda bloqueado con «Hay personas dentro del
+    edificio». Al terminar: etapa «Demolido», habitabilidad «Demolido (sin
+    habitabilidad)», escombros transitables y el registro «Se demolió un
+    edificio (irreversible).». Recargar: sigue demolido y sus estancias ya
+    no se ofrecen. Opcional: en la cabaña RES-17, «Desmantelar estructura
+    (por etapas)» tres veces hasta dejar un solar y comparar lo recuperado
+    con una demolición.
 
 ## Deuda documental previa conservada
 
