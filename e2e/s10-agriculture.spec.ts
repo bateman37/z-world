@@ -38,6 +38,7 @@ interface FieldFixture {
   readonly villageUrl: string;
   readonly plotId: string;
   readonly parcelId: string;
+  readonly fittestPersonName: string;
 }
 
 async function createVillage(page: Page): Promise<FieldFixture> {
@@ -48,12 +49,15 @@ async function createVillage(page: Page): Promise<FieldFixture> {
   const villageUrl = page.url();
   const gameSaveId = villageUrl.split("/village/")[1]!.split(/[?#]/)[0]!;
   await expect(page.getByRole("navigation", { name: "Protagonistas" }).getByRole("button")).toHaveCount(6, { timeout: 20_000 });
-  const { plotId, parcelId } = await withPrisma(async (prisma) => {
+  const { plotId, parcelId, fittestPersonName } = await withPrisma(async (prisma) => {
     const { state } = await loadGameV2(prisma, gameSaveId);
     const plot = Object.values(state.cultivationPlots)[0]!;
-    return { plotId: plot.id, parcelId: plot.parcelId };
+    // La persona mejor descansada, hidratada y alimentada minimiza el riesgo de que la autoprotección (S6) interrumpa
+    // las órdenes de este recorrido; a diferencia de S9, aquí no hace falta evitar a nadie en concreto por posición.
+    const fittest = state.peopleOrder.map((id) => state.people[id]!).sort((a, b) => Math.min(...b.needs.map((n) => n.value)) - Math.min(...a.needs.map((n) => n.value)))[0]!;
+    return { plotId: plot.id, parcelId: plot.parcelId, fittestPersonName: `${fittest.public.firstName} ${fittest.public.lastName}` };
   });
-  return { gameSaveId, villageUrl, plotId, parcelId };
+  return { gameSaveId, villageUrl, plotId, parcelId, fittestPersonName };
 }
 
 function actionSection(panel: Locator): Locator {
@@ -101,7 +105,7 @@ test("S10: ciclo agrícola completo — preparar con interrupción, sembrar, cui
   test.setTimeout(600_000);
   const fx = await createVillage(page);
   const people = page.getByRole("navigation", { name: "Protagonistas" }).getByRole("button");
-  await people.nth(1).click();
+  await people.filter({ hasText: fx.fittestPersonName }).click();
   const panel = page.getByRole("complementary", { name: "Trabajos y necesidades" });
   // A ×1 el reloj determinista avanza 72 s simulados por s real (§4.4): lo bastante lento para observar de verdad la
   // interrupción a mitad de un trabajo de 30 min simulados y la pausa del crecimiento, sin ningún atajo de "avanzar ya".
@@ -114,7 +118,7 @@ test("S10: ciclo agrícola completo — preparar con interrupción, sembrar, cui
   const prepareJobId = await order(panel);
   await expect(panel.locator(`li[data-job-id="${prepareJobId}"]`)).toHaveAttribute("data-job-state", "in_progress", { timeout: 60_000 });
   await expect.poll(async () => Number(await plotItem(panel, fx.plotId).getAttribute("data-cultivation-plot-preparation")), { timeout: 60_000 }).toBeGreaterThan(0);
-  await panel.locator(`li[data-job-id="${prepareJobId}"]`).getByRole("button", { name: "Pausar" }).click();
+  await panel.locator(`li[data-job-id="${prepareJobId}"]`).getByRole("button", { name: "Pausar" }).click({ timeout: 10_000 });
   await expect(panel.locator(`li[data-job-id="${prepareJobId}"]`)).toHaveAttribute("data-job-state", "paused");
   const progressAtPause = Number(await plotItem(panel, fx.plotId).getAttribute("data-cultivation-plot-preparation"));
   expect(progressAtPause).toBeGreaterThan(0);
