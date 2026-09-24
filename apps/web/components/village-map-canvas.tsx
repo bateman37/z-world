@@ -36,6 +36,31 @@ const LINE_COLORS: Record<string, string> = {
   watercourse: "#3c7ba0",
 };
 
+/** Colores de cobertura removible (S10, WLD-010 §3.2 capa 2): "none" no añade tinte propio sobre el color base del terreno. */
+const COVERAGE_TINTS: Record<string, string> = {
+  vegetation: "rgba(38, 77, 44, 0.55)",
+  debris: "rgba(122, 92, 58, 0.55)",
+};
+
+/** Colores de estado de vía (S10, WLD-010 §3.7). */
+const WAY_STATE_COLORS: Record<string, string> = {
+  transitable: "#8b8168",
+  cleared: "#a8a084",
+  obstructed: "#c98a3d",
+  function_removed: "#3c4a3a",
+};
+
+/** Colores de estado de parcela de cultivo (S10, SET-011 §3.1). */
+const CULTIVATION_STATE_COLORS: Record<string, string> = {
+  unprepared: "rgba(90, 74, 47, 0.35)",
+  cleared: "rgba(120, 110, 80, 0.4)",
+  prepared: "rgba(150, 120, 70, 0.5)",
+  sown: "rgba(120, 140, 70, 0.55)",
+  growing: "rgba(90, 150, 60, 0.6)",
+  harvestable: "rgba(210, 180, 60, 0.7)",
+  harvested: "rgba(110, 100, 70, 0.4)",
+};
+
 interface Camera {
   readonly centerX: number;
   readonly centerY: number;
@@ -145,6 +170,28 @@ export function VillageMapCanvas({
       ctx.closePath();
       ctx.fillStyle = TERRAIN_COLORS[area.kind] ?? "#333";
       ctx.fill();
+      // S10: la cobertura removible (matorral/escombros sin despejar) se pinta encima del terreno de base.
+      const tint = COVERAGE_TINTS[area.coverage];
+      if (tint) {
+        ctx.fillStyle = tint;
+        ctx.fill();
+      }
+    }
+
+    // S10: parcelas de cultivo, siempre visibles como terreno de fondo (SET-011 §3.1); nunca revela cultivo/rendimiento aquí.
+    for (const plot of mapEntities.cultivationPlots) {
+      ctx.beginPath();
+      plot.polygon.forEach((point, index) => {
+        const s = toScreen(point);
+        if (index === 0) ctx.moveTo(s.x, s.y);
+        else ctx.lineTo(s.x, s.y);
+      });
+      ctx.closePath();
+      ctx.fillStyle = CULTIVATION_STATE_COLORS[plot.state] ?? "rgba(150, 120, 70, 0.4)";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(210, 180, 60, 0.6)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
     }
 
     for (const line of mapEntities.lines) {
@@ -154,9 +201,33 @@ export function VillageMapCanvas({
         if (index === 0) ctx.moveTo(s.x, s.y);
         else ctx.lineTo(s.x, s.y);
       });
-      ctx.strokeStyle = LINE_COLORS[line.kind] ?? "#999";
+      // S10: una vía obstruida se pinta distinta (más lenta, no cerrada); una sin función deja de pintarse como vía.
+      ctx.strokeStyle = (line.kind === "road" && line.wayState ? WAY_STATE_COLORS[line.wayState] : undefined) ?? LINE_COLORS[line.kind] ?? "#999";
       ctx.lineWidth = Math.max(1, line.widthMeters * camera.pixelsPerMeter);
+      ctx.setLineDash(line.wayState === "obstructed" ? [6, 4] : []);
       ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // S10: barreras entre anclajes (WLD-010 §3.6): sólida si está construida, discontinua si solo está planificada.
+    for (const segment of mapEntities.barrierSegments) {
+      const from = toScreen(segment.from);
+      const to = toScreen(segment.to);
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.strokeStyle = segment.built ? "#c9a45c" : "rgba(201, 164, 92, 0.5)";
+      ctx.lineWidth = segment.built ? 3 : 2;
+      ctx.setLineDash(segment.built ? [] : [5, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      if (segment.crossesWay) {
+        const mid = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 };
+        ctx.beginPath();
+        ctx.arc(mid.x, mid.y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = segment.wayCrossingMode === "full_block" ? "#e0605a" : "#7fb3ff";
+        ctx.fill();
+      }
     }
 
     for (const building of mapEntities.buildings) {

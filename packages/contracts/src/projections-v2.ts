@@ -35,6 +35,8 @@ export interface VisibleTerrainAreaProjection {
   readonly id: string;
   readonly kind: AreaTerrainKind;
   readonly polygon: readonly WorldPoint[];
+  /** Cobertura efectiva (S10, WLD-010 §3.2): `"none" | "vegetation" | "debris"`. */
+  readonly coverage: string;
 }
 
 export interface VisibleLinearFeatureProjection {
@@ -42,6 +44,25 @@ export interface VisibleLinearFeatureProjection {
   readonly kind: LineTerrainKind;
   readonly polyline: readonly WorldPoint[];
   readonly widthMeters: number;
+  /** Estado mutable de la vía (S10, WLD-010 §3.7). `null` para cursos de agua. */
+  readonly wayState: string | null;
+}
+
+/** Parcela de cultivo visible (S10): geometría real y estado cualitativo, nunca un número interno. */
+export interface VisibleCultivationPlotProjection {
+  readonly id: string;
+  readonly polygon: readonly WorldPoint[];
+  readonly state: string;
+}
+
+/** Tramo de barrera visible entre dos anclajes (S10, WLD-010 §3.6). */
+export interface VisibleBarrierSegmentProjection {
+  readonly id: string;
+  readonly from: WorldPoint;
+  readonly to: WorldPoint;
+  readonly built: boolean;
+  readonly crossesWay: boolean;
+  readonly wayCrossingMode: string | null;
 }
 
 export type PlaceKnowledgeLevel = "sighted" | "observed";
@@ -85,6 +106,9 @@ export interface MapEntitiesProjectionV2 {
   readonly rooms: readonly VisibleRoomProjection[];
   readonly openings: readonly VisibleOpeningProjection[];
   readonly people: ReadonlyArray<{ readonly personId: string; readonly position: WorldPoint; readonly indoors: boolean; readonly roomId: string | null }>;
+  /** S10: parcelas de cultivo y tramos de barrera reales (siempre visibles como el resto del terreno; sin omnisciencia de contenido, solo geometría y estado). */
+  readonly cultivationPlots: readonly VisibleCultivationPlotProjection[];
+  readonly barrierSegments: readonly VisibleBarrierSegmentProjection[];
 }
 
 /**

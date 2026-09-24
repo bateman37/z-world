@@ -21,7 +21,7 @@ import type {
   WorkerProjectionsV2,
   ZoneProjection,
 } from "@z-world/contracts";
-import { toSimulatedDayTime } from "@z-world/contracts";
+import { toSimulatedDayTime, effectiveTerrainCoverage } from "@z-world/contracts";
 import { ACTION_METHODS_BY_KEY } from "@z-world/catalogs";
 import { buildInventoryProjection, buildObjectActionOptions, buildObjectKnowledge, buildTransportActionOption, buildTransportJobProjection, derivePossessions, knownConsumableLots } from "./build-object-projections-v2.js";
 import { buildBuildingInspectTargets, buildBuildingsProjection, buildExploitationActionOptions, buildInstallDestinations } from "./build-exploitation-projections-v2.js";
@@ -91,14 +91,34 @@ function buildMapEntitiesProjection(state: SimulationStateV2): MapEntitiesProjec
       const c = centroidOf(area.polygon);
       return fogStateAt(state, c.x, c.y) !== "hidden";
     })
-    .map((area) => ({ id: area.id, kind: area.kind, polygon: area.polygon }));
+    .map((area) => ({ id: area.id, kind: area.kind, polygon: area.polygon, coverage: effectiveTerrainCoverage(area) }));
 
   const lines = Object.values(state.world.linearFeatures)
     .filter((line) => {
       const c = centroidOf(line.polyline);
       return fogStateAt(state, c.x, c.y) !== "hidden";
     })
-    .map((line) => ({ id: line.id, kind: line.kind, polyline: line.polyline, widthMeters: line.widthMeters }));
+    .map((line) => ({ id: line.id, kind: line.kind, polyline: line.polyline, widthMeters: line.widthMeters, wayState: line.wayState }));
+
+  // S10: parcelas de cultivo y tramos de barrera son terreno de primera clase, visibles como el resto en cuanto la
+  // niebla los alcanza (sin omnisciencia de contenido: el panel contextual filtra qué acciones se ofrecen).
+  const cultivationPlots = Object.values(state.cultivationPlots)
+    .map((plot) => ({ plot, parcel: state.world.parcels[plot.parcelId] }))
+    .filter((entry): entry is { plot: (typeof entry)["plot"]; parcel: NonNullable<(typeof entry)["parcel"]> } => entry.parcel !== undefined)
+    .filter((entry) => fogStateAt(state, centroidOf(entry.parcel.polygon).x, centroidOf(entry.parcel.polygon).y) !== "hidden")
+    .map((entry) => ({ id: entry.plot.id, polygon: entry.parcel.polygon, state: entry.plot.state }));
+
+  const barrierSegments = Object.values(state.world.barrierSegments)
+    .map((segment) => ({ segment, from: state.world.anchors[segment.fromAnchorId], to: state.world.anchors[segment.toAnchorId] }))
+    .filter((entry): entry is { segment: (typeof entry)["segment"]; from: NonNullable<(typeof entry)["from"]>; to: NonNullable<(typeof entry)["to"]> } => entry.from !== undefined && entry.to !== undefined)
+    .map((entry) => ({
+      id: entry.segment.id,
+      from: entry.from.position,
+      to: entry.to.position,
+      built: entry.segment.built,
+      crossesWay: entry.segment.crossesWayId !== null,
+      wayCrossingMode: entry.segment.wayCrossingMode,
+    }));
 
   const places: VisiblePlaceProjection[] = [];
   for (const place of Object.values(state.world.places)) {
@@ -144,7 +164,7 @@ function buildMapEntitiesProjection(state: SimulationStateV2): MapEntitiesProjec
       roomId: p.location.kind === "room" ? p.location.roomId : null,
     }));
 
-  return { areas, lines, places, buildings, rooms, openings, people };
+  return { areas, lines, places, buildings, rooms, openings, people, cultivationPlots, barrierSegments };
 }
 
 function buildMovementsProjection(state: SimulationStateV2): readonly MovementProjection[] {
@@ -414,6 +434,48 @@ function buildContextualActionsProjection(state: SimulationStateV2): readonly Co
   // S9: accesos, instalaciones, acabados y estructura (explotación progresiva por capas).
   options.push(...buildExploitationActionOptions(state, knowledge));
 
+  // S10: ciclo agrícola (preparar/sembrar/cuidar/cosechar sobre una parcela ya existente) y carreteras mutables. La
+  // limpieza de cobertura y la construcción de barrera se disparan por designación de área/línea (§6.2 del prompt de
+  // subhito: "las designaciones deben generar trabajos... no ejecutar transformaciones instantáneas"), no aquí.
+  options.push(...buildAgricultureActionOptions(state));
+  options.push(...buildRoadActionOptions(state));
+
+  return options;
+}
+
+function cultivationPlotLabelKey(plotState: string): string {
+  return `cultivation_state.${plotState}`;
+}
+
+function buildAgricultureActionOptions(state: SimulationStateV2): ContextualActionOptionProjection[] {
+  const options: ContextualActionOptionProjection[] = [];
+  const byState: Record<string, ContextualActionTargetProjection[]> = { unprepared: [], cleared: [], prepared: [], sown: [], growing: [], harvestable: [] };
+  for (const plot of Object.values(state.cultivationPlots)) {
+    const bucket = byState[plot.state];
+    if (!bucket) continue;
+    bucket.push({ target: { kind: "cultivation_plot", cultivationPlotId: plot.id }, labelKey: cultivationPlotLabelKey(plot.state), blockedReasonKey: null });
+  }
+  const prepareTargets = [...byState.unprepared!, ...byState.cleared!];
+  if (prepareTargets.length > 0) options.push({ actionKey: "prepare_soil", labelKey: "action.prepare_soil.label", targets: prepareTargets });
+  if (byState.prepared!.length > 0) options.push({ actionKey: "sow", labelKey: "action.sow.label", targets: byState.prepared! });
+  const tendTargets = [...byState.sown!, ...byState.growing!];
+  if (tendTargets.length > 0) options.push({ actionKey: "tend_crop", labelKey: "action.tend_crop.label", targets: tendTargets });
+  if (byState.harvestable!.length > 0) options.push({ actionKey: "harvest", labelKey: "action.harvest.label", targets: byState.harvestable! });
+  return options;
+}
+
+function buildRoadActionOptions(state: SimulationStateV2): ContextualActionOptionProjection[] {
+  const options: ContextualActionOptionProjection[] = [];
+  const obstructed: ContextualActionTargetProjection[] = [];
+  const removable: ContextualActionTargetProjection[] = [];
+  for (const line of Object.values(state.world.linearFeatures)) {
+    if (line.kind !== "road" || !line.wayState) continue;
+    const target: JobTarget = { kind: "linear_feature", linearFeatureId: line.id };
+    if (line.wayState === "obstructed") obstructed.push({ target, labelKey: `way_state.${line.wayState}`, blockedReasonKey: null });
+    if (line.wayState !== "function_removed") removable.push({ target, labelKey: `way_state.${line.wayState}`, blockedReasonKey: null });
+  }
+  if (obstructed.length > 0) options.push({ actionKey: "clear_road", labelKey: "action.clear_road.label", targets: obstructed });
+  if (removable.length > 0) options.push({ actionKey: "remove_way_function", labelKey: "action.remove_way_function.label", targets: removable, irreversible: true });
   return options;
 }
 
