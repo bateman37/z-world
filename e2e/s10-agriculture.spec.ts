@@ -116,15 +116,17 @@ test("S10: ciclo agrícola completo — preparar con interrupción, sembrar, cui
   // Preparar suelo: se interrumpe a mitad y se reanuda conservando el progreso parcial (nunca se rerrollea ni se pierde).
   await chooseAction(panel, "Preparar suelo", { id: fx.plotId });
   const prepareJobId = await order(panel);
+  // Se pausa en cuanto arranca (antes de que avance más), para minimizar la ventana real en la que el trabajo podría
+  // completarse solo entre esta comprobación y el clic: lo que importa es que la pausa detiene de verdad el avance y
+  // que al reanudar continúa sin rerrollear nada, no en qué punto exacto del progreso se pille.
   await expect(panel.locator(`li[data-job-id="${prepareJobId}"]`)).toHaveAttribute("data-job-state", "in_progress", { timeout: 60_000 });
-  await expect.poll(async () => Number(await plotItem(panel, fx.plotId).getAttribute("data-cultivation-plot-preparation")), { timeout: 60_000 }).toBeGreaterThan(0);
-  await panel.locator(`li[data-job-id="${prepareJobId}"]`).getByRole("button", { name: "Pausar" }).click({ timeout: 10_000 });
+  await panel.locator(`li[data-job-id="${prepareJobId}"]`).getByRole("button", { name: "Pausar" }).click({ timeout: 15_000 });
   await expect(panel.locator(`li[data-job-id="${prepareJobId}"]`)).toHaveAttribute("data-job-state", "paused");
   const progressAtPause = Number(await plotItem(panel, fx.plotId).getAttribute("data-cultivation-plot-preparation"));
-  expect(progressAtPause).toBeGreaterThan(0);
   await page.waitForTimeout(1_000);
   expect(Number(await plotItem(panel, fx.plotId).getAttribute("data-cultivation-plot-preparation"))).toBe(progressAtPause); // en pausa no avanza nada.
   await panel.locator(`li[data-job-id="${prepareJobId}"]`).getByRole("button", { name: "Reanudar" }).click();
+  await expect.poll(async () => Number(await plotItem(panel, fx.plotId).getAttribute("data-cultivation-plot-preparation")), { timeout: 60_000 }).toBeGreaterThan(progressAtPause);
   await expect(panel.locator(`li[data-job-id="${prepareJobId}"]`)).toHaveAttribute("data-job-state", "completed", { timeout: 120_000 });
   await expect(plotItem(panel, fx.plotId)).toHaveAttribute("data-cultivation-plot-state", "prepared");
 
