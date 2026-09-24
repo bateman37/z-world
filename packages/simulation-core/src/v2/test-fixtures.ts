@@ -127,7 +127,9 @@ export function makeSyntheticBuildingState(seed: string): SimulationStateV2 {
     },
   };
 
-  return { ...base, world, fog, discoveries: [], people };
+  // El mundo real generado por `createInitialStateV2` trae su propia parcela de cultivo garantizada (S1 §7.5), pero
+  // `world.parcels` se sustituye por el mundo sintético de arriba: sin esto, `cultivationPlots` quedaría huérfana.
+  return { ...base, world, fog, discoveries: [], people, cultivationPlots: {}, cropCycles: {}, terrainChanges: {} };
 }
 
 export const TEST_HOUSE_IDS = {

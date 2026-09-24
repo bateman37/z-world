@@ -103,6 +103,8 @@ export function generateVillage(seed: string, worldStream: PrngStream, config: V
   const terrainAreas = Object.fromEntries(environment.updatedAreas.map((a) => [a.id, a]));
   const linearFeatures = Object.fromEntries(environment.updatedLines.map((l) => [l.id, l]));
   const nodes = Object.fromEntries(environment.updatedNodes.map((n) => [n.id, n]));
+  // S10 §8.2: la parcela garantizada guarda el enlace de vuelta a su `CultivationPlot` (enlace bidireccional).
+  const parcels = Object.fromEntries(environment.parcels.map((p) => [p.id, scenario.updatedParcel && p.id === scenario.updatedParcel.id ? scenario.updatedParcel : p]));
 
   const world: SemanticWorldV2 = {
     generatorVersion: VILLAGE_GENERATOR_VERSION,
@@ -112,7 +114,7 @@ export function generateVillage(seed: string, worldStream: PrngStream, config: V
     terrainAreas,
     linearFeatures,
     nodes,
-    parcels: Object.fromEntries(environment.parcels.map((p) => [p.id, p])),
+    parcels,
     places: Object.fromEntries(allPlaces.map((p) => [p.id, p])),
     buildings: Object.fromEntries(allBuildings.map((b) => [b.id, b])),
     floors: Object.fromEntries(contents.floors.map((f) => [f.id, f])),

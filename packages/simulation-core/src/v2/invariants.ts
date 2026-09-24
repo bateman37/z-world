@@ -46,6 +46,11 @@ export function validateSimulationStateV2Invariants(state: SimulationStateV2): I
   checkS9BuildingLayers(state, violations);
   checkS9TerminalBuildings(state, violations);
   checkS9JobsReferenceLiveTargets(state, violations);
+  checkS10CultivationPlots(state, violations);
+  checkS10CropCycleConsistency(state, violations);
+  checkS10TerrainChanges(state, violations);
+  checkS10BarrierSegments(state, violations);
+  checkS10PerimeterClosureDerived(state, violations);
 
   return { ok: violations.length === 0, violations };
 }
@@ -649,6 +654,119 @@ function checkS9JobsReferenceLiveTargets(state: SimulationStateV2, violations: I
     const gone = job.target.kind !== "own_need" && job.target.kind !== "area" && !resolveTargetLocation(state, job.target);
     if ((buildingId && terminal.has(buildingId)) || (gone && job.state !== "blocked")) {
       violations.push({ code: "live_job_on_destroyed_target", message: `El trabajo ${job.id} (${job.state}) sigue actuando sobre un edificio demolido/desmantelado o algo destruido con él.` });
+    }
+  }
+}
+
+// --- S10: entorno mutable y agricultura (`DEC-0020`) ------------------------
+
+/** Toda parcela referencia un `Parcel` real, y el enlace parcela↔plot es bidireccional (§8.2 del prompt de subhito). */
+function checkS10CultivationPlots(state: SimulationStateV2, violations: InvariantViolation[]): void {
+  for (const plot of Object.values(state.cultivationPlots)) {
+    const parcel = state.world.parcels[plot.parcelId];
+    if (!parcel) {
+      violations.push({ code: "cultivation_plot_without_parcel", message: `La parcela de cultivo ${plot.id} referencia un \`Parcel\` inexistente: ${plot.parcelId}.` });
+      continue;
+    }
+    if (parcel.cultivationPlotId !== plot.id) {
+      violations.push({ code: "parcel_cultivation_link_not_bidirectional", message: `\`Parcel\` ${parcel.id} no enlaza de vuelta con la parcela de cultivo ${plot.id} que lo referencia.` });
+    }
+  }
+  for (const parcel of Object.values(state.world.parcels)) {
+    if (parcel.cultivationPlotId && !state.cultivationPlots[parcel.cultivationPlotId]) {
+      violations.push({ code: "parcel_references_missing_cultivation_plot", message: `\`Parcel\` ${parcel.id} referencia una parcela de cultivo inexistente: ${parcel.cultivationPlotId}.` });
+    }
+  }
+}
+
+/**
+ * Un ciclo activo referenciado por la parcela existe, pertenece a esa
+ * parcela y es coherente con su estado; ningún ciclo sin cosechar queda
+ * huérfano (sin parcela que lo reclame como activo) (§8.2: "ciclos activos
+ * huérfanos o más de un ciclo activo incompatible por parcela").
+ */
+function checkS10CropCycleConsistency(state: SimulationStateV2, violations: InvariantViolation[]): void {
+  const claimedActive = new Set<string>();
+  for (const plot of Object.values(state.cultivationPlots)) {
+    if (!plot.activeCropCycleId) {
+      if (plot.state === "sown" || plot.state === "growing" || plot.state === "harvestable") {
+        violations.push({ code: "cultivation_state_without_active_cycle", message: `Parcela ${plot.id} está en estado \`${plot.state}\` sin ciclo activo.` });
+      }
+      continue;
+    }
+    claimedActive.add(plot.activeCropCycleId);
+    const cycle = state.cropCycles[plot.activeCropCycleId];
+    if (!cycle) {
+      violations.push({ code: "cultivation_plot_missing_active_cycle", message: `Parcela ${plot.id} referencia un ciclo de cultivo inexistente: ${plot.activeCropCycleId}.` });
+      continue;
+    }
+    if (cycle.cultivationPlotId !== plot.id) {
+      violations.push({ code: "crop_cycle_plot_mismatch", message: `Ciclo ${cycle.id} pertenece a otra parcela (${cycle.cultivationPlotId}), no a ${plot.id}.` });
+    }
+    if (cycle.harvestedAtSimSeconds !== null) {
+      violations.push({ code: "active_cycle_already_harvested", message: `Ciclo ${cycle.id} está marcado activo en ${plot.id} pero ya tiene fecha de cosecha.` });
+    }
+    if (plot.state !== "sown" && plot.state !== "growing" && plot.state !== "harvestable") {
+      violations.push({ code: "active_cycle_impossible_plot_state", message: `Parcela ${plot.id} tiene un ciclo activo pero su estado (\`${plot.state}\`) no lo admite.` });
+    }
+  }
+  for (const cycle of Object.values(state.cropCycles)) {
+    if (cycle.harvestedAtSimSeconds === null && !claimedActive.has(cycle.id)) {
+      violations.push({ code: "orphan_active_crop_cycle", message: `Ciclo de cultivo ${cycle.id} no está cosechado pero ninguna parcela lo reclama como activo.` });
+    }
+  }
+}
+
+/** Toda transformación persistente referencia una entidad real del tipo que le corresponde (§8.2: "transformaciones que referencian áreas/líneas inexistentes"). */
+function checkS10TerrainChanges(state: SimulationStateV2, violations: InvariantViolation[]): void {
+  for (const change of Object.values(state.terrainChanges)) {
+    const exists =
+      change.kind === "cleared_road" || change.kind === "way_function_removed"
+        ? Boolean(state.world.linearFeatures[change.targetAreaOrLineId])
+        : change.kind === "barrier_built"
+          ? Boolean(state.world.barrierSegments[change.targetAreaOrLineId])
+          : Boolean(state.world.terrainAreas[change.targetAreaOrLineId]);
+    if (!exists) violations.push({ code: "terrain_change_references_missing_entity", message: `Transformación ${change.id} (${change.kind}) referencia una entidad inexistente: ${change.targetAreaOrLineId}.` });
+  }
+}
+
+/** Toda barrera referencia dos anclajes reales y declara su modo de cruce cuando cruza de verdad una vía (§8.2: "barreras sin anclajes válidos"; "cruces de vía sin modo cuando el trazado realmente la cruza"). */
+function checkS10BarrierSegments(state: SimulationStateV2, violations: InvariantViolation[]): void {
+  for (const segment of Object.values(state.world.barrierSegments)) {
+    if (!state.world.anchors[segment.fromAnchorId] || !state.world.anchors[segment.toAnchorId]) {
+      violations.push({ code: "barrier_segment_without_valid_anchors", message: `Barrera ${segment.id} referencia un anclaje inexistente.` });
+    }
+    if (segment.crossesWayId) {
+      if (!state.world.linearFeatures[segment.crossesWayId]) {
+        violations.push({ code: "barrier_segment_crosses_missing_way", message: `Barrera ${segment.id} referencia una vía inexistente: ${segment.crossesWayId}.` });
+      }
+      if (!segment.wayCrossingMode) {
+        violations.push({ code: "barrier_crossing_without_mode", message: `Barrera ${segment.id} cruza una vía sin declarar su modo de paso.` });
+      }
+    }
+  }
+}
+
+/**
+ * Un `PerimeterNetwork` marcado cerrado debe derivarse de un lazo físico
+ * real (al menos tantas aristas como anclajes distintos, y al menos tres
+ * anclajes): §4/§8.2 del prompt de subhito, "perímetro marcado cerrado sin
+ * lazo físico válido". Nunca se confía en el booleano por sí solo.
+ */
+function checkS10PerimeterClosureDerived(state: SimulationStateV2, violations: InvariantViolation[]): void {
+  for (const network of Object.values(state.world.perimeterNetworks)) {
+    if (!network.closed) continue;
+    const anchors = new Set<string>();
+    let validSegments = 0;
+    for (const segmentId of network.segmentIds) {
+      const segment = state.world.barrierSegments[segmentId];
+      if (!segment || !segment.built) continue;
+      anchors.add(segment.fromAnchorId);
+      anchors.add(segment.toAnchorId);
+      validSegments++;
+    }
+    if (anchors.size < 3 || validSegments < anchors.size) {
+      violations.push({ code: "perimeter_closed_without_physical_loop", message: `Red de perímetro ${network.id} está marcada cerrada sin un lazo físico continuo real.` });
     }
   }
 }
