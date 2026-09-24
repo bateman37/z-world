@@ -9,6 +9,7 @@ import { advanceJobs, isWorkingPhase } from "./jobs/advance-jobs.js";
 import { transportMovementFactors, transportTravelLimit } from "./transport/movement.js";
 import { applyResourceDecay } from "./objects/decay.js";
 import { declineNeedsForElapsedSimMinutes, declineNeedsForMovement, needOf } from "./needs/evolve-needs.js";
+import { advanceCropGrowth } from "./agriculture/growth.js";
 
 function round6(value: number): number {
   return Math.round(value * 1_000_000) / 1_000_000;
@@ -191,7 +192,12 @@ export function advanceSimulationV2(state: SimulationStateV2, elapsedRealSeconds
   const decayResult = applyResourceDecay(jobsResult.state);
   events.push(...decayResult.events);
 
-  return { state: decayResult.state, events, nav: jobsResult.nav };
+  // Crecimiento agrícola por reloj (S10 §5.5/§5.6): igual que el deterioro, una función del instante de simulación, nunca
+  // un contador por tick — no avanza en pausa (`simSecondsToAdvance` ya filtrado arriba) y da el mismo resultado a ×1/×10.
+  const growthResult = advanceCropGrowth(decayResult.state, jobsResult.nav, simSecondsToAdvance);
+  events.push(...growthResult.events);
+
+  return { state: growthResult.state, events, nav: jobsResult.nav };
 }
 
 const NEED_DIMENSIONS_ORDER: readonly NeedDimension[] = ["hydration", "nutrition", "rest"];

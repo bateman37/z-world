@@ -5,6 +5,16 @@ import { createJob } from "../jobs/job-factory.js";
 import { valuesById } from "../ordered.js";
 import { centroidOf, distance } from "../generator/geometry-helpers.js";
 import { evaluateCultivationSuitability, findHostTerrainArea } from "./suitability.js";
+import { polygonArea } from "../generator/geometry-helpers.js";
+
+function polygonsRoughlyEqual(a: readonly WorldPoint[], b: readonly WorldPoint[]): boolean {
+  const ca = centroidOf(a);
+  const cb = centroidOf(b);
+  if (distance(ca, cb) > 1) return false;
+  const areaA = polygonArea(a);
+  const areaB = polygonArea(b);
+  return areaA > 0 && Math.abs(areaA - areaB) / areaA < 0.05;
+}
 
 function pointInPolygon(point: WorldPoint, polygon: readonly WorldPoint[]): boolean {
   let inside = false;
@@ -67,13 +77,16 @@ export function generateTerrainDesignationJobs(
     if (suitability.verdict === "valid" || suitability.verdict === "valid_with_limitations") {
       const host = findHostTerrainArea(nextState, polygon);
       if (host) {
-        const existingParcel = valuesById(nextState.world.parcels).find((p) => p.terrainAreaId === host.id);
+        // Una parcela reutiliza un `Parcel` existente solo si su polígono ya era (aproximadamente) el que se dibujó ahora
+        // (p. ej. un `ENV-02` generado): de lo contrario se recorta al trazado real del jugador sobre el terreno físico
+        // enlazado (§3.4/§5.1: nunca sustituye la geometría elegida por todo el fondo transitable que la contiene).
+        const existingParcel = valuesById(nextState.world.parcels).find((p) => p.terrainAreaId === host.id && polygonsRoughlyEqual(p.polygon, polygon));
         let parcel: Parcel;
         if (existingParcel) {
           parcel = existingParcel;
         } else {
           const parcelId = `parcel-s${nextState.sequences.nextDomainEventSequence}`;
-          parcel = { id: parcelId, polygon: host.polygon, cultivationPlotId: null, terrainAreaId: host.id };
+          parcel = { id: parcelId, polygon, cultivationPlotId: null, terrainAreaId: host.id };
           nextState = { ...nextState, world: { ...nextState.world, parcels: { ...nextState.world.parcels, [parcelId]: parcel } } };
         }
         let plot = parcel.cultivationPlotId ? nextState.cultivationPlots[parcel.cultivationPlotId] : undefined;
