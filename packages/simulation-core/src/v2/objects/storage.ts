@@ -2,6 +2,7 @@ import type { BulkClass, Container, EntityLocation, HandlingTag, ResourceLot, Si
 import { furnitureLocation } from "@z-world/contracts";
 import { valuesById } from "../ordered.js";
 import { OBJECT_CATALOG_BY_VARIANT } from "@z-world/catalogs";
+import { centroidOf } from "../generator/geometry-helpers.js";
 
 /**
  * Almacenamiento físico real de S7 (WEB-002 §6.3/§6.4, CAT-005 §4.4):
@@ -192,6 +193,10 @@ export function locationWorldPoint(state: SimulationStateV2, location: EntityLoc
     case "transfer_point": {
       const point = state.transferPoints[location.transferPointId];
       return point ? locationWorldPoint(state, point.location, depth + 1) : null;
+    }
+    case "field_edge": {
+      const parcel = state.world.parcels[location.parcelId];
+      return parcel ? centroidOf(parcel.polygon) : null;
     }
     default:
       return null;
