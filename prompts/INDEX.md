@@ -21,4 +21,6 @@
 
 | [WEB-002_jobs-needs-semantic-world-exploitation.md](WEB-002_jobs-needs-semantic-world-exploitation.md) | Incrementos 4+5 de RDM-003 (agrupados por decisión expresa): trabajos/prioridades/planificador/necesidades sobre `SimulationStateV2`, generador semántico del pueblo (ocho perfiles, cuatro programas de edificio), catorce familias de objetos, cinco capas de explotación de edificios, transporte, entorno mutable y agricultura básica. Entrega por subhitos; ver el plan de subhitos en `docs/decisions/DEC-0015` a medida que se registre. |
 
+| [WEB-002_S7-S9_objects-logistics-building-exploitation.md](WEB-002_S7-S9_objects-logistics-building-exploitation.md) | Subhitos S7+S8+S9 de `WEB-002` en una sola entrega con tres puertas internas: objetos profundos, inventarios y transformaciones (A), transporte y logística local con cinco métodos y transferencias (B), y explotación progresiva de edificios con cinco capas, tres vidas y accesos mutables (C). Registrado en `docs/decisions/DEC-0019`. |
+
 Ver el protocolo de prompts futuros en [README.md](README.md).

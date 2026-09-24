@@ -78,3 +78,17 @@ describe("advanceSimulationV2", () => {
     expect(resultA.state).toEqual(resultB.state);
   });
 });
+
+describe("advanceSimulationV2 — redondeo persistible del movimiento (S7)", () => {
+  it("con pasos muy pequeños llega siempre al destino (el redondeo a 6 decimales nunca deja el recorrido a punto de terminar)", () => {
+    // Distancia irracional (√(17²+13²)) y pasos de una fracción de segundo real.
+    const { state, nav, personId } = setupMovingPerson("adv-v2-seed-round", { x: -17.123457, y: 13.654321 });
+    let current = state;
+    for (let i = 0; i < 4000 && current.people[personId]!.public.activeMovementOrder; i++) {
+      current = advanceSimulationV2(current, 0.03, nav).state;
+    }
+    const person = current.people[personId]!;
+    expect(person.public.activeMovementOrder).toBeNull();
+    expect(Math.round(person.public.position.x * 1_000_000) / 1_000_000).toBe(person.public.position.x);
+  });
+});

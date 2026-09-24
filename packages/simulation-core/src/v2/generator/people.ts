@@ -1,4 +1,4 @@
-import type { CausalSequenceCounters, NeedState, PersonStateV2, WorldObject, WorldPoint } from "@z-world/contracts";
+import type { CausalSequenceCounters, NeedState, PersonStateV2, WorldPoint } from "@z-world/contracts";
 import { needBandFor } from "@z-world/contracts";
 import type { PrngStream } from "../../prng.js";
 import { generateCohort } from "../../cohort/generate.js";
@@ -21,7 +21,6 @@ const INITIAL_NEEDS: readonly Omit<NeedState, "band">[] = [
 export interface PeopleResult {
   readonly people: Record<string, PersonStateV2>;
   readonly peopleOrder: string[];
-  readonly worldObjects: WorldObject[];
   readonly sequences: CausalSequenceCounters;
 }
 
@@ -32,27 +31,15 @@ export function generatePeopleAtArrival(
   arrivalPoint: WorldPoint,
 ): PeopleResult {
   const cohort = generateCohort(seed, prng, sequencesIn);
-  const worldObjects: WorldObject[] = [];
   const people: Record<string, PersonStateV2> = {};
 
   for (const [index, personId] of cohort.peopleOrder.entries()) {
     const person = cohort.people[personId];
     if (!person) continue;
 
-    for (const possession of person.public.possessions) {
-      worldObjects.push({
-        id: possession.id,
-        family: possession.isMeleeOrImprovisedWeapon ? "improvised_tool_or_weapon" : "transport_container",
-        variant: possession.labelKey,
-        location: { kind: "carried_by_person", personId },
-        ownerOrReservedByJobId: null,
-        weightKg: possession.isMeleeOrImprovisedWeapon ? 1.2 : 2.5,
-        bulk: "small",
-        condition: 0.8,
-        quality: 0.5,
-        functionalState: "functional",
-      });
-    }
+    // Las pertenencias (arma, mochila y el presupuesto de grupo de SCN-003)
+    // se materializan como objetos reales en `belongings.ts` (S7, v2 del
+    // generador), a partir de estas mismas `possessions` y con sus mismos IDs.
 
     // Nadie empieza condenado por el tuning, pero al menos una persona llega
     // especialmente fatigada tras cuatro días de marcha (§14.2 del prompt
@@ -72,5 +59,5 @@ export function generatePeopleAtArrival(
     };
   }
 
-  return { people, peopleOrder: [...cohort.peopleOrder], worldObjects, sequences: cohort.sequences };
+  return { people, peopleOrder: [...cohort.peopleOrder], sequences: cohort.sequences };
 }

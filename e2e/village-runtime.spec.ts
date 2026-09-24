@@ -98,8 +98,14 @@ test("runtime V2 (S3): reloj, movimiento, cancelación, niebla, descubrimiento y
 
   // Ninguna entidad no descubierta se filtra como texto identificable en
   // la interfaz (el mapa es Canvas puro; los perfiles de CAT-004 solo
-  // aparecían como texto en el antiguo visor de solo lectura de S2).
-  for (const label of ["Casa familiar mediana", "Supermercado pequeño", "Taller mecánico"]) {
+  // aparecían como texto en el antiguo visor de solo lectura de S2). Desde
+  // S9, la ficha «Edificios» nombra los edificios que la comunidad ya ha
+  // observado —aquí, la vivienda en la que se acaba de entrar— y solo esos:
+  // el supermercado y el taller, sin descubrir, no aparecen en ningún sitio.
+  for (const label of ["Supermercado pequeño", "Taller mecánico"]) {
     await expect(page.getByText(label)).toHaveCount(0);
   }
+  const knownBuildings = page.getByRole("region", { name: "Edificios conocidos" });
+  const houseMentions = await page.getByText("Casa familiar mediana").count();
+  expect(await knownBuildings.getByText("Casa familiar mediana").count()).toBe(houseMentions);
 });

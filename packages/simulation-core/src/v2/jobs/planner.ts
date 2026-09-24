@@ -1,6 +1,7 @@
 import type { ActionMethodDefinition, Job, SimulationStateV2, WorkZone } from "@z-world/contracts";
 import { checkHardRequirements, priorityAllowsWork } from "./eligibility.js";
 import { locationToNavPoint } from "./location-utils.js";
+import { valuesById } from "../ordered.js";
 
 /**
  * Planificador determinista (WEB-002 §11.7, subhito S5): cuando una persona
@@ -12,7 +13,7 @@ import { locationToNavPoint } from "./location-utils.js";
 
 function zonePolicyAt(state: SimulationStateV2, point: { x: number; y: number } | null): WorkZone["policy"] | null {
   if (!point) return null;
-  for (const zone of Object.values(state.workZones)) {
+  for (const zone of valuesById(state.workZones)) {
     if (pointInPolygon(point, zone.polygon)) return zone.policy;
   }
   return null;

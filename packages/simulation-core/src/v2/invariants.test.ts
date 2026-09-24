@@ -29,6 +29,11 @@ describe("validateSimulationStateV2Invariants", () => {
           location: { kind: "world_point", point: { x: 0, y: 0 } },
           condition: 1,
           reservedByJobId: null,
+          qualityKnown: true,
+          quality: 1,
+          provenance: null,
+          decayStartedAtSimSeconds: null,
+          conditionAtDecayStart: null,
         },
       },
     };

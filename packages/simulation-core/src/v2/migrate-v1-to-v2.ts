@@ -166,6 +166,11 @@ function migrateWorld(v1: SimulationStateV1, degradations: string[]): SemanticWo
     placeHistories: {},
     lootPressureZones: {},
     lootingRoutes: {},
+    // S9: sin tejido de edificio (mundo sintético/migrado): capas 3-5 no disponibles, accesos sí.
+    buildingFabrics: {},
+    buildingInstallations: {},
+    buildingFinishes: {},
+    navigationRevision: { global: 0, byBuilding: {} },
   };
 }
 
@@ -201,6 +206,20 @@ function migratePeopleAndPossessions(
         condition: 0.8,
         quality: 0.5,
         functionalState: "functional",
+        handlingTags: possession.isMeleeOrImprovisedWeapon ? ["long"] : [],
+        volumeLiters: possession.isMeleeOrImprovisedWeapon ? 1 : 30,
+        capacityUnits: possession.isMeleeOrImprovisedWeapon ? null : 15,
+        containerId: null,
+        functions: [],
+        inactiveFunctionReasons: {},
+        portability: "handheld",
+        minOperators: 1,
+        repairProfileId: null,
+        disassemblyProfileId: null,
+        provenance: "migrated_from_v1",
+        installedAt: null,
+        missingParts: [],
+        knownEvidenceIds: [],
       };
     }
 

@@ -29,7 +29,16 @@ S2 (generador semántico determinista del pueblo,
 y S4-S6 (motor de resolución, trabajos planificados y necesidades
 causales, entregados juntos por decisión expresa de Dennis,
 [DEC-0018](decisions/DEC-0018_resolution-engine-planned-work-and-causal-needs.md))
-están completados técnicamente; quedan S7 a S11 sin fecha.
+están completados técnicamente. S7 (Puerta A de la entrega S7-S9: objetos
+profundos, inventarios, recursos y transformaciones) tiene cerrada su
+lista de deuda auditada, con limitaciones explícitas (ver «S7 — Puerta A»
+al final). S8 (Puerta B: transporte y logística local) y S9 (Puerta C: explotación
+progresiva de edificios y accesos mutables) están cerrados con
+limitaciones explícitas (ver «S8 — Puerta B» y «S9 — Puerta C» al final);
+la entrega S7–S9 queda registrada en
+[DEC-0019](decisions/DEC-0019_deep-objects-physical-logistics-and-building-exploitation.md)
+y propuesta en una única PR contra `main`, sin fusionar. Quedan S10 y S11
+sin fecha.
 
 El prototipo histórico Godot queda preservado íntegro, sin más desarrollo
 activo. Su historial de entregas de código:
@@ -1631,6 +1640,12 @@ Godot en el entorno de implementación (ver sección de validaciones de
 
 ## Aceptación manual pendiente
 
+`WEB-002` S7 a S9 — cerrados técnicamente con limitaciones explícitas;
+la aceptación manual de Dennis está **pendiente**, con el guion de
+diecisiete puntos en «S9 — Puerta C» al final (y los guiones parciales de
+S7 y S8 en sus secciones). No se declara superada por haber ejecutado los
+E2E.
+
 `WEB-002` S1 a S6 — completados técnicamente, sin lista de aceptación
 manual formal propia todavía; ver «Cómo jugar el runtime V2
 manualmente» más arriba para reproducir S3 (incluye reproducir la
@@ -1676,9 +1691,16 @@ semántico reproducible del pueblo), S3 (runtime jugable V2, navegación
 y descubrimiento progresivo) y S4-S6 (motor común de resolución,
 trabajos planificados y necesidades causales, ver
 [DEC-0018](decisions/DEC-0018_resolution-engine-planned-work-and-causal-needs.md))
-están completados técnicamente. El siguiente candidato de
-implementación es S7 — objetos profundos, inventarios, recursos y
-transformaciones —, que sigue sin iniciarse. Cada subhito requiere su
+están completados técnicamente. S7 (objetos profundos,
+inventarios, recursos y transformaciones) tiene su Puerta A cerrada
+respecto a la lista de deuda auditada, con limitaciones explícitas (ver
+«S7 — Puerta A» al final), y S8 (transporte y logística local) y S9
+(explotación progresiva de edificios) están cerrados con limitaciones
+explícitas (ver
+[DEC-0019](decisions/DEC-0019_deep-objects-physical-logistics-and-building-exploitation.md)).
+El siguiente candidato de implementación es S10 — agricultura y terreno
+mutable inicial —, que no debe empezar hasta que la PR de S7–S9 se revise
+y fusione. Cada subhito requiere su
 propia sesión y debe dejar el repositorio funcionando, probado y
 documentado antes de continuar al siguiente, sin cambiar de stack,
 rehacer los seis protagonistas, sustituir el reloj, romper guardados
@@ -1686,3 +1708,689 @@ existentes ni abandonar el modelo espacial ya construido en `WEB-001`.
 «Defensa y vida propia» sigue completada técnicamente para el prototipo
 Godot en su rama histórica, pero no se retoma ni se porta automáticamente
 a la nueva línea de código.
+
+## S7 — Puerta A (objetos profundos): deuda auditada cerrada, con limitaciones explícitas
+
+Rama `feat/web-002-s7-s9-objects-logistics-exploitation`, partiendo de
+`main` en `3b6a581` (S4-S6). Sin PR todavía, por instrucción expresa del
+prompt de subhitos S7-S9 («No abras PR parciales ni solicites permiso
+entre A, B y C salvo bloqueo real»). En el momento de cerrar la Puerta A,
+S8 y S9 no habían empezado; S8 se cerró después (ver «S8 — Puerta B»), y
+S9 (Puerta C: capas de edificio, accesos mutables) se cerró al final (ver
+«S9 — Puerta C») y `DEC-0019` recoge la entrega completa.
+
+### Qué hay y cómo funciona
+
+Todo lo siguiente está implementado, probado y verificado en navegador
+real (detalle de validaciones más abajo):
+
+1. **Modelo profundo de objetos, contenedores y recursos**, aditivo sobre
+   `DEC-0015` (commits parciales previos de esta rama) y ampliado aquí:
+   `WorldObject.installedAt` (instalación conectada a su fuente real),
+   `ResourceLot.conditionAtDecayStart`, ciclo de vida de objeto en
+   `TransportMeans` (calidad, estado funcional, funciones activas/
+   inactivas, piezas ausentes, perfiles de reparación/desmontaje),
+   `JobTarget.transport_means`, `Job.storageItem` y `Job.storageQuantity`.
+   Todos con `.default()` seguro.
+2. **Catálogo completo de las catorce familias de CAT-005 §3.1**
+   (`packages/catalogs/src/object-catalog.ts`, versión `s7-v2`): trece
+   `WorldObjectFamily` con todas las variantes mínimas (botella,
+   cantimplora; cubo, bidón, garrafa, olla; mochila, saco, caja; armario,
+   estantería, caja de almacén; linterna, farol, mechero; cuchillo,
+   navaja, martillo, palanca, hacha de mano, sierra, pala, azada; cuatro
+   conjuntos de herramientas; colchón, cama sencilla, rollo de dormir;
+   banco de trabajo; frigorífico; bomba manual; puerta, portón; carretilla,
+   carro) y la quinta familia, «consumible localizado», como
+   `ResourceLot` (`RESOURCE_CATALOG`: agua, alimento fresco, alimento
+   conservado, material de cura, semillas, más los materiales de §4.2).
+   `validateObjectCatalog` comprueba familias, variantes mínimas, cifras
+   físicas razonables, perfiles existentes y conservación de masa de cada
+   desmontaje frente al peso de la variante. Cifras provisionales (CAT-005
+   §9 las deja abiertas).
+3. **Los cuatro demostradores profundos de CAT-005 §3.2**:
+   - *Armario/estantería* y *frigorífico* (commits previos): jerarquía
+     `Furniture → Container → Content`, reparación con madera o
+     componentes concretos, desmontaje selectivo/destructivo; ahora
+     además hay que vaciarlos antes de desmontar
+     (`block.container_not_empty`), su contenedor queda inutilizable tras
+     desmontarlos, y reparar el frigorífico nunca levanta
+     `refrigeration: no_electricity`.
+   - *Bomba de agua manual* (`technical_installation.hand_pump`): el
+     generador la instala sobre la fuente comunal `ENV-01` (pozo comunal o,
+     si no, la fuente principal), conectada a su nodo hídrico real, con un
+     cubo al pie. Averiada (junta gastada) en la mayoría de semillas.
+     `test_installation` revela su estado real; la reparación exige ese
+     diagnóstico previo (`block.requires_diagnosis`) y consume 1 pieza
+     mecánica I + 1 de chapa concretas; `draw_water` solo funciona con la
+     bomba funcional y conectada, llena recipientes reales (los que lleva
+     la persona o el cubo al pie, 10 L por extracción) y la desgasta de
+     forma determinista (−0,06 de condición por uso; por debajo de 0,25 se
+     avería con `object_broke_down`). Desmontarla elimina para siempre el
+     servicio.
+   - *Carretilla/carro* (`TransportMeans`): objeto completo con estado
+     funcional derivado de su condición (rueda rota por debajo de 0,55),
+     reparable con piezas concretas (`repair.human_transport.*`) y
+     desmontable en chapa/piezas mecánicas/madera según alcance. El
+     desgaste por uso está implementado y probado (`applyUseWear`), pero
+     solo el uso logístico de S8 lo aplicará en juego.
+4. **`store` y `retrieve_from_storage` reales** (v2 del método): el blanco
+   es un `Container` real y `Job.storageItem` el objeto o lote movido.
+   Almacenar exige que el elemento ya esté en el lugar (lo lleva la persona
+   ejecutora o está suelto en la misma estancia); si no,
+   `block.item_not_at_storage_site` (traerlo es S8). Capacidad real por
+   contenedor (objeto: `small` 1, `medium` 2, `large` 4, `bulky` 8
+   unidades; lote: 1 unidad por cada 5 L/kg o 6 raciones, mínimo 1),
+   compatibilidad por etiquetas y sin contención circular: un contenedor
+   lleno bloquea con `block.container_full`, nunca sobrecarga en silencio.
+   Se emiten `object_stored`/`object_retrieved`. Retirar una parte de un
+   lote lo **divide** y guardar un lote junto a otro compatible los
+   **fusiona** (`resource_lot_split`/`resource_lot_merged`), conservando
+   cantidad exacta, condición (media ponderada si difieren ≤ 0,1) y
+   procedencia; los perecederos solo se fusionan si comparten la misma
+   curva de deterioro. Recoger también admite lotes sueltos.
+5. **Deterioro determinista del alimento fresco**
+   (`packages/catalogs/src/decay-tuning.ts`, versión 1): `condición =
+   conditionAtDecayStart × max(0, 1 − Δh / 72)`, con `Δh` las horas
+   simuladas desde `decayStartedAtSimSeconds`, redondeada a 4 decimales.
+   Bandas: fresco ≥ 0,6 > empezando a deteriorarse ≥ 0,25 > echado a
+   perder. Al ser una función cerrada del instante absoluto, pausa,
+   velocidad, tamaño de paso, guardar y recargar dan exactamente el mismo
+   resultado (sin doble contabilización). Un alimento echado a perder no
+   es consumible (`block.food_spoiled`). El frigorífico no alarga la vida
+   sin electricidad. Un lote perecedero de una partida anterior a S7
+   empieza a deteriorarse la primera vez que avanza el reloj, sin
+   retroactividad.
+6. **Pertenencias iniciales de SCN-003 §3.5 por persona**, sin duplicados
+   (`generator/belongings.ts`): cada protagonista lleva su arma y su
+   mochila (con `Container` real) y dentro una cantimplora o botella y una
+   comida; el grupo reparte además linterna, mechero, navaja, olla y
+   material de cura. Recipientes 10,5 L, agua 5–8 L (el mismo presupuesto
+   que v1 dejaba en el refugio, que ya no lo contiene) y seis comidas.
+   `validateGeneratedVillage` exige este presupuesto y que cada
+   `PersonPublicFacts.possessions` exista como objeto real que lleva esa
+   persona; la ficha deriva sus pertenencias del inventario real.
+7. **Reservas profundas exclusivas** (`reserveExclusiveTarget`): objeto,
+   mueble, contenedor y medio de transporte usados por
+   `collect`/`store`/`retrieve_from_storage`/`repair`/`disassemble_*`/
+   `test_installation`/`draw_water`, más el elemento almacenado o retirado.
+   Todo o nada, readquiridas al revivir un bloqueo, y
+   `checkReservationExclusivity` las trata como exclusivas (también lotes).
+8. **Generador `web-002-semantic-v2`** (`generator/config.ts`): variantes de
+   catálogo en todo objeto generado, bomba, pertenencias y alimento fresco
+   con deterioro activo. Usa streams PRNG derivados propios, así que el
+   **trazado espacial de una semilla es idéntico al de v1** (verificado
+   con `probe-seed-92`, `work-panel-e2e-seed-1` y `aldea-regresion-3`).
+   Una partida v1 nunca se regenera: carga con los defaults, sin bomba ni
+   pertenencias nuevas (capacidades que legítimamente le faltan), y su
+   carretilla/carro usa el perfil versionado v1 de su método.
+9. **Proyecciones e interfaz**: inventario localizado conocido (nunca bolsa
+   global; cada entrada enlaza a su ubicación real — quién lo lleva, en qué
+   contenedor, en qué estancia registrada o en qué exterior a la vista —,
+   estado reconocido, capacidad de contenedores y banda de frescura con
+   hora aproximada de pérdida); acciones recoger/almacenar/retirar
+   (elemento → contenedor, cantidad parcial opcional)/reparar/desmontar/
+   probar instalación/extraer agua con la misma regla de conocimiento; una
+   instalación no probada aparece «sin probar».
+10. **Correcciones de defectos previos destapados por las pruebas de S7**:
+    IDs de trabajo/reserva/episodio con contador global de módulo (ahora
+    derivados de la secuencia causal); iteración dependiente del orden de
+    inserción, que `jsonb` no conserva; doubles de 17 cifras en episodios,
+    progreso y posiciones que `jsonb` no devuelve exactos (redondeo a 6
+    decimales); el planificador entregaba a otra persona una orden
+    directa con personas solicitadas; consumir o recoger dejaba contenido
+    huérfano en el contenedor; `Job.reservationIds` conservaba reservas ya
+    liberadas; un bloqueo por falta de materiales no se reanudaba nunca.
+
+### Limitaciones explícitas (no se arrastran en silencio)
+
+Los doce puntos de la lista de deuda auditada tras los commits parciales
+están cerrados con pruebas en verde. Quedan, de forma explícita:
+
+- **Dependientes de S8 (Puerta B)**: trasladar mobiliario (armario,
+  frigorífico) y cualquier carga desde otro lugar, porte coordinado,
+  bloqueo por bulto/giro/abertura, y el uso de la carretilla/carro como
+  medio (cargar, descargar, estacionar, abandonar, ruido, desgaste por
+  uso en juego). Hoy `collect` sobre mobiliario bloquea con
+  `block.requires_transport_method` y almacenar algo que no está en el
+  lugar bloquea con `block.item_not_at_storage_site`.
+- **Dependientes de S9 (Puerta C)**: retirar la bomba como objeto entero
+  («desinstalar» frente a desmontar), vaciar/desconectar/liberar anclajes
+  como acciones propias y desmontar una instalación como capa de edificio.
+- **Simplificaciones dentro de S7**: el rendimiento de un desmontaje es
+  el declarado por el perfil y el alcance (selectivo/destructivo); la
+  capacidad solo decide si el episodio B fracasa, no modula cuánto se
+  recupera, y no se exigen herramientas concretas para reparar o
+  desmontar. El desmontaje es atómico en `execute`: cancelarlo antes no
+  deja productos parciales. No hay acción genérica «usar», ni
+  mantener/limpiar. Solo se deteriora el alimento fresco. El diagnóstico
+  previo solo se exige a instalaciones técnicas.
+- **E2E del deterioro**: con la semilla estable no hay alimento fresco
+  alcanzable en pocos pasos (solo en la trastienda de un supermercado
+  lejano), así que `e2e/s7-objects.spec.ts` inyecta como fixture un lote
+  fresco en el snapshot guardado; el deterioro lo calcula el núcleo real
+  en el Worker real y lo muestra la interfaz real.
+- **Aceptación manual**: no ejecutada. El guion está abajo.
+
+### Validaciones de la Puerta A (esta sesión)
+
+Ejecutado y en verde al cerrar:
+
+- `npm run typecheck` (todos los paquetes y `apps/web`) y `npm run lint`:
+  sin errores ni avisos.
+- `npx vitest run`: **237 pruebas unitarias en verde** (196 preexistentes
+  de S1-S6 y commits parciales, todas sin regresión, más 41 nuevas:
+  30 de S7 en `jobs/s7-objects.test.ts` —almacenar/retirar, contenedor
+  lleno, sin teletransporte, reservas exclusivas, bomba, carretilla/carro,
+  deterioro, frigorífico, vaciar antes de desmontar, recoger lotes,
+  generación v2, compatibilidad, división/fusión, reanudación—, 5 de
+  catálogo, 5 de proyecciones y 1 de regresión de movimiento).
+- `npm run test:integration` (PostgreSQL 16 real, `zworld_test`): **23 en
+  verde** (18 preexistentes + 5 nuevas en
+  `packages/persistence/src/s7-objects.integration.test.ts`: mochila,
+  bomba, carretilla/carro, deterioro y snapshot con forma anterior a S7;
+  la de la bomba comprueba además que seguir tras recargar da exactamente
+  lo mismo que seguir en memoria).
+- `npm run build` de `apps/web` correcto.
+- `npx playwright test` (Chromium real, `next start` real, PostgreSQL
+  real): **6 E2E en verde**, dos ejecuciones consecutivas (las 5
+  preexistentes más `e2e/s7-objects.spec.ts`). La primera ejecución hizo
+  fallar `village-runtime.spec.ts` por un defecto introducido en esta
+  misma sesión (el redondeo de la distancia recorrida impedía llegar al
+  destino); corregido y con prueba de regresión.
+
+### Guion de aceptación manual para Dennis (S7)
+
+Semilla estable `probe-seed-92` (llegada en (13, 36); vivienda RES-10 a
+~16 m con su primer dormitorio centrado en (0,43, 25,30)):
+
+1. Crear la partida y seleccionar a la segunda protagonista. En
+   «Inventario conocido» aparecen solo sus pertenencias reales (botella con
+   agua dentro de su mochila, mechero, arma…); nada de la vivienda.
+2. «Retirar de almacenamiento» → «Botella (en Mochila)» → Ordenar; después
+   «Almacenar» → «Botella → Mochila». El inventario refleja cada cambio de
+   ubicación y el registro muestra «Se retiró…»/«Se almacenó…».
+3. Mover a la persona al dormitorio (clic derecho en el mapa) y
+   «Registrar» → «Dormitorio». Solo ahora aparecen el armario (con su
+   capacidad) y la madera dentro.
+4. «Reparar» → «Armario»: consume 2 kg de la madera concreta del propio
+   armario (nunca «materiales de reparación»).
+5. «Desmontar (selectivo)» → «Armario»: queda bloqueado con «Hay que vaciar
+   el contenedor…» mientras tenga madera; retirarla (opcionalmente solo una
+   parte, con «Cantidad») y volver a ordenar. «Ordenar» no se activa hasta
+   marcar la casilla de confirmación irreversible. Ordenado a la primera
+   protagonista (más técnica), en la misma secuencia que el E2E el
+   episodio no fracasa: el armario queda
+   «Solo piezas» y la madera producida queda suelta en el dormitorio.
+6. «Recoger» → «Madera y tablones» y guardarla en la mochila.
+7. Acercarse a la fuente comunal (bomba a unos 66 m de la llegada con esta
+   semilla), «Probar instalación» (aparece «Averiado»), intentar «Extraer
+   agua» (bloqueado) y, con piezas mecánicas I y chapa en la mano o al pie
+   de la bomba, repararla y extraer agua: llena el cubo o la botella.
+8. Guardar, recargar y comprobar que todo lo anterior persiste igual.
+
+## S8 — Puerta B (transporte y logística local): cerrado con limitaciones explícitas
+
+Misma rama `feat/web-002-s7-s9-objects-logistics-exploitation`, sin PR
+todavía. Canon: [SET-010](40-settlement/SET-010_local-hauling-and-transport.md)
+(métodos, carga, ruta, fases, transferencia, selector, cooperación),
+[WLD-011 §3.7](20-world/WLD-011_openings-access-and-connectivity.md#37-compatibilidad-de-accesos-y-transporte)
+(anchura de accesos) y la arquitectura de trabajos/reservas de
+[DEC-0018](decisions/DEC-0018_resolution-engine-planned-work-and-causal-needs.md),
+que se reutiliza sin tuberías paralelas. En el momento de cerrar S8, S9
+no había empezado; se cerró después (ver «S9 — Puerta C») y `DEC-0019`
+recoge la entrega completa.
+
+### Qué hay y cómo funciona
+
+Los quince puntos de la lista de cierre de S8 están implementados y
+probados (detalle de validaciones más abajo):
+
+1. **Cinco métodos activos con comportamiento real** — a pulso, recipiente
+   personal, porte coordinado, carretilla y carro de mano — en el catálogo
+   versionado `packages/catalogs/src/transport-methods.ts` (`s8-v1`):
+   capacidad, volumen máximo, bulto, etiquetas prohibidas, operadores,
+   anchura mínima de acceso, comportamiento por superficie (velocidad,
+   ruido, esfuerzo), tiempos de preparación/carga/descarga y topes de
+   cooperación. Ningún método del horizonte de SET-010 §3.3 está activo.
+   Carretilla y carro comparten **un único motor**
+   (`packages/simulation-core/src/v2/transport/`) y solo difieren en datos.
+2. **Carga física real** (`transport/cargo.ts`): peso con contenido
+   (recursivo, incluidos líquidos dentro de un recipiente), volumen, bulto
+   (que sube con el volumen total de una carga compuesta), mínimo duro de
+   personas y etiquetas de manipulación **heredadas del contenido**
+   (`liquid`, `fragile`, `contaminating`, `keep_upright`; `long` y `bulky`
+   no, porque las absorbe el recipiente). Peso y bulto bloquean de forma
+   independiente (`block.load_too_heavy_for_method` /
+   `block.load_too_bulky_for_method`); una etiqueta incompatible bloquea
+   con `block.handling_incompatible_with_method`.
+3. **Medios localizados**: una carretilla o carro está en un lugar concreto;
+   la operadora va a por él, lo recupera (`transport_means_retrieved`) y lo
+   empuja hasta la carga. `Auto` solo valora medios conocidos, funcionales,
+   libres y alcanzables; imponer uno oculto, averiado, reservado o cargado
+   explica el motivo. El generador `web-002-semantic-v3` coloca un carro de
+   mano ante el supermercado COM-02 más cercano y una carretilla junto al
+   refugio (stream PRNG derivado: el trazado de v2 no cambia).
+4. **Cooperación real**: topes de contribución 100/60/35/20 % (principal y
+   tres ayudantes ordenados por aporte), útil limitado por bulto y por la
+   anchura de los accesos de la ruta (dos porteadores exigen acceso ancho,
+   WLD-011); quien no cabe deja el trabajo, sin bonificación genérica. El
+   porte coordinado espera a tener a todo su equipo libre a la vez. Cierra
+   además la deuda de S4-S6: las ayudantes acuden al lugar de trabajo y la
+   cooperación también acelera el modelo D.
+5. **Reservas** de carga, medio (`transport_means`) y cada porteadora
+   (`person`), exclusivas, con el mismo sistema de S7; un segundo traslado
+   de la misma carga o del mismo medio queda bloqueado y se reanuda al
+   liberarse.
+6. **Fases logísticas reales** dentro de `jobs/advance-jobs.ts`
+   (`progressTransportJob`, sin caer en el `default`): planificar →
+   reservar → recuperar el medio → ir al origen → cargar → recorrer la ruta
+   y atravesar accesos → descargar → almacenar/entregar/transferir →
+   estacionar/devolver/abandonar el medio. Paso visible en
+   `TransportJobState.step`.
+7. **Rutas compatibles** (`transport/route.ts` sobre el pathfinding de
+   S3): anchura de cada acceso frente a la del método y la carga,
+   superficie (el carro no cruza bosque denso; la carretilla sí), solo
+   terreno conocido, zonas prohibidas (ni destino ni ruta), y obstáculos
+   descubiertos durante el recorrido (`transport_route_blocked`, carga
+   depositada donde está y trabajo a replantear).
+8. **Selector `Auto`/método impuesto** en el panel de trabajos
+   (`apps/web/components/work-panel.tsx`), distinto de prioridad, equipo,
+   ritmo y atención: carga compuesta del mismo lugar, destino, método,
+   medio concreto, equipo de hasta tres ayudantes, ritmo, atención y destino
+   del medio al terminar; la ficha del trabajo muestra método, paso,
+   porteadoras, carga, colocación, accesos atravesados, ruido y enlaces
+   entre etapas.
+9. **Carga, descarga y destino**: la carga se monta en el medio o la llevan
+   las porteadoras; en un contenedor de destino se guarda con las mismas
+   reglas y ayudantes de S7 (`storageBlockReason`, `moveItem`, fusión de
+   lotes, `object_stored`), sin sobrecargar nunca; el medio queda
+   estacionado en destino o vuelve a su origen, con desgaste por uso real
+   (`applyUseWear` de S7).
+10. **Puntos de transferencia** (`TransferPoint`): si el medio no cabe por
+    los accesos, se detiene ante el acceso ancho por el que sí cabe,
+    descarga físicamente allí y una **nueva etapa a pulso con reserva
+    propia** sigue por las puertas más estrechas. El caso obligatorio
+    carro → acceso del supermercado → descarga → porte manual → puertas
+    interiores → contenedor de la trastienda funciona sobre el pueblo
+    generado, con prueba unitaria, de integración y E2E dedicadas.
+11. **Cancelar, interrumpir o bloquear** (`settleTransportOnStop`): nada
+    vuelve a su origen. A pulso cada porteadora sigue sosteniendo lo suyo;
+    en porte coordinado la carga se deposita donde está; en recipiente
+    personal sigue dentro; en carretilla/carro la carga sigue montada y el
+    medio queda abandonado donde lo dejó su operadora. Reservas liberadas;
+    bloquear o perder una porteadora replantea desde las posiciones reales.
+12. **Fatiga y ruido**: el esfuerzo del método, la superficie, la carga
+    relativa a la capacidad y el ritmo se aplican a las necesidades reales
+    durante el movimiento (más para 20 kg a pulso que en carretilla); el
+    ruido se acumula por metro y se registra por tramos a lo largo de toda
+    la ruta (`transport_noise_emitted`), no solo al final. Lo frágil en un
+    medio con ruedas sobre terreno irregular pierde condición (la mitad con
+    atención cuidadosa), también dentro de un recipiente.
+13. **Persistencia aditiva**: `Job.transport`, `LoadBundle` ampliado,
+    `TransferPoint` con clase y acceso, ubicación `in_load_bundle`, todo con
+    `.default()` seguro; snapshots S1-S7 cargan sin cambios.
+14. **Integración PostgreSQL real**
+    (`packages/persistence/src/s8-transport.integration.test.ts`).
+15. **E2E en Chromium real** (`e2e/s8-transport.spec.ts`).
+
+Correcciones de esta sesión destapadas por los E2E: (a) al completar un
+recorrido no se aplicaba el checkpoint final de estancia cuando quedaba una
+millonésima por encima del total redondeado, así que la porteadora
+terminaba «fuera» de la estancia a la que había llegado y la ruta se
+replanteaba perdiendo los accesos ya cruzados; (b) en el panel, el objetivo
+elegido se guardaba por índice y, al marcar ayudantes en un traslado, pasaba
+a apuntar a otro objeto (el hacha de la ayudante en vez del cubo); (c) la
+carga no heredaba las etiquetas de su contenido.
+
+### Limitaciones explícitas (no se arrastran en silencio)
+
+- **Dependientes de S9 (Puerta C)**: «instalar» como destino de un traslado
+  (hoy se entrega en contenedor, estancia, punto de transferencia o punto
+  exterior), accesos mutables (abrir brechas, retirar puertas) y capas de
+  edificio. Un mueble no se puede guardar dentro de un contenedor
+  (`block.container_incompatible`), sí dejar en una estancia o punto.
+- **Terreno sin generar**: pendiente, escaleras, escalones, barro, grava,
+  escombros y agua están declarados en el catálogo pero el generador no
+  los produce; hoy se ejercitan carretera, terreno abierto, vegetación
+  densa e interior.
+- **Ruido sin consumidor**: se registra y se muestra, pero todavía no hay
+  amenazas que reaccionen a él (sistema de amenazas posterior a S9).
+- **Una transferencia por traslado**: el plan por etapas cubre un cambio
+  de medio a pulso ante un acceso; no encadena varias transferencias ni
+  cadenas humanas.
+- **Cifras provisionales** (capacidades, velocidades, ruido, fatiga, pesos
+  de `Auto`): SET-010 §7 las deja abiertas.
+- **Ubicación durante un recorrido interior**: el pathfinding híbrido de S3
+  solo marca la entrada al exterior y a la estancia final; las estancias
+  intermedias no se reflejan en `location` mientras se camina (los accesos
+  sí se registran uno a uno en el traslado).
+- **Eventos del navegador**: el Worker guarda snapshots sin eventos de
+  dominio (arquitectura previa a S8); por eso los E2E comprueban las fases
+  en el registro operativo visible y en el snapshot, y la integración
+  PostgreSQL comprueba los eventos persistidos directamente.
+- **Fixture de conocimiento en los E2E**: tras generar el pueblo desde la
+  interfaz se inyecta en el snapshot solo lo que daría la exploración
+  (niebla levantada, estancias del supermercado vistas y trastienda
+  registrada); ninguna persona ni objeto se mueve: todo lo hace el núcleo
+  real en el Worker real. El porte coordinado, el recipiente personal y
+  los obstáculos en ruta se prueban en unitarias, no en E2E.
+- **Aceptación manual**: no ejecutada. El guion está abajo.
+
+### Validaciones de la Puerta B (esta sesión)
+
+Ejecutado y en verde al cerrar:
+
+- `npm run typecheck` (todos los paquetes y `apps/web`) y `npm run lint`:
+  sin errores ni avisos.
+- `npx vitest run`: **267 pruebas unitarias en verde** (237 de S1-S7 sin
+  regresión y 30 nuevas: 28 en `transport/s8-transport.test.ts` y
+  `transport/s8-generated-world.test.ts` —catálogo, cooperación, carga y
+  herencia de etiquetas, a pulso, carretilla, medios ocultos o averiados,
+  transferencia, porte coordinado, recipiente personal, cancelación,
+  obstáculo en ruta, reservas, fatiga y ruido, guardar/recargar,
+  superficies, `Auto`, zonas prohibidas, cooperación en D, pérdida de una
+  porteadora, ritmo/atención y el caso obligatorio sobre el pueblo
+  generado— y 2 de proyecciones).
+- `npm run test:integration` (PostgreSQL 16 real, `zworld_test`): **27 en
+  verde** (23 previas + 4 en `s8-transport.integration.test.ts`: guardar a
+  mitad de ruta con el carro cargado y continuar exactamente igual tras
+  recargar hasta la transferencia y el porte final, con los eventos de S8
+  persistidos; cancelar a mitad y recargar; snapshot con forma anterior a
+  S8; trabajo S7 sin `transport`).
+- `npm run build` de `apps/web` correcto.
+- `npx playwright test` (Chromium real, `next start` real, PostgreSQL
+  real): **10 E2E en verde en dos ejecuciones consecutivas** (6 previos y
+  4 nuevos en `e2e/s8-transport.spec.ts`: a pulso; carretilla impuesta con
+  recuperación, carga, descarga, desgaste y estacionamiento; caso
+  obligatorio con transferencia y porte a pulso hasta la trastienda;
+  cancelación a mitad de ruta con posición causal verificada también tras
+  recargar).
+
+### Guion de aceptación manual para Dennis (S8)
+
+Semilla estable `probe-seed-92` (llegada en (13, 36); cubo al pie de la
+bomba comunal en (−26, 89); carro de mano ante el acceso de clientes del
+supermercado en (132,5, 12,5); carretilla junto al refugio en
+(−217,5, 52,5)):
+
+1. Crear la partida, seleccionar a la segunda protagonista y acercarse a la
+   bomba hasta ver el cubo. «Transportar» → «Cubo» → método «A pulso» →
+   destino «Punto de llegada»: la ficha muestra cada paso y el cubo acaba
+   junto a la llegada.
+2. Con la carretilla ya vista, repetir con método «Carretilla» y ese medio:
+   la operadora va a por ella, la trae, carga, recorre (se oye más), descarga
+   y la deja estacionada en destino.
+3. Explorar el supermercado y «Registrar» la trastienda. Ordenar
+   «Transportar» el cubo con «Carro de mano», marcar a una segunda persona
+   en «Equipo» y elegir el contenedor de la trastienda: el carro se detiene
+   ante el acceso de carga, descarga en un punto de transferencia, y una
+   nueva etapa «A pulso» lo lleva por las puertas interiores hasta el
+   contenedor.
+4. Repetir el paso 3 a ×1 y pulsar «Cancelar» mientras la ficha dice
+   «Recorriendo la ruta»: el cubo sigue en la carga del carro y el carro
+   queda donde estaba, no vuelve a su origen. Guardar, recargar y comprobarlo.
+5. Probar «Auto» con el cubo (elige a pulso) y con algo pesado cerca de un
+   medio (elige carretilla o carro), y ver el motivo al imponer un método
+   inviable.
+
+## S9 — Puerta C (explotación progresiva de edificios y accesos): cerrado con limitaciones explícitas
+
+Misma rama `feat/web-002-s7-s9-objects-logistics-exploitation`, con una
+única PR contra `main` que agrupa S7, S8 y S9 (sin fusionar). Canon:
+[SET-007](40-settlement/SET-007_building-exploitation-reuse-and-demolition.md)
+(capas, vidas, desmontar/desmantelar/demoler, habitabilidad),
+[WLD-011](20-world/WLD-011_openings-access-and-connectivity.md) (hueco,
+cierre y obstrucción) y la arquitectura de trabajos/reservas de
+[DEC-0018](decisions/DEC-0018_resolution-engine-planned-work-and-causal-needs.md).
+La decisión de toda la entrega es
+[DEC-0019](decisions/DEC-0019_deep-objects-physical-logistics-and-building-exploitation.md).
+
+### Qué hay y cómo funciona
+
+Los dieciséis puntos de la lista de cierre de S9, verificados contra el
+código:
+
+1. **Cinco capas independientes** (`contracts/src/building-exploitation-v2.ts`,
+   `simulation-core/src/v2/exploitation/layers.ts`): contenido suelto,
+   mobiliario y equipamiento, instalaciones, acabados y estructura, cada
+   una con estado físico (intacta, parcialmente explotada, agotada,
+   inaccesible) y de conocimiento propios. Nunca hay una cifra única: la
+   ficha «Edificios conocidos» muestra una fila por capa.
+2. **Tres vidas persistentes** en los hitos del tejido (`BuildingFabric`):
+   primera (saqueo), segunda (desmontaje de mobiliario, instalaciones y
+   acabados) y tercera (desmantelar o demoler), guardadas en el snapshot.
+3. **Estados de explotación** Desconocido → Reconocido → Explorado →
+   Registrado → Registrado por especialista → Vaciado → Desmontando →
+   Desmantelado → Demolido, derivados de los hitos y separados de la niebla
+   y de las facetas de descubrimiento. Vaciar el contenido suelto nunca
+   presenta el edificio como agotado.
+4. **Habitabilidad** (`computeHabitability`): bandas habitable, precario,
+   inhabitable, sin acceso utilizable y demolido, con factores visibles
+   (ventanas retiradas, acabados, instalaciones, estructura, accesos
+   expuestos). Integrada con el descanso de S6.
+5. **Cuatro acciones distintas**: recuperar (retirar/recoger, sin daño),
+   desmontar (mueble, instalación, acabado; irreversible, conserva
+   materiales), desmantelar la estructura por etapas y demoler; las dos
+   últimas con confirmación informada y previsualización cualitativa.
+6. **Acciones propias sobre accesos**: abrir, cerrar, bloquear,
+   desbloquear, forzar, despejar, reforzar con barricada, tapiar, reforzar,
+   reparar, retirar preservando, destruir e instalar (13 métodos de
+   `action-methods.ts`, cifras en `ACCESS_TUNING` `s9-v1`).
+7. **Retirar una puerta conserva el hueco transitable**: la puerta pasa a
+   ser un `WorldObject` con la misma identidad y procedencia
+   `closure_removed:<abertura>`; se puede transportar e instalar en otro
+   hueco compatible (un portón no cabe en un hueco normal).
+8. **Tapiar con material concreto**: consume 12 kg de madera real
+   reservada en la fase de preparación (una barricada, 6 kg); sin madera,
+   `block.missing_materials`; despejar recupera parte (50 % / 75 %).
+9. **Compatibilidad logística**: la ruta de S8 consulta el mismo índice de
+   accesos, así que tapiar o retirar una puerta cambia qué métodos caben y
+   por dónde (COM-02: tapiado el acceso de clientes, el traslado se
+   replantea por el de carga).
+10. **Invalidación dirigida**: `navigationRevision` por edificio y
+    `ensureNavigationCurrent` rehacen solo la huella afectada (1,7 ms frente
+    a 144 ms completos en `probe-seed-92`); los movimientos en curso que
+    cruzaban el acceso se detienen donde están (`access_no_longer_passable`)
+    y un trabajo bloqueado por ruta continúa solo al reabrirse el paso.
+11. **Demolición irreversible**: destruye lo que queda dentro
+    (`DemolitionLosses`), exige el edificio vacío de personas, deja
+    escombros transitables y lotes de escombro con procedencia; el
+    edificio es terminal también tras recargar y sus estancias dejan de
+    ofrecerse.
+12. **Recorridos de los cuatro perfiles** sobre el pueblo generado real
+    (`exploitation/s9-profiles.test.ts`, `s9-buildings.test.ts`): RES-10
+    (capas, tres vidas y demolición), RES-17 (refuerzo, vaciado y
+    desmantelamiento en tres etapas hasta solar), COM-02 (accesos de
+    cliente/carga, estantería desmontada, traslado replanteado) y TAL-01
+    (banco desmontado que da la madera con la que se repara el portón,
+    puerta personal retirada y su hueco tapiado).
+13. **Bomba ENV-01**: `uninstall_installation` la retira entera (la fuente
+    deja de dar agua) y un traslado con destino «Instalar en la fuente de
+    agua» encadena una instalación real que la reconecta a su nodo
+    hídrico. «Desconectar instalación» es una acción propia para las
+    instalaciones de edificio (agua incluida) y desmontar una instalación
+    conectada empieza por desconectarla dentro del mismo trabajo.
+14. **Persistencia aditiva**: `buildingFabrics`, `buildingInstallations`,
+    `buildingFinishes`, `navigationRevision` y los campos nuevos de cierres
+    y obstrucciones llevan `.default()`; una partida v1–v3 carga sin tejido
+    (capas 3–5 no disponibles) con los accesos intactos. Generador
+    `web-002-semantic-v4` con stream PRNG `s9-buildings` propio: trazado e
+    IDs de v3 sin cambios.
+15. **Integración PostgreSQL** (`packages/persistence/src/s9-exploitation.integration.test.ts`):
+    guardar a mitad de una demolición y continuar igual; puerta retirada y
+    hueco tapiado tras recargar con la ruta respetando el tapiado; snapshot
+    sin tejido S9.
+16. **E2E en Chromium real** (`e2e/s9-exploitation.spec.ts`): RES-10 de
+    extremo a extremo (inspeccionar, registrar, saquear, desmontar mueble,
+    registro técnico, desmontar instalación, retirar ventana, salir con lo
+    saqueado y demoler con confirmación, demolido también tras recargar) y
+    accesos (retirar puerta con hueco transitable, desmontar el sofá para
+    obtener madera, tapiar con ella bloqueando la ruta, despejar y ver
+    continuar el trabajo bloqueado).
+
+Correcciones de esta puerta destapadas por los recorridos largos (detalle
+en DEC-0019 §12): inspeccionar un edificio en pie lleva a su estancia de
+entrada; la autoprotección reconoce el agua y la comida de la mochila y no
+hace que varias personas se disputen el mismo lote; el material para
+tapiar una puerta interior vale desde cualquiera de sus lados; y una orden
+directa interrumpida por autoprotección ya no deja a la persona enganchada:
+la **retoma sola** al recuperarse, conservando el trabajo hecho, sin
+remuestrear su episodio, sin duplicar la orden y sin repetir una ejecución
+ya terminada.
+
+Al cerrar la rama, los E2E largos destaparon defectos de la autoprotección
+de S6 que los accesos mutables vuelven frecuentes, corregidos con pruebas de
+regresión en `exploitation/s9-profiles.test.ts` (§«autoprotección frente a
+accesos cambiados»): una persona asignada a un trabajo bloqueado nunca se
+protegía (llegaba a 0 en todo); el agua o la comida elegidas no tenían por
+qué tener ruta (el agua tras un tapiado); sin agua alcanzable nunca pasaba a
+descansar y además abandonaba su trabajo para quedarse ociosa; el aviso «sin
+solución conocida» se emitía en cada tick y desplazaba el registro
+operativo (tope de 50 entradas); y un trabajo bloqueado por ruta se
+reanudaba y rebloqueaba en cada tick (miles de transiciones). Detalle en
+DEC-0019 §12. El panel expone además `data-job-action` en cada trabajo, que
+los E2E usan para no confundir una intención de autoprotección con la orden
+recién dada.
+
+### Limitaciones explícitas (no se arrastran en silencio)
+
+- **Ventanas no navegables**: son acabados y cierres, no aberturas por las
+  que entrar o salir.
+- **Sin obstrucciones generadas**: el generador no produce obstrucciones ni
+  cierres bloqueados de origen; se crean en juego (barricada, tapiado).
+- **Sin reinstalar acabados**: solo puertas, portones y la bomba se
+  instalan; una ventana o un sanitario retirados quedan como material.
+- **Bomba sin desconexión separada**: se desinstala entera; no se
+  desconecta de su nodo dejándola en su sitio.
+- **Una sola planta**: sin escaleras ni plantas superiores.
+- **Terreno**: pendiente, escaleras, barro, grava y agua siguen sin
+  generarse (los escombros sí, al demoler).
+- **Ruido sin consumidor**: forzar, demoler y transportar registran ruido,
+  sin amenazas que reaccionen.
+- **Perfiles fuera del E2E**: RES-17, COM-02 y TAL-01 se recorren en
+  pruebas unitarias sobre el pueblo generado real, no en Chromium.
+- **Cifras provisionales**: tiempos, materiales, penalizaciones de
+  habitabilidad y perfiles estructurales (SET-007 los deja abiertos).
+- **Fixture de conocimiento en los E2E**: como en S7/S8, se inyecta solo el
+  conocimiento que daría la exploración; nada se mueve ni se crea a mano.
+- **Aceptación manual**: no ejecutada. El guion está abajo.
+
+### Validaciones del cierre de la rama S7–S9 (esta sesión)
+
+Ejecutado y en verde al cerrar, sobre el árbol final de la rama:
+
+- `npm run typecheck` (todos los paquetes y `apps/web`) y `npm run lint`
+  (paquetes y web): sin errores ni avisos.
+- `npx vitest run`: **297 pruebas unitarias en 31 ficheros en verde**
+  (267 de S1–S8 sin regresión —una de S7 ajustada: prepara descansada a la
+  persona antes de comprobar el bloqueo de la bomba desmontada, porque con
+  necesidad crítica atendible ahora solo toma su autoprotección— y 30
+  nuevas de S9: 11 de accesos, 6 de generación y RES-10, 10 de perfiles,
+  bomba, habitabilidad, reanudación y autoprotección, y 3 de proyecciones y
+  motor).
+- `npm run test:integration` (PostgreSQL 16 real, `zworld_test`): **30 en
+  verde** (27 previas + 3 de `s9-exploitation.integration.test.ts`).
+- `npm run build` (incluido `apps/web`) correcto.
+- `npx playwright test` (Chromium real `/opt/pw-browsers/chromium-1194`,
+  `next start` real, PostgreSQL real): **12 E2E en verde en dos
+  ejecuciones consecutivas** (los 10 de S1–S8 y los 2 de
+  `e2e/s9-exploitation.spec.ts`). Las primeras ejecuciones de esta sesión
+  fallaban en S9 y destaparon los defectos de autoprotección descritos
+  arriba; ninguna aserción se relajó para ocultarlos.
+
+### Guion de aceptación manual para Dennis (S7 + S8 + S9, diecisiete puntos)
+
+Semilla estable `probe-seed-92`, generador `web-002-semantic-v4`. Llegada
+en (13, 36); vivienda RES-10 a ~16 m (lugar en (2,6, 23,7)); bomba de la
+fuente comunal ENV-01 en (−28, 88), a ~66 m; supermercado COM-02 a ~121 m
+(lugar en (129,0, 3,1), carro de mano ante el acceso de clientes en
+(132,5, 12,5)); taller TAL-01 a ~171 m (lugar en (173,4, −22,4)); cabaña
+RES-17 a ~256 m (lugar en (170,1, −166,1)); carretilla junto al refugio en
+(−217,5, 52,5). Jugar a ×10 salvo que se indique. Todo se hace en
+`/village/[id]`:
+
+1. **Crear y comprobar que no hay fugas.** Crear la partida con la semilla.
+   «Inventario conocido» muestra solo las pertenencias reales de cada
+   protagonista; «Edificios conocidos» no nombra ningún edificio sin
+   observar (ni el supermercado ni el taller).
+2. **Reconocer y registrar RES-10.** Con la segunda protagonista, entrar en
+   la vivienda: aparece en «Edificios conocidos». «Inspeccionar» →
+   edificio: la ficha muestra «Construcción» y «0/4 etapas desmanteladas».
+   «Registrar» → cocina y dormitorio: solo entonces aparecen armario,
+   frigorífico, sofá y su contenido; las instalaciones siguen sin detalle.
+3. **Primera vida.** «Retirar de almacenamiento» un objeto del armario: la
+   capa «1. Contenido suelto» pasa a parcialmente explotada y aparece
+   «Primera vida (saqueo)»; el edificio **no** figura como agotado.
+4. **Almacén físico.** «Almacenar» ese objeto en otro contenedor con
+   capacidad; llenar un contenedor hasta ver el bloqueo «contenedor lleno»
+   (nunca sobrecarga).
+5. **Reparar con material concreto.** «Reparar» → armario: consume madera
+   concreta del lugar (nunca «materiales de reparación»).
+6. **Segunda vida: mobiliario.** «Desmontar (selectivo)» → Sofá: «Ordenar»
+   está desactivado hasta marcar «Confirmar acción irreversible». La
+   madera queda suelta en la sala; la capa 2 pasa a parcialmente explotada,
+   aparece «Segunda vida (desmontaje)» y la etapa «Desmontando».
+7. **Segunda vida: instalaciones y reanudación.** Seleccionar a la primera
+   protagonista (especialista, llega agotada) y ordenar «Registro técnico
+   de instalaciones» → edificio. La orden queda «interrumpida», la persona
+   descansa y **la retoma sola** sin dar una orden nueva; la capa 3 pasa a
+   registrada (parcial o por especialista). «Desconectar instalación» →
+   agua (el servicio queda inactivo) y «Desmontar instalación» →
+   «Instalación eléctrica» con confirmación: aparecen componentes.
+8. **Segunda vida: acabados.** «Retirar acabado» → Ventana: la capa 4 pasa a
+   parcialmente explotada, la habitabilidad baja y aparece el factor
+   «Ventanas retiradas (estancias expuestas)». La estructura sigue intacta.
+9. **Retirar una puerta.** «Retirar puerta (preservándola)» → puerta
+   recibidor ↔ sala: el acceso dice «sin cierre (hueco)» y sigue
+   transitable (mover a alguien a través); la puerta aparece como objeto
+   en «Inventario conocido».
+10. **Tapiar y comprobar navegación.** «Tapiar acceso» → puerta sala ↔
+    cocina (usa la madera del sofá; sin madera queda bloqueado por
+    materiales): el acceso aparece «tapiado», no transitable y el mapa lo
+    marca. Ordenar «Registrar» → cocina: queda bloqueado con «No hay ruta
+    conocida». Con otra persona, «Despejar obstrucción»: el paso se reabre,
+    se recupera parte de la madera y el registro bloqueado continúa solo.
+11. **Transportar e instalar la puerta.** «Transportar» → la puerta retirada
+    → destino «Instalar en una abertura sin cierre» → el hueco del paso 9:
+    se traslada con el método elegido y se instala con la misma identidad.
+12. **Bomba ENV-01.** Ir a la fuente: «Probar instalación» (averiada),
+    «Extraer agua con la bomba» (bloqueado), repararla con piezas mecánicas
+    I y chapa, y extraer agua a un recipiente real. Después «Desinstalar
+    bomba entera»: la fuente deja de dar agua; «Transportar» la bomba con
+    destino «Instalar en la fuente de agua»: vuelve a funcionar.
+13. **Cinco métodos y bloqueos (S8).** Mover el cubo a pulso, en recipiente
+    personal, en porte coordinado (dos personas), en carretilla y en carro
+    de mano; comprobar el motivo al imponer un método inviable por peso,
+    bulto o anchura de acceso, y qué elige «Auto».
+14. **COM-02 y transferencia.** En el supermercado, «Registrar» la
+    trastienda y transportar el cubo en carro al contenedor de la
+    trastienda: el carro se detiene ante el acceso de carga, descarga en un
+    punto de transferencia y una etapa a pulso sigue por las puertas
+    interiores. Después «Tapiar acceso» el de clientes: un traslado nuevo
+    entra por el de carga; «Desmontar (selectivo)» una estantería da chapa.
+15. **TAL-01.** En el taller, desmontar el banco de trabajo (da madera),
+    «Reparar cierre» → portón con esa madera, «Retirar puerta
+    (preservándola)» → puerta personal y «Tapiar acceso» su hueco: se sigue
+    entrando por el portón.
+16. **Cancelar, guardar y recargar.** A ×1, cancelar un traslado en
+    «Recorriendo la ruta» y un desmontaje a medias: la carga y el medio
+    quedan donde estaban y los materiales reservados se liberan. Pausar
+    (se guarda), recargar la página y comprobar capas, vidas, accesos,
+    tapiados, puerta instalada y habitabilidad idénticos.
+17. **Tercera vida: demoler RES-10.** Llevar lo saqueado al punto de
+    llegada y sacar a todo el mundo. La ficha previsualiza «Destruye todo
+    lo que quede dentro». «Demoler edificio» exige la confirmación; si
+    alguien sigue dentro queda bloqueado con «Hay personas dentro del
+    edificio». Al terminar: etapa «Demolido», habitabilidad «Demolido (sin
+    habitabilidad)», escombros transitables y el registro «Se demolió un
+    edificio (irreversible).». Recargar: sigue demolido y sus estancias ya
+    no se ofrecen. Opcional: en la cabaña RES-17, «Desmantelar estructura
+    (por etapas)» tres veces hasta dejar un solar y comparar lo recuperado
+    con una demolición.
+
+## Deuda documental previa conservada
+
+La lista original de deuda de los commits parciales (bomba, carretilla/
+carro, `store`/`retrieve_from_storage`, deterioro, catálogo de catorce
+familias, pertenencias SCN-003 por persona, reservas profundas,
+integración PostgreSQL y E2E) queda cerrada por la sección anterior.

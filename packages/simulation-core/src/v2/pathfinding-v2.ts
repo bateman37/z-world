@@ -30,6 +30,22 @@ export interface PathResultV2 {
   readonly waypoints: readonly WorldPoint[];
   readonly locationCheckpoints: readonly MovementLocationCheckpoint[];
   readonly totalDistanceMeters: number;
+  /** Estancia de cada `waypoint` (`null` = exterior). Derivado, nunca persistido (S8: superficie interior/exterior de la ruta). */
+  readonly waypointRoomIds: readonly (string | null)[];
+  /** Aberturas atravesadas, en orden de recorrido (S8: compatibilidad de accesos y eventos al atravesarlos). */
+  readonly openingIds: readonly string[];
+}
+
+/**
+ * Restricciones opcionales de una ruta (S8, SET-010 §3.6): anchura mínima
+ * de abertura para el método/carga, y coste o veto por celda exterior
+ * (superficie intransitable para el método, niebla no conocida, zona
+ * prohibida). Sin opciones, la ruta es exactamente la de S3.
+ */
+export interface RouteOptionsV2 {
+  readonly openingAllowed?: (openingId: string) => boolean;
+  /** Multiplicador adicional de coste de una celda exterior por índice, o `null` si no se puede pisar. */
+  readonly cellCost?: (index: number) => number | null;
 }
 
 function distance(a: WorldPoint, b: WorldPoint): number {
@@ -95,11 +111,12 @@ const NEIGHBOR_OFFSETS: readonly [number, number][] = [
 ];
 
 /** A* determinista sobre la rejilla exterior V2. `null` si no hay ruta transitable. */
-export function findGridPathV2(grid: WalkabilityGridV2, start: WorldPoint, goal: WorldPoint): WorldPoint[] | null {
+export function findGridPathV2(grid: WalkabilityGridV2, start: WorldPoint, goal: WorldPoint, cellCost?: (index: number) => number | null): WorldPoint[] | null {
   const startCell = worldToCellV2(grid, start);
   const goalCell = worldToCellV2(grid, goal);
   if (!startCell || !goalCell) return null;
   if (!isCellWalkableV2(grid, goalCell.col, goalCell.row)) return null;
+  if (cellCost && cellCost(goalCell.row * grid.columns + goalCell.col) === null) return null;
 
   const key = (col: number, row: number) => row * grid.columns + col;
   const gScore = new Float64Array(grid.columns * grid.rows).fill(Infinity);
@@ -143,7 +160,12 @@ export function findGridPathV2(grid: WalkabilityGridV2, start: WorldPoint, goal:
       }
 
       const stepCost = Math.hypot(dc, dr) * grid.resolutionMeters;
-      const costMultiplier = grid.costMultiplier[nKey] ?? 1;
+      let costMultiplier = grid.costMultiplier[nKey] ?? 1;
+      if (cellCost) {
+        const extra = cellCost(nKey);
+        if (extra === null) continue;
+        costMultiplier *= extra;
+      }
       const tentativeG = gScore[currentKey]! + stepCost * costMultiplier;
 
       if (tentativeG < gScore[nKey]!) {
@@ -176,7 +198,7 @@ interface RoomDijkstraResult {
   readonly costMeters: number;
 }
 
-function roomGraphDijkstra(nav: NavigationIndexV2, buildingId: string, fromRoomId: string, toRoomId: string): RoomDijkstraResult | null {
+function roomGraphDijkstra(nav: NavigationIndexV2, buildingId: string, fromRoomId: string, toRoomId: string, openingAllowed?: (openingId: string) => boolean): RoomDijkstraResult | null {
   const buildingIndex = nav.buildings[buildingId];
   if (!buildingIndex) return null;
   if (fromRoomId === toRoomId) return { roomOrder: [fromRoomId], openings: [], costMeters: 0 };
@@ -205,6 +227,7 @@ function roomGraphDijkstra(nav: NavigationIndexV2, buildingId: string, fromRoomI
     if (!node) continue;
     for (const edge of node.edges) {
       if (visited.has(edge.toRoomId)) continue;
+      if (openingAllowed && !openingAllowed(edge.viaOpeningId)) continue;
       const candidate = currentDist + edge.costMeters;
       if (candidate < (dist.get(edge.toRoomId) ?? Infinity)) {
         dist.set(edge.toRoomId, candidate);
@@ -235,16 +258,18 @@ interface ExitPlan {
   readonly waypoints: WorldPoint[];
   readonly distanceMeters: number;
   readonly exteriorAnchor: WorldPoint;
+  readonly openingIds: string[];
 }
 
 /** Mejor plan para salir de una estancia hasta la rejilla exterior, atravesando el grafo de accesos del edificio. */
-function planExitToExterior(nav: NavigationIndexV2, world: SemanticWorldV2, buildingId: string, roomId: string): ExitPlan | null {
+function planExitToExterior(nav: NavigationIndexV2, world: SemanticWorldV2, buildingId: string, roomId: string, openingAllowed?: (openingId: string) => boolean): ExitPlan | null {
   const buildingIndex = nav.buildings[buildingId];
   if (!buildingIndex) return null;
   let best: ExitPlan | null = null;
 
   for (const bridge of buildingIndex.exteriorBridges) {
-    const route = roomGraphDijkstra(nav, buildingId, roomId, bridge.interiorRoomId);
+    if (openingAllowed && !openingAllowed(bridge.openingId)) continue;
+    const route = roomGraphDijkstra(nav, buildingId, roomId, bridge.interiorRoomId, openingAllowed);
     if (!route) continue;
     const waypoints: WorldPoint[] = [];
     for (const roomInPath of route.roomOrder) {
@@ -255,7 +280,7 @@ function planExitToExterior(nav: NavigationIndexV2, world: SemanticWorldV2, buil
     waypoints.push(bridge.exteriorAnchor);
     const distanceMeters = route.costMeters + bridge.costMeters;
     if (!best || distanceMeters < best.distanceMeters) {
-      best = { waypoints, distanceMeters, exteriorAnchor: bridge.exteriorAnchor };
+      best = { waypoints, distanceMeters, exteriorAnchor: bridge.exteriorAnchor, openingIds: [...route.openings, bridge.openingId] };
     }
   }
   return best;
@@ -265,6 +290,7 @@ interface EntryPlan {
   readonly waypoints: WorldPoint[];
   readonly distanceMeters: number;
   readonly exteriorAnchor: WorldPoint;
+  readonly openingIds: string[];
 }
 
 /** Mejor plan para entrar a una estancia objetivo desde la rejilla exterior, eligiendo la abertura más cercana en línea recta al punto exterior de referencia. */
@@ -273,13 +299,15 @@ function planEntryFromExterior(
   buildingId: string,
   targetRoomId: string,
   fromExteriorPoint: WorldPoint,
+  openingAllowed?: (openingId: string) => boolean,
 ): EntryPlan | null {
   const buildingIndex = nav.buildings[buildingId];
   if (!buildingIndex) return null;
   let best: EntryPlan | null = null;
 
   for (const bridge of buildingIndex.exteriorBridges) {
-    const route = roomGraphDijkstra(nav, buildingId, bridge.interiorRoomId, targetRoomId);
+    if (openingAllowed && !openingAllowed(bridge.openingId)) continue;
+    const route = roomGraphDijkstra(nav, buildingId, bridge.interiorRoomId, targetRoomId, openingAllowed);
     if (!route) continue;
     const approachCost = distance(fromExteriorPoint, bridge.exteriorAnchor);
     const totalCost = approachCost + bridge.costMeters + route.costMeters;
@@ -289,7 +317,7 @@ function planEntryFromExterior(
       if (centroid) waypoints.push(centroid);
     }
     if (!best || totalCost < best.distanceMeters) {
-      best = { waypoints, distanceMeters: totalCost, exteriorAnchor: bridge.exteriorAnchor };
+      best = { waypoints, distanceMeters: totalCost, exteriorAnchor: bridge.exteriorAnchor, openingIds: [bridge.openingId, ...route.openings] };
     }
   }
   return best;
@@ -322,17 +350,19 @@ function checkpointsFromWaypoints(
  * (`locationCheckpoints`), para que el avance de simulación sincronice
  * `location` sin recalcular geometría en cada paso.
  */
-export function findPathV2(nav: NavigationIndexV2, world: SemanticWorldV2, start: NavAnchor, goal: NavAnchor): PathResultV2 | null {
+export function findPathV2(nav: NavigationIndexV2, world: SemanticWorldV2, start: NavAnchor, goal: NavAnchor, options?: RouteOptionsV2): PathResultV2 | null {
+  const openingAllowed = options?.openingAllowed;
   if (start.kind === "exterior" && goal.kind === "exterior") {
-    const gridPath = findGridPathV2(nav.grid, start.point, goal.point);
+    const gridPath = findGridPathV2(nav.grid, start.point, goal.point, options?.cellCost);
     if (!gridPath) return null;
-    const { checkpoints, total } = checkpointsFromWaypoints(gridPath, gridPath.map(() => null));
-    return { waypoints: gridPath, locationCheckpoints: checkpoints, totalDistanceMeters: total };
+    const rooms = gridPath.map(() => null);
+    const { checkpoints, total } = checkpointsFromWaypoints(gridPath, rooms);
+    return { waypoints: gridPath, locationCheckpoints: checkpoints, totalDistanceMeters: total, waypointRoomIds: rooms, openingIds: [] };
   }
 
   if (start.kind === "room" && goal.kind === "room" && nav.roomToBuilding[start.roomId] === nav.roomToBuilding[goal.roomId]) {
     const buildingId = nav.roomToBuilding[start.roomId]!;
-    const route = roomGraphDijkstra(nav, buildingId, start.roomId, goal.roomId);
+    const route = roomGraphDijkstra(nav, buildingId, start.roomId, goal.roomId, openingAllowed);
     if (!route) return null;
     const buildingIndex = nav.buildings[buildingId]!;
     const waypoints: WorldPoint[] = [start.point];
@@ -344,37 +374,37 @@ export function findPathV2(nav: NavigationIndexV2, world: SemanticWorldV2, start
     waypoints.push(goal.point);
     rooms.push(goal.roomId);
     const { checkpoints, total } = checkpointsFromWaypoints(waypoints, rooms);
-    return { waypoints, locationCheckpoints: checkpoints, totalDistanceMeters: total };
+    return { waypoints, locationCheckpoints: checkpoints, totalDistanceMeters: total, waypointRoomIds: rooms, openingIds: [...route.openings] };
   }
 
   // Al menos un extremo requiere cruzar el límite exterior/interior.
-  let exitLeg: { waypoints: WorldPoint[]; rooms: (string | null)[] } | null = null;
+  let exitLeg: { waypoints: WorldPoint[]; rooms: (string | null)[]; openingIds: string[] } | null = null;
   let effectiveStartPoint = start.point;
   let effectiveStartRoom: string | null = null;
 
   if (start.kind === "room") {
     const buildingId = nav.roomToBuilding[start.roomId];
     if (!buildingId) return null;
-    const plan = planExitToExterior(nav, world, buildingId, start.roomId);
+    const plan = planExitToExterior(nav, world, buildingId, start.roomId, openingAllowed);
     if (!plan) return null;
-    exitLeg = { waypoints: [start.point, ...plan.waypoints], rooms: [start.roomId, ...plan.waypoints.map(() => null)] };
+    exitLeg = { waypoints: [start.point, ...plan.waypoints], rooms: [start.roomId, ...plan.waypoints.map(() => null)], openingIds: plan.openingIds };
     effectiveStartPoint = plan.exteriorAnchor;
     effectiveStartRoom = start.roomId;
   }
 
-  let entryLeg: { waypoints: WorldPoint[]; rooms: (string | null)[] } | null = null;
+  let entryLeg: { waypoints: WorldPoint[]; rooms: (string | null)[]; openingIds: string[] } | null = null;
   let effectiveGoalPoint = goal.point;
 
   if (goal.kind === "room") {
     const buildingId = nav.roomToBuilding[goal.roomId];
     if (!buildingId) return null;
-    const plan = planEntryFromExterior(nav, buildingId, goal.roomId, effectiveStartPoint);
+    const plan = planEntryFromExterior(nav, buildingId, goal.roomId, effectiveStartPoint, openingAllowed);
     if (!plan) return null;
-    entryLeg = { waypoints: [...plan.waypoints, goal.point], rooms: [...plan.waypoints.map(() => null), goal.roomId] };
+    entryLeg = { waypoints: [...plan.waypoints, goal.point], rooms: [...plan.waypoints.map(() => null), goal.roomId], openingIds: plan.openingIds };
     effectiveGoalPoint = plan.exteriorAnchor;
   }
 
-  const gridPath = findGridPathV2(nav.grid, effectiveStartPoint, effectiveGoalPoint);
+  const gridPath = findGridPathV2(nav.grid, effectiveStartPoint, effectiveGoalPoint, options?.cellCost);
   if (!gridPath) return null;
 
   const waypoints: WorldPoint[] = [];
@@ -397,5 +427,5 @@ export function findPathV2(nav: NavigationIndexV2, world: SemanticWorldV2, start
 
   void effectiveStartRoom;
   const { checkpoints, total } = checkpointsFromWaypoints(waypoints, rooms);
-  return { waypoints, locationCheckpoints: checkpoints, totalDistanceMeters: total };
+  return { waypoints, locationCheckpoints: checkpoints, totalDistanceMeters: total, waypointRoomIds: rooms, openingIds: [...(exitLeg?.openingIds ?? []), ...(entryLeg?.openingIds ?? [])] };
 }

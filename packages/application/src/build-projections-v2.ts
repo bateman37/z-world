@@ -22,7 +22,10 @@ import type {
   ZoneProjection,
 } from "@z-world/contracts";
 import { toSimulatedDayTime } from "@z-world/contracts";
-import { ACTION_METHODS } from "@z-world/catalogs";
+import { ACTION_METHODS_BY_KEY } from "@z-world/catalogs";
+import { buildInventoryProjection, buildObjectActionOptions, buildObjectKnowledge, buildTransportActionOption, buildTransportJobProjection, derivePossessions, knownConsumableLots } from "./build-object-projections-v2.js";
+import { buildBuildingInspectTargets, buildBuildingsProjection, buildExploitationActionOptions, buildInstallDestinations } from "./build-exploitation-projections-v2.js";
+import { isBuildingTerminal, isOpeningPassable } from "@z-world/simulation-core";
 
 /**
  * Construye las proyecciones de solo lectura del runtime V2 (S3 §5.8):
@@ -108,18 +111,28 @@ function buildMapEntitiesProjection(state: SimulationStateV2): MapEntitiesProjec
 
   const buildings = Object.values(state.world.buildings)
     .filter((building) => knowledgeAtLeast(discovery, building.id, "structure", 2))
-    .map((building) => ({ id: building.id, placeId: building.placeId, footprint: building.footprint }));
+    .map((building) => {
+      // S9: un edificio desmantelado o demolido se dibuja como solar/escombros, nunca como edificio en pie.
+      const structureState = state.world.buildingFabrics?.[building.id]?.structureState;
+      const terminal = structureState === "demolished" || structureState === "dismantled" ? structureState : null;
+      return { id: building.id, placeId: building.placeId, footprint: building.footprint, terminal };
+    });
 
   const rooms = Object.values(state.world.rooms)
     .filter((room) => knowledgeAtLeast(discovery, room.id, "rooms", 2))
     .map((room) => {
       const floor = state.world.floors[room.floorId];
       return { id: room.id, buildingId: floor?.buildingId ?? "", polygon: room.polygon };
-    });
+    })
+    .filter((room) => !isBuildingTerminal(state.world, room.buildingId || null));
 
   const openings = Object.values(state.world.openings)
     .filter((opening) => knowledgeAtLeast(discovery, opening.id, "accesses", 2))
-    .map((opening) => ({ id: opening.id, position: opening.position, connectsToExterior: opening.connectsToExterior }));
+    .filter((opening) => {
+      const floor = opening.connectsRoomId ? state.world.floors[state.world.rooms[opening.connectsRoomId]?.floorId ?? ""] : undefined;
+      return !isBuildingTerminal(state.world, floor?.buildingId ?? null);
+    })
+    .map((opening) => ({ id: opening.id, position: opening.position, connectsToExterior: opening.connectsToExterior, passable: isOpeningPassable(opening.id, state.world) }));
 
   const people = state.peopleOrder
     .map((id) => state.people[id])
@@ -174,7 +187,7 @@ function buildPersonSheetProjectionV2(state: SimulationStateV2, personId: string
     priorities: p.priorities,
     relationships: p.relationships,
     sharedEventInterpretationKey: p.sharedEventInterpretationKey,
-    possessions: p.possessions,
+    possessions: derivePossessions(state, personId),
     arrivalCondition: p.arrivalCondition,
     operationalState: p.operationalState,
     lastBlockReasonKey: p.lastBlockReasonKey,
@@ -217,6 +230,39 @@ const EVENT_MESSAGE_KEYS: Readonly<Record<DomainEventV2["type"], string>> = {
   work_interrupted: "log.work_interrupted",
   zone_changed: "log.zone_changed",
   designation_changed: "log.designation_changed",
+  object_collected: "log.object_collected",
+  object_stored: "log.object_stored",
+  object_retrieved: "log.object_retrieved",
+  object_repaired: "log.object_repaired",
+  object_disassembled: "log.object_disassembled",
+  resource_lot_consumed: "log.resource_lot_consumed",
+  resource_lot_split: "log.resource_lot_split",
+  resource_lot_merged: "log.resource_lot_merged",
+  object_broke_down: "log.object_broke_down",
+  installation_tested: "log.installation_tested",
+  water_drawn: "log.water_drawn",
+  resource_lot_deteriorated: "log.resource_lot_deteriorated",
+  transport_planned: "log.transport_planned",
+  transport_means_retrieved: "log.transport_means_retrieved",
+  load_prepared: "log.load_prepared",
+  access_traversed: "log.access_traversed",
+  transport_route_blocked: "log.transport_route_blocked",
+  transport_noise_emitted: "log.transport_noise_emitted",
+  load_delivered: "log.load_delivered",
+  load_transferred: "log.load_transferred",
+  load_deposited: "log.load_deposited",
+  transport_means_parked: "log.transport_means_parked",
+  access_changed: "log.access_changed",
+  installation_surveyed: "log.installation_surveyed",
+  installation_disconnected: "log.installation_disconnected",
+  installation_dismantled: "log.installation_dismantled",
+  finish_recovered: "log.finish_recovered",
+  structure_dismantled: "log.structure_dismantled",
+  building_demolished: "log.building_demolished",
+  building_life_stage_changed: "log.building_life_stage_changed",
+  building_layer_exhausted: "log.building_layer_exhausted",
+  object_uninstalled: "log.object_uninstalled",
+  object_installed: "log.object_installed",
 };
 
 export function toOperationalLogEntryV2(event: DomainEventV2): OperationalLogEntryProjection {
@@ -227,6 +273,9 @@ export function toOperationalLogEntryV2(event: DomainEventV2): OperationalLogEnt
   if ("roomId" in event) params.roomId = event.roomId;
   if ("entityId" in event) params.entityId = event.entityId;
   if ("facet" in event) params.facet = event.facet;
+  if (event.type === "access_changed") params.change = event.change;
+  if (event.type === "building_layer_exhausted") params.layer = event.layer;
+  if (event.type === "building_life_stage_changed") params.lifeStage = event.lifeStage;
   return {
     eventId: event.eventId,
     simSeconds: event.simSeconds,
@@ -246,7 +295,7 @@ function buildNeedsProjection(state: SimulationStateV2): Readonly<Record<string,
 }
 
 function buildJobsProjection(state: SimulationStateV2): readonly JobProjection[] {
-  const def = new Map(ACTION_METHODS.map((m) => [m.key, m]));
+  const def = ACTION_METHODS_BY_KEY;
   return Object.values(state.jobs)
     .sort((a, b) => (a.createdAtSimSeconds - b.createdAtSimSeconds) || (a.id < b.id ? -1 : 1))
     .map((job) => ({
@@ -261,6 +310,7 @@ function buildJobsProjection(state: SimulationStateV2): readonly JobProjection[]
       blockReasonKey: job.blockReasonKey,
       directOrder: job.directOrder,
       target: job.target,
+      ...(job.transport ? { transport: buildTransportJobProjection(state, job) } : {}),
     }));
 }
 
@@ -270,6 +320,11 @@ function buildZonesProjection(state: SimulationStateV2): readonly ZoneProjection
 
 function buildDesignationsProjection(state: SimulationStateV2): readonly DesignationProjection[] {
   return Object.values(state.designations).map((d) => ({ id: d.id, kind: d.kind, cancelled: d.cancelled, generatedJobCount: d.generatedJobIds.length }));
+}
+
+/** Etiqueta de una estancia ya observada por su función visible (S7: distinguir el dormitorio de la cocina al registrar), o genérica si no tiene programa. */
+function roomLabelKey(room: { readonly programRoleKey: string | null }): string {
+  return room.programRoleKey ? `room_role.${room.programRoleKey}` : "target.room";
 }
 
 /**
@@ -309,43 +364,49 @@ function buildContextualActionsProjection(state: SimulationStateV2): readonly Co
     .map((p) => ({ target: { kind: "place", placeId: p.id } as JobTarget, labelKey: "target.unidentified_place", blockedReasonKey: null }));
   if (observeTargets.length > 0) options.push({ actionKey: "observe", labelKey: "action.observe.label", targets: observeTargets });
 
-  const inspectTargets: ContextualActionTargetProjection[] = Object.values(state.world.rooms)
-    .filter((r) => hasFacetAtLeast(r.id, "rooms", RANK, 2))
-    .map((r) => ({ target: { kind: "room", roomId: r.id } as JobTarget, labelKey: "target.room", blockedReasonKey: null }));
+  const inspectTargets: ContextualActionTargetProjection[] = [
+    ...Object.values(state.world.rooms)
+      .filter((r) => hasFacetAtLeast(r.id, "rooms", RANK, 2) && !isBuildingTerminal(state.world, state.world.floors[r.floorId]?.buildingId ?? null))
+      .map((r) => ({ target: { kind: "room", roomId: r.id } as JobTarget, labelKey: roomLabelKey(r), blockedReasonKey: null })),
+    // S9: inspeccionar un edificio revela su estructura (época, materiales, etapas), requisito para desmantelarlo o demolerlo.
+    ...buildBuildingInspectTargets(state),
+  ];
   if (inspectTargets.length > 0) options.push({ actionKey: "inspect", labelKey: "action.inspect.label", targets: inspectTargets });
 
   const registerTargets: ContextualActionTargetProjection[] = Object.values(state.world.rooms)
-    .filter((r) => hasFacetAtLeast(r.id, "rooms", RANK, 2))
-    .map((r) => ({ target: { kind: "room", roomId: r.id } as JobTarget, labelKey: "target.room", blockedReasonKey: null }));
+    .filter((r) => hasFacetAtLeast(r.id, "rooms", RANK, 2) && !isBuildingTerminal(state.world, state.world.floors[r.floorId]?.buildingId ?? null))
+    .map((r) => ({ target: { kind: "room", roomId: r.id } as JobTarget, labelKey: roomLabelKey(r), blockedReasonKey: null }));
   if (registerTargets.length > 0) options.push({ actionKey: "register", labelKey: "action.register.label", targets: registerTargets });
 
-  const knownRoomIds = new Set(Object.values(state.world.rooms).filter((r) => discoveryByEntity.has(r.id)).map((r) => r.id));
-  const lotTargets = (family: "water" | "fresh_food" | "preserved_food"): ContextualActionTargetProjection[] =>
-    Object.values(state.resourceLots)
-      .filter((lot) => lot.family === family && lot.quantity > 0)
-      .filter((lot) => lot.location.kind === "carried_by_person" || resourceLotRoomKnown(state, lot, knownRoomIds))
-      .map((lot) => ({ target: { kind: "resource_lot", resourceLotId: lot.id } as JobTarget, labelKey: `resource.${lot.family}`, blockedReasonKey: lot.reservedByJobId ? "block.resource_reserved" : null }));
-
-  const drinkTargets = lotTargets("water");
+  // Consumibles conocidos (S6, ampliado en S7): los que lleva alguien —también dentro de su mochila o su
+  // cantimplora—, los de estancias con contenido registrado y los de un exterior a la vista.
+  const knowledge = buildObjectKnowledge(state);
+  const drinkTargets = knownConsumableLots(state, knowledge, ["water"]);
   if (drinkTargets.length > 0) options.push({ actionKey: "drink", labelKey: "action.drink.label", targets: drinkTargets });
-  const eatTargets = [...lotTargets("fresh_food"), ...lotTargets("preserved_food")];
+  const eatTargets = knownConsumableLots(state, knowledge, ["fresh_food", "preserved_food"]);
   if (eatTargets.length > 0) options.push({ actionKey: "eat", labelKey: "action.eat.label", targets: eatTargets });
 
   const restTargets: ContextualActionTargetProjection[] = Object.values(state.world.rooms)
-    .filter((r) => discoveryByEntity.has(r.id))
+    .filter((r) => discoveryByEntity.has(r.id) && !isBuildingTerminal(state.world, state.world.floors[r.floorId]?.buildingId ?? null))
     .map((r) => ({ target: { kind: "room", roomId: r.id } as JobTarget, labelKey: "target.room_rest", blockedReasonKey: null }));
   if (restTargets.length > 0) options.push({ actionKey: "rest", labelKey: "action.rest.label", targets: restTargets });
 
-  return options;
-}
+  // Objetos, contenedores e instalaciones de S7 (recoger, almacenar, retirar, reparar, desmontar,
+  // probar instalación, extraer agua): misma regla de conocimiento que el inventario localizado.
+  options.push(...buildObjectActionOptions(state, knowledge));
 
-function resourceLotRoomKnown(state: SimulationStateV2, lot: { readonly location: { readonly kind: string; readonly containerId?: string; readonly roomId?: string } }, knownRoomIds: ReadonlySet<string>): boolean {
-  if (lot.location.kind === "room" && lot.location.roomId) return knownRoomIds.has(lot.location.roomId);
-  if (lot.location.kind === "container" && lot.location.containerId) {
-    const container = state.containers[lot.location.containerId];
-    if (container && container.location.kind === "room") return knownRoomIds.has(container.location.roomId);
+  // Traslados (S8): carga conocida, destinos con capacidad real, medios conocidos y selector Auto/método.
+  const transportOption = buildTransportActionOption(state, knowledge);
+  if (transportOption) {
+    // S9: «instalar» como destino real del traslado (puerta hacia una abertura sin cierre, bomba hacia una fuente sin bomba).
+    const transport = transportOption.transport ? { ...transportOption.transport, destinations: [...transportOption.transport.destinations, ...buildInstallDestinations(state)] } : transportOption.transport;
+    options.push({ ...transportOption, ...(transport ? { transport } : {}) });
   }
-  return false;
+
+  // S9: accesos, instalaciones, acabados y estructura (explotación progresiva por capas).
+  options.push(...buildExploitationActionOptions(state, knowledge));
+
+  return options;
 }
 
 export function buildWorkerProjectionsV2(params: {
@@ -380,6 +441,8 @@ export function buildWorkerProjectionsV2(params: {
     zones: buildZonesProjection(state),
     designations: buildDesignationsProjection(state),
     contextualActions: buildContextualActionsProjection(state),
+    inventory: buildInventoryProjection(state, buildObjectKnowledge(state)),
+    buildings: buildBuildingsProjection(state),
     revision: params.revision,
   };
 }

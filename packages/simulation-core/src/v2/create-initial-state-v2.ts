@@ -5,7 +5,7 @@ import {
   type DiscoveryRecord,
   type SimulationStateV2,
 } from "@z-world/contracts";
-import { createPrngStateByDomainV2, PrngStream } from "../prng.js";
+import { createDerivedPrngStreamState, createPrngStateByDomainV2, PrngStream } from "../prng.js";
 import { createInitialFogGrid, revealAroundObservers } from "../fog.js";
 import {
   DEFAULT_VILLAGE_GENERATOR_CONFIG,
@@ -15,6 +15,8 @@ import {
   type VillageGeneratorConfig,
 } from "./generator/index.js";
 import { generatePeopleAtArrival } from "./generator/people.js";
+import { materializeInitialBelongings } from "./generator/belongings.js";
+import { IdAllocator } from "./generator/id-allocator.js";
 import { roundStateNumbers } from "./generator/round-state.js";
 import { validateSimulationStateV2Invariants } from "./invariants.js";
 
@@ -50,6 +52,12 @@ export function createInitialStateV2(seed: string, config: VillageGeneratorConfi
   const generation = generateVillage(seed, worldStream, config);
   const peopleResult = generatePeopleAtArrival(seed, cohortStream, { nextDomainEventSequence: 0, nextPersonOrdinal: 0, nextPlaceOrdinal: 0 }, generation.arrivalPoint);
 
+  // Pertenencias de SCN-003 por persona (S7): IDs a continuación de los del
+  // pueblo y stream derivado propio, sin tocar los streams `world`/`cohort`.
+  const belongingIds = new IdAllocator(seed, generation.nextEntityOrdinal);
+  const belongingsStream = new PrngStream(createDerivedPrngStreamState(seed, "s7-belongings"));
+  const belongings = materializeInitialBelongings(belongingsStream, belongingIds, peopleResult.people, peopleResult.peopleOrder, generation.groupSupplies);
+
   let fog = createInitialFogGrid({ bounds: generation.world.bounds }, config.fogResolutionMeters);
   fog = revealAroundObservers(fog, [generation.arrivalPoint]);
 
@@ -71,9 +79,9 @@ export function createInitialStateV2(seed: string, config: VillageGeneratorConfi
     episodes: {},
     reservations: {},
     furniture: Object.fromEntries(generation.furniture.map((f) => [f.id, f])),
-    containers: Object.fromEntries(generation.containers.map((c) => [c.id, c])),
-    worldObjects: Object.fromEntries([...generation.worldObjects, ...peopleResult.worldObjects].map((o) => [o.id, o])),
-    resourceLots: Object.fromEntries(generation.resourceLots.map((r) => [r.id, r])),
+    containers: Object.fromEntries([...generation.containers, ...belongings.containers].map((c) => [c.id, c])),
+    worldObjects: Object.fromEntries([...generation.worldObjects, ...belongings.worldObjects].map((o) => [o.id, o])),
+    resourceLots: Object.fromEntries([...generation.resourceLots, ...belongings.resourceLots].map((r) => [r.id, r])),
     transportMeans: Object.fromEntries(generation.transportMeans.map((t) => [t.id, t])),
     loadBundles: {},
     transferPoints: {},
@@ -91,7 +99,7 @@ export function createInitialStateV2(seed: string, config: VillageGeneratorConfi
       nextDomainEventSequence: peopleResult.sequences.nextDomainEventSequence,
       nextPersonOrdinal: peopleResult.sequences.nextPersonOrdinal,
       nextPlaceOrdinal: peopleResult.sequences.nextPlaceOrdinal,
-      nextEntityOrdinal: generation.nextEntityOrdinal,
+      nextEntityOrdinal: belongingIds.nextOrdinal,
     },
     migration: null,
     generationDegradations: generation.degradations,

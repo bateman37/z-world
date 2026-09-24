@@ -36,7 +36,7 @@ export function transitionJob(
     toState,
     reasonKey,
   };
-  const updatedJob: Job = { ...job, state: toState, updatedAtSimSeconds: state.clock.elapsedSimSeconds, blockReasonKey: toState === "blocked" ? reasonKey : null };
+  const updatedJob: Job = { ...job, state: toState, updatedAtSimSeconds: state.clock.elapsedSimSeconds, blockReasonKey: toState === "blocked" || toState === "causal_failure" ? reasonKey : null };
   return { job: updatedJob, events: [event], sequences };
 }
 

@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import type { AttentionMode, JobTarget, PaceMode, PriorityValue, SimulationStateV2, WorldPoint } from "@z-world/contracts";
+import type { AttentionMode, JobTarget, PaceMode, PriorityValue, SimulationStateV2, StorageItemRef, WorldPoint } from "@z-world/contracts";
 import { useSimulationWorkerV2, nextCommandIdV2 } from "@/lib/use-simulation-worker-v2";
 import { TopBar } from "@/components/top-bar";
 import { PersonList } from "@/components/person-list";
 import { PersonSheetPanel } from "@/components/person-sheet-panel";
 import { VillageMapCanvas } from "@/components/village-map-canvas";
 import { OperationalLog } from "@/components/operational-log";
-import { WorkPanel } from "@/components/work-panel";
+import { WorkPanel, type TransportOrderParams } from "@/components/work-panel";
 
 /**
  * Laboratorio jugable del pueblo semántico V2 (S3 de WEB-002 §5.9):
@@ -76,7 +76,18 @@ export function VillageScreen({
   const selectedCard = projections.personCards.find((c) => c.personId === selectedPersonId);
   const canCancel = selectedCard?.operationalState === "moving";
 
-  function handleOrderContextualAction(params: { actionKey: string; target: JobTarget; teamPersonIds: readonly string[]; pace?: PaceMode; attention?: AttentionMode }) {
+  function handleOrderContextualAction(params: {
+    actionKey: string;
+    target: JobTarget;
+    teamPersonIds: readonly string[];
+    pace?: PaceMode;
+    attention?: AttentionMode;
+    disassemblyScope?: "selective" | "destructive";
+    confirmIrreversible?: boolean;
+    storageItem?: StorageItemRef;
+    storageQuantity?: number;
+    transport?: TransportOrderParams;
+  }) {
     if (!selectedPersonId) return;
     sendCommand({
       commandId: nextCommandIdV2(),
@@ -87,6 +98,15 @@ export function VillageScreen({
       target: params.target,
       pace: params.pace,
       attention: params.attention,
+      disassemblyScope: params.disassemblyScope,
+      confirmIrreversible: params.confirmIrreversible,
+      storageItem: params.storageItem,
+      storageQuantity: params.storageQuantity,
+      transportMethod: params.transport?.method,
+      transportMeansId: params.transport?.meansId,
+      transportDestination: params.transport?.destination,
+      transportCargo: params.transport?.extraCargo ? [...params.transport.extraCargo] : undefined,
+      meansDisposition: params.transport?.meansDisposition,
     });
   }
 

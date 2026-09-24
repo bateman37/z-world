@@ -1,6 +1,7 @@
 import type { ActionMethodDefinition, AttentionMode, DomainEventV2, Job, JobOrigin, JobPhase, JobTarget, PaceMode, SimulationStateV2 } from "@z-world/contracts";
 import { nextEventId } from "../../sequences.js";
 import { resolveTargetLocation } from "./location-utils.js";
+import { s9WorkUnits } from "../exploitation/actions.js";
 
 export interface CreateJobParams {
   readonly actionKey: string;
@@ -13,6 +14,11 @@ export interface CreateJobParams {
   readonly pace?: PaceMode;
   readonly attention?: AttentionMode;
   readonly urgency?: number;
+  readonly disassemblyScope?: "selective" | "destructive" | null;
+  readonly irreversibleConfirmed?: boolean;
+  readonly storageItem?: Job["storageItem"];
+  readonly storageQuantity?: number | null;
+  readonly transport?: Job["transport"];
 }
 
 export interface CreateJobResult {
@@ -21,12 +27,10 @@ export interface CreateJobResult {
   readonly sequences: SimulationStateV2["sequences"];
 }
 
-let jobCounter = 0;
 
-/** Genera un ID de trabajo determinista a partir de las secuencias causales del estado, nunca de `Date.now()`/`Math.random()` (§6.1 de WEB-002: prohibido en núcleo). */
+/** Genera un ID de trabajo determinista a partir de la secuencia causal del estado (el evento `job_created` consume ese mismo número), nunca de `Date.now()`/`Math.random()` ni de un contador global de módulo (§6.1 de WEB-002; corregido en S7). */
 function nextJobId(state: SimulationStateV2): string {
-  jobCounter += 1;
-  return `job-${state.sequences.nextDomainEventSequence}-${jobCounter}`;
+  return `job-s${state.sequences.nextDomainEventSequence}`;
 }
 
 /**
@@ -40,6 +44,8 @@ export function createJob(state: SimulationStateV2, params: CreateJobParams): Cr
   if (!location) return { rejectedReasonKey: "block.target_no_longer_exists" };
 
   const phases: JobPhase[] = params.def.phases.map((kind) => ({ kind, state: "pending" as const }));
+  // S9: la duración real depende del blanco (puerta/portón, receta, m² de huella), fijada por el catálogo versionado al crear el trabajo.
+  const specificWorkUnits = s9WorkUnits(state, params.actionKey, params.target, params.storageItem ?? null);
   const jobId = nextJobId(state);
   const { eventId, sequences } = nextEventId(state.sequences);
 
@@ -68,9 +74,15 @@ export function createJob(state: SimulationStateV2, params: CreateJobParams): Cr
     reservationIds: [],
     episodeIds: [],
     progressRatio: 0,
-    workRemainingUnits: params.def.baseWorkUnits,
+    workRemainingUnits: specificWorkUnits ?? params.def.baseWorkUnits,
     workRateVariation: null,
     directOrder: params.directOrder,
+    disassemblyScope: params.disassemblyScope ?? null,
+    irreversibleConfirmed: params.irreversibleConfirmed ?? false,
+    storageItem: params.storageItem ?? null,
+    storageQuantity: params.storageQuantity ?? null,
+    transport: params.transport ?? null,
+    workTotalUnits: specificWorkUnits,
     createdAtSimSeconds: state.clock.elapsedSimSeconds,
     updatedAtSimSeconds: state.clock.elapsedSimSeconds,
   };

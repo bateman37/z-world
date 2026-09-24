@@ -1,6 +1,7 @@
 import type { PlaceProfileId, SimulationStateV2 } from "@z-world/contracts";
 import { PLACE_PROFILE_IDS } from "@z-world/contracts";
-import { SHELTER_DISTANCE_METERS, VILLAGE_BUDGET, type IntRange } from "@z-world/catalogs";
+import { OBJECT_CATALOG_BY_VARIANT, SHELTER_DISTANCE_METERS, VILLAGE_BUDGET, type IntRange } from "@z-world/catalogs";
+import { resolveHolderPersonId } from "../objects/storage.js";
 
 /**
  * Validación de la generación antes de exponer la partida (§7.5 de
@@ -83,5 +84,66 @@ export function validateGeneratedVillage(
     });
   }
 
+  checkCatalogVariants(state, violations);
+  checkInitialBelongings(state, violations);
+
   return { ok: violations.length === 0, violations };
+}
+
+/** Todo objeto generado por v2 usa una variante de catálogo real (S7 §6.1: nada de variantes `.generic` fuera de catálogo). */
+function checkCatalogVariants(state: SimulationStateV2, violations: GenerationViolation[]): void {
+  for (const obj of Object.values(state.worldObjects)) {
+    if (!OBJECT_CATALOG_BY_VARIANT.has(obj.variant)) {
+      violations.push({ code: "object_variant_not_in_catalog", message: `El objeto ${obj.id} usa la variante ${obj.variant}, que no está en el catálogo.` });
+    }
+  }
+  for (const means of Object.values(state.transportMeans)) {
+    if (!OBJECT_CATALOG_BY_VARIANT.has(means.variant)) {
+      violations.push({ code: "transport_variant_not_in_catalog", message: `El medio ${means.id} usa la variante ${means.variant}, que no está en el catálogo.` });
+    }
+  }
+}
+
+/**
+ * Presupuesto de pertenencias de SCN-003 §3.5 (S7 §6.11): cada persona
+ * porta un arma y todas sus `possessions` existen como objetos reales que
+ * lleva ella; el grupo suma 8–12 L de recipientes, 5–8 L de agua y unas
+ * seis comidas, todo físicamente sobre las personas. Nada de ese
+ * presupuesto se duplica en el refugio.
+ */
+function checkInitialBelongings(state: SimulationStateV2, violations: GenerationViolation[]): void {
+  let vesselLiters = 0;
+  let waterLiters = 0;
+  let meals = 0;
+  for (const personId of state.peopleOrder) {
+    const person = state.people[personId];
+    if (!person) continue;
+    for (const possession of person.public.possessions) {
+      const obj = state.worldObjects[possession.id];
+      if (!obj || resolveHolderPersonId(state, obj.location) !== personId) {
+        violations.push({ code: "possession_not_materialized", message: `La pertenencia ${possession.id} de ${personId} no existe como objeto real que lleve esa persona.` });
+      }
+    }
+    const held = Object.values(state.worldObjects).filter((o) => resolveHolderPersonId(state, o.location) === personId);
+    if (!held.some((o) => o.family === "improvised_tool_or_weapon" && o.functions.includes("melee"))) {
+      violations.push({ code: "person_without_melee_weapon", message: `${personId} no lleva ningún arma cuerpo a cuerpo o improvisada (SCN-003 §3.5).` });
+    }
+    for (const o of held) vesselLiters += OBJECT_CATALOG_BY_VARIANT.get(o.variant)?.liquidCapacityLiters ?? 0;
+  }
+  for (const lot of Object.values(state.resourceLots)) {
+    if (!resolveHolderPersonId(state, lot.location)) continue;
+    if (lot.family === "water") waterLiters += lot.quantity;
+    if (lot.family === "preserved_food" || lot.family === "fresh_food") meals += lot.quantity;
+  }
+  if (vesselLiters < 8 || vesselLiters > 12) violations.push({ code: "belongings_vessel_capacity", message: `Los recipientes del grupo suman ${vesselLiters} L, fuera de 8–12 L (SCN-003 §3.5).` });
+  if (waterLiters < 5 || waterLiters > 8) violations.push({ code: "belongings_water", message: `El grupo lleva ${waterLiters} L de agua, fuera de 5–8 L (SCN-003 §3.5).` });
+  if (meals < 5 || meals > 7) violations.push({ code: "belongings_meals", message: `El grupo lleva ${meals} comidas, lejos de las seis de SCN-003 §3.5.` });
+  const requiredGroupFunctions = ["ignition", "cutting", "illumination", "heat_water"];
+  const groupFunctions = new Set(Object.values(state.worldObjects).filter((o) => resolveHolderPersonId(state, o.location)).flatMap((o) => o.functions));
+  for (const fn of requiredGroupFunctions) {
+    if (!groupFunctions.has(fn)) violations.push({ code: "belongings_missing_function", message: `Ninguna pertenencia del grupo cubre la función ${fn} (SCN-003 §3.5).` });
+  }
+  if (!Object.values(state.resourceLots).some((l) => l.family === "healing_material" && resolveHolderPersonId(state, l.location))) {
+    violations.push({ code: "belongings_missing_first_aid", message: "El grupo no lleva material básico de primeros auxilios (SCN-003 §3.5)." });
+  }
 }

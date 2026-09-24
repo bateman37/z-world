@@ -1,5 +1,15 @@
 import type { SemanticWorldV2, WorldPoint } from "@z-world/contracts";
-import { buildWalkabilityGridV2, nearestWalkableCellV2, cellToWorldCenterV2, type WalkabilityGridV2 } from "./navigation-v2.js";
+import { isFabricTerminal } from "@z-world/contracts";
+import { valuesById } from "./ordered.js";
+import {
+  buildWalkabilityGridV2,
+  cellToWorldCenterV2,
+  footprintCellRegion,
+  nearestWalkableCellV2,
+  patchWalkabilityGridV2,
+  type GridCellRegion,
+  type WalkabilityGridV2,
+} from "./navigation-v2.js";
 
 /**
  * Grafo de accesos por edificio (S3 de WEB-002 §5.4): estrategia elegida
@@ -38,9 +48,13 @@ function distance(a: WorldPoint, b: WorldPoint): number {
 export function isOpeningPassable(openingId: string, world: SemanticWorldV2): boolean {
   const opening = world.openings[openingId];
   if (!opening) return false;
+  // S9: una obstrucción (barricada, tapiado, escombros, mueble) bloquea el paso sin eliminar la abertura.
   for (const obstruction of Object.values(world.obstructions)) {
     if (obstruction.openingId === openingId) return false;
   }
+  // S9: la abertura de un edificio desmantelado o demolido ya no forma parte de ningún grafo de circulación.
+  const buildingId = opening.connectsRoomId ? buildingIdOfRoomInWorld(world, opening.connectsRoomId) : null;
+  if (buildingId && isFabricTerminal(world.buildingFabrics?.[buildingId])) return false;
   if (!opening.installedClosureId) return true;
   const closure = world.installedClosures[opening.installedClosureId];
   if (!closure) return true;
@@ -73,12 +87,25 @@ export interface NavigationIndexV2 {
   readonly grid: WalkabilityGridV2;
   readonly buildings: Readonly<Record<string, BuildingNavIndex>>;
   readonly roomToBuilding: Readonly<Record<string, string>>;
+  /** Revisión global de accesos/estructura del mundo con la que se derivó este índice (S9). */
+  readonly revision: number;
+  /** Revisión por edificio con la que se derivó cada entrada (S9: invalidación dirigida). */
+  readonly buildingRevisions: Readonly<Record<string, number>>;
+}
+
+/** Edificio al que pertenece una estancia (vía su planta), o `null`. */
+export function buildingIdOfRoomInWorld(world: SemanticWorldV2, roomId: string): string | null {
+  const room = world.rooms[roomId];
+  if (!room) return null;
+  return world.floors[room.floorId]?.buildingId ?? null;
 }
 
 /** Construye el grafo de accesos de un único edificio con planta activa generada. */
 function buildBuildingNavIndex(buildingId: string, world: SemanticWorldV2, grid: WalkabilityGridV2): BuildingNavIndex | null {
   const building = world.buildings[buildingId];
   if (!building || !building.interiorGenerated) return null;
+  // S9: un edificio desmantelado del todo o demolido deja de tener estancias transitables.
+  if (isFabricTerminal(world.buildingFabrics?.[buildingId])) return null;
 
   // El generador de S2 marca la planta activa con `Floor.active`, pero no
   // rellena siempre `Building.activeFloorId` con esa misma referencia
@@ -88,10 +115,10 @@ function buildBuildingNavIndex(buildingId: string, world: SemanticWorldV2, grid:
   // generado inaccesible por una desincronización entre ambos campos.
   const floor =
     (building.activeFloorId ? world.floors[building.activeFloorId] : undefined) ??
-    Object.values(world.floors).find((f) => f.buildingId === buildingId && f.active);
+    valuesById(world.floors).find((f) => f.buildingId === buildingId && f.active);
   if (!floor || !floor.active) return null;
 
-  const roomsOnFloor = Object.values(world.rooms).filter((room) => room.floorId === floor.id);
+  const roomsOnFloor = valuesById(world.rooms).filter((room) => room.floorId === floor.id);
   const rooms: Record<string, { centroid: WorldPoint; edges: RoomGraphEdge[] }> = {};
   for (const room of roomsOnFloor) {
     rooms[room.id] = { centroid: centroidOf(room.polygon), edges: [] };
@@ -99,7 +126,7 @@ function buildBuildingNavIndex(buildingId: string, world: SemanticWorldV2, grid:
 
   const exteriorBridges: ExteriorBridge[] = [];
 
-  for (const opening of Object.values(world.openings)) {
+  for (const opening of valuesById(world.openings)) {
     const roomA = opening.connectsRoomId ? rooms[opening.connectsRoomId] : undefined;
     if (!roomA) continue;
     if (!isOpeningPassable(opening.id, world)) continue;
@@ -135,7 +162,7 @@ export function buildNavigationIndexV2(world: SemanticWorldV2, grid: Walkability
   const buildings: Record<string, BuildingNavIndex> = {};
   const roomToBuilding: Record<string, string> = {};
 
-  for (const buildingId of Object.keys(world.buildings)) {
+  for (const buildingId of Object.keys(world.buildings).sort()) {
     const index = buildBuildingNavIndex(buildingId, world, grid);
     if (!index) continue;
     buildings[buildingId] = index;
@@ -144,7 +171,102 @@ export function buildNavigationIndexV2(world: SemanticWorldV2, grid: Walkability
     }
   }
 
-  return { grid, buildings, roomToBuilding };
+  const revision = world.navigationRevision?.global ?? 0;
+  return { grid, buildings, roomToBuilding, revision, buildingRevisions: { ...(world.navigationRevision?.byBuilding ?? {}) } };
+}
+
+/** Radio (m) dentro del cual un cambio de rejilla puede alterar el anclaje exterior de una abertura (`nearestWalkableCellV2`, 6 celdas). */
+function anchorInfluenceMeters(grid: WalkabilityGridV2): number {
+  return (6 + 1) * grid.resolutionMeters;
+}
+
+const refreshCache = new WeakMap<NavigationIndexV2, { readonly revisionRef: unknown; readonly nav: NavigationIndexV2 }>();
+
+/**
+ * Invalidación dirigida del índice de navegación derivado (S9, §8.7 del
+ * prompt S7-S9). Si la revisión de accesos del mundo coincide con la del
+ * índice, lo devuelve tal cual (coste O(1)). Si no, reconstruye solo los
+ * edificios cuya revisión cambió; si alguno quedó desmantelado o demolido,
+ * re-rasteriza únicamente la rejilla de su huella y los edificios cuyas
+ * aberturas exteriores podrían anclarse de otra forma. El resultado es
+ * idéntico a reconstruirlo todo desde cero (prueba de equivalencia), nunca
+ * se persiste y nunca muta el índice recibido (puede estar compartido).
+ */
+export function ensureNavigationCurrent(nav: NavigationIndexV2, world: SemanticWorldV2): NavigationIndexV2 {
+  const revisionRef = world.navigationRevision;
+  const revision = revisionRef?.global ?? 0;
+  if (nav.revision === revision && revisionRef === undefined) return nav;
+  if (nav.revision === revision) {
+    const byBuilding = revisionRef?.byBuilding ?? {};
+    let same = true;
+    for (const [id, value] of Object.entries(byBuilding)) {
+      if ((nav.buildingRevisions[id] ?? 0) !== value) {
+        same = false;
+        break;
+      }
+    }
+    if (same) return nav;
+  }
+  const cached = refreshCache.get(nav);
+  if (cached && cached.revisionRef === revisionRef) return cached.nav;
+
+  const byBuilding = revisionRef?.byBuilding ?? {};
+  const changed = Object.keys(byBuilding)
+    .filter((id) => (nav.buildingRevisions[id] ?? 0) !== byBuilding[id])
+    .sort();
+
+  // Rejilla: solo la huella de los edificios que dejaron de existir como tales (o, por coherencia, cualquier cambio de estado terminal).
+  const regions: GridCellRegion[] = [];
+  const influence: { minX: number; minY: number; maxX: number; maxY: number }[] = [];
+  for (const id of changed) {
+    const building = world.buildings[id];
+    if (!building) continue;
+    const wasIndexed = nav.buildings[id] !== undefined;
+    const terminal = isFabricTerminal(world.buildingFabrics?.[id]);
+    if (!terminal && wasIndexed) continue;
+    regions.push(footprintCellRegion(nav.grid, building.footprint));
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const p of building.footprint) {
+      minX = Math.min(minX, p.x);
+      minY = Math.min(minY, p.y);
+      maxX = Math.max(maxX, p.x);
+      maxY = Math.max(maxY, p.y);
+    }
+    const pad = anchorInfluenceMeters(nav.grid);
+    influence.push({ minX: minX - pad, minY: minY - pad, maxX: maxX + pad, maxY: maxY + pad });
+  }
+  const grid = patchWalkabilityGridV2(world, nav.grid, regions);
+
+  const rebuild = new Set(changed);
+  if (influence.length > 0) {
+    for (const opening of valuesById(world.openings)) {
+      if (!opening.connectsToExterior || !opening.connectsRoomId) continue;
+      const p = opening.position;
+      if (!influence.some((b) => p.x >= b.minX && p.x <= b.maxX && p.y >= b.minY && p.y <= b.maxY)) continue;
+      const buildingId = buildingIdOfRoomInWorld(world, opening.connectsRoomId);
+      if (buildingId) rebuild.add(buildingId);
+    }
+  }
+
+  const buildings: Record<string, BuildingNavIndex> = { ...nav.buildings };
+  for (const id of [...rebuild].sort()) {
+    delete buildings[id];
+    const index = buildBuildingNavIndex(id, world, grid);
+    if (!index) continue;
+    buildings[id] = index;
+  }
+  // Mismo orden de claves que una reconstrucción completa (ordenada por ID): la iteración posterior es determinista.
+  const orderedBuildings: Record<string, BuildingNavIndex> = {};
+  for (const id of Object.keys(buildings).sort()) orderedBuildings[id] = buildings[id]!;
+  const orderedRooms: Record<string, string> = {};
+  for (const id of Object.keys(orderedBuildings)) for (const roomId of Object.keys(orderedBuildings[id]!.rooms)) orderedRooms[roomId] = id;
+
+  const refreshed: NavigationIndexV2 = { grid, buildings: orderedBuildings, roomToBuilding: orderedRooms, revision, buildingRevisions: { ...byBuilding } };
+  refreshCache.set(nav, { revisionRef, nav: refreshed });
+  return refreshed;
 }
 
 /**

@@ -196,6 +196,18 @@ export interface InstalledClosure {
   readonly kind: "door" | "gate" | "window";
   readonly state: "open" | "closed" | "locked" | "destroyed";
   readonly condition: number;
+  /**
+   * S9 (WLD-011 §3.4): la comunidad echó ella misma el cierre (puede
+   * desbloquearlo desde cualquier lado); un cierre encontrado bloqueado solo
+   * se desbloquea desde el lado interior o se fuerza. Opcional en el tipo y
+   * con `.default(false)` en el esquema: los cierres anteriores a S9 cargan
+   * como no bloqueados por la comunidad.
+   */
+  readonly lockedByCommunity?: boolean;
+  /** El mecanismo quedó roto al forzarlo: no se puede volver a bloquear hasta repararlo (S9). */
+  readonly lockBroken?: boolean;
+  /** Refuerzo del cierre con material concreto (S9): forzarlo exige más. */
+  readonly reinforced?: boolean;
 }
 
 export const installedClosureSchema = z.object({
@@ -204,18 +216,40 @@ export const installedClosureSchema = z.object({
   kind: z.enum(["door", "gate", "window"]),
   state: z.enum(["open", "closed", "locked", "destroyed"]),
   condition: z.number().min(0).max(1),
+  lockedByCommunity: z.boolean().default(false),
+  lockBroken: z.boolean().default(false),
+  reinforced: z.boolean().default(false),
 });
 
+/** Material concreto comprometido en una modificación/obstrucción (tablones de una barricada, S9): se recupera en parte al despejarla. */
+export interface ObstructionMaterial {
+  readonly resourceFamily: string;
+  readonly quantity: number;
+}
+
+/**
+ * Modificación u obstrucción de una abertura (WLD-011 §3.1, tercer concepto
+ * separado del hueco y del cierre). Bloquea el paso mientras exista; un
+ * mueble que bloquea no es una pared (se despeja), y tapiar
+ * (`boarded_up`) sustituye funcionalmente la abertura por un tramo cerrado
+ * sin eliminarla. Campos de S9 opcionales en el tipo y con `.default()`.
+ */
 export interface Obstruction {
   readonly id: string;
   readonly openingId: string;
   readonly kind: "blockade" | "boarded_up" | "rubble" | "furniture_block";
+  readonly materials?: readonly ObstructionMaterial[];
+  readonly createdByJobId?: string | null;
+  readonly createdAtSimSeconds?: number;
 }
 
 export const obstructionSchema = z.object({
   id: z.string(),
   openingId: z.string(),
   kind: z.enum(["blockade", "boarded_up", "rubble", "furniture_block"]),
+  materials: z.array(z.object({ resourceFamily: z.string(), quantity: z.number().positive() })).default([]),
+  createdByJobId: z.string().nullable().default(null),
+  createdAtSimSeconds: z.number().int().nonnegative().default(0),
 });
 
 export interface Anchor {

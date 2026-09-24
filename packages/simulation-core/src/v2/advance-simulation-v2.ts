@@ -4,16 +4,29 @@ import { advanceClock } from "../clock.js";
 import { revealAroundObservers } from "../fog.js";
 import { nextEventId } from "../sequences.js";
 import { updateDiscoveryV2 } from "./discovery.js";
-import type { NavigationIndexV2 } from "./room-graph.js";
-import { advanceJobs } from "./jobs/advance-jobs.js";
+import { ensureNavigationCurrent, type NavigationIndexV2 } from "./room-graph.js";
+import { advanceJobs, isWorkingPhase } from "./jobs/advance-jobs.js";
+import { transportMovementFactors, transportTravelLimit } from "./transport/movement.js";
+import { applyResourceDecay } from "./objects/decay.js";
 import { declineNeedsForElapsedSimMinutes, declineNeedsForMovement, needOf } from "./needs/evolve-needs.js";
 
-/** Misma velocidad base provisional que V1 (DEC-0014); no se recalibra en S3. */
-export const BASE_WALK_SPEED_METERS_PER_SIM_SECOND_V2 = 1.4;
+function round6(value: number): number {
+  return Math.round(value * 1_000_000) / 1_000_000;
+}
+
+import { BASE_WALK_SPEED_METERS_PER_SIM_SECOND_V2 } from "./constants.js";
+export { BASE_WALK_SPEED_METERS_PER_SIM_SECOND_V2 };
 
 export interface AdvanceSimulationV2Result {
   readonly state: SimulationStateV2;
   readonly events: readonly DomainEventV2[];
+  /**
+   * Índice de navegación vigente tras el paso (S9): si un trabajo cambió un
+   * acceso o la estructura de un edificio, ya refleja ese cambio (invalidación
+   * dirigida). Quien orquesta debería conservarlo para el siguiente paso;
+   * aunque no lo haga, el núcleo lo re-deriva del mundo, nunca usa uno obsoleto.
+   */
+  readonly nav: NavigationIndexV2;
 }
 
 function pointAlongPath(path: readonly WorldPoint[], distanceMeters: number): WorldPoint {
@@ -61,13 +74,15 @@ function locationAtCheckpoint(
  * nunca lee el reloj de sistema). Progresa reloj, movimiento multi-tramo
  * (exterior/interior), niebla y descubrimiento pasivo.
  */
-export function advanceSimulationV2(state: SimulationStateV2, elapsedRealSeconds: number, nav: NavigationIndexV2): AdvanceSimulationV2Result {
+export function advanceSimulationV2(state: SimulationStateV2, elapsedRealSeconds: number, navIn: NavigationIndexV2): AdvanceSimulationV2Result {
+  // S9: el índice derivado nunca puede ir por detrás de los accesos/estructura del mundo (coste O(1) si ya está al día).
+  const nav = ensureNavigationCurrent(navIn, state.world);
   const previousSimSeconds = state.clock.elapsedSimSeconds;
   const nextClock = advanceClock(state.clock, elapsedRealSeconds);
   const simSecondsToAdvance = nextClock.elapsedSimSeconds - previousSimSeconds;
 
   if (simSecondsToAdvance <= 0) {
-    return { state: { ...state, clock: nextClock }, events: [] };
+    return { state: { ...state, clock: nextClock }, events: [], nav };
   }
 
   let sequences = state.sequences;
@@ -85,12 +100,15 @@ export function advanceSimulationV2(state: SimulationStateV2, elapsedRealSeconds
     // inactividad, incluido el tramo de viaje de un trabajo (mismo mecanismo
     // de `activeMovementOrder` que una orden directa de movimiento).
     const activeJob = person.activeJobId ? state.jobs[person.activeJobId] : null;
-    const isExecutingJobPhase = activeJob?.state === "in_progress" && activeJob.phases[activeJob.currentPhaseIndex]?.kind === "execute";
+    // `isWorkingPhase` incluye cargar/descargar de un traslado (S8): su coste lo aplica `advanceJobs`, nunca dos veces.
+    const isExecutingJobPhase = activeJob ? isWorkingPhase(activeJob) : false;
+    // S8: dentro de un traslado, el método y la superficie cambian velocidad y esfuerzo del mismo movimiento.
+    const factors = transportMovementFactors(state, nav, person);
     if (!isExecutingJobPhase) {
       if (person.public.activeMovementOrder) {
         const order = person.public.activeMovementOrder;
-        const distanceThisTick = Math.min(order.totalDistanceMeters - order.travelledDistanceMeters, BASE_WALK_SPEED_METERS_PER_SIM_SECOND_V2 * simSecondsToAdvance);
-        people[personId] = { ...person, needs: declineNeedsForMovement(person.needs, Math.max(0, distanceThisTick)) };
+        const distanceThisTick = Math.min(order.totalDistanceMeters - order.travelledDistanceMeters, BASE_WALK_SPEED_METERS_PER_SIM_SECOND_V2 * factors.speed * simSecondsToAdvance);
+        people[personId] = { ...person, needs: declineNeedsForMovement(person.needs, Math.max(0, distanceThisTick) * factors.effort) };
       } else {
         people[personId] = { ...person, needs: declineNeedsForElapsedSimMinutes(person.needs, elapsedSimMinutes, "idle", "normal") };
       }
@@ -101,13 +119,22 @@ export function advanceSimulationV2(state: SimulationStateV2, elapsedRealSeconds
     if (!currentPerson.public.activeMovementOrder) continue;
 
     const order = currentPerson.public.activeMovementOrder;
-    const distanceToAdvance = BASE_WALK_SPEED_METERS_PER_SIM_SECOND_V2 * simSecondsToAdvance;
-    const travelledDistanceMeters = Math.min(order.totalDistanceMeters, order.travelledDistanceMeters + distanceToAdvance);
-    const position = pointAlongPath(order.path, travelledDistanceMeters);
-    const reachedDestination = travelledDistanceMeters >= order.totalDistanceMeters;
+    const distanceToAdvance = BASE_WALK_SPEED_METERS_PER_SIM_SECOND_V2 * factors.speed * simSecondsToAdvance;
+    // Redondeo a 6 decimales (S7): lo que se persiste vuelve idéntico de PostgreSQL `jsonb` (ver `generator/round-state.ts`).
+    // Se decide la llegada con el valor sin redondear (redondear podría dejar
+    // el recorrido a una millonésima del final y no llegar nunca).
+    // S8: una porteadora se detiene ante un acceso de su ruta que ha dejado de ser transitable (nunca lo atraviesa).
+    const travelLimit = transportTravelLimit(state, currentPerson);
+    const rawTravelled = Math.min(order.totalDistanceMeters, travelLimit ?? Infinity, order.travelledDistanceMeters + distanceToAdvance);
+    const reachedDestination = rawTravelled >= order.totalDistanceMeters;
+    const travelledDistanceMeters = reachedDestination ? order.totalDistanceMeters : round6(rawTravelled);
+    const rawPosition = pointAlongPath(order.path, travelledDistanceMeters);
+    const position = { x: round6(rawPosition.x), y: round6(rawPosition.y) };
 
     const previousLocation = currentPerson.location;
-    const nextLocation = locationAtCheckpoint(order.locationCheckpoints, travelledDistanceMeters, position);
+    // Al completar el recorrido se aplican todos los checkpoints: el último (entrar en la estancia de destino)
+    // puede quedar una millonésima por encima del total redondeado y no debe impedir llegar dentro (S8).
+    const nextLocation = locationAtCheckpoint(order.locationCheckpoints, reachedDestination ? Infinity : travelledDistanceMeters, position);
 
     if (previousLocation.kind === "room" && (nextLocation.kind !== "room" || nextLocation.roomId !== previousLocation.roomId)) {
       const { eventId, sequences: seq1 } = nextEventId(sequences);
@@ -159,7 +186,12 @@ export function advanceSimulationV2(state: SimulationStateV2, elapsedRealSeconds
   const jobsResult = advanceJobs(stateAfterMovement, nav, simSecondsToAdvance);
   events.push(...jobsResult.events);
 
-  return { state: jobsResult.state, events };
+  // Deterioro de perecederos (S7 §6.6): función cerrada del instante del
+  // reloj, así que recalcularlo en cada tick nunca lo cuenta dos veces.
+  const decayResult = applyResourceDecay(jobsResult.state);
+  events.push(...decayResult.events);
+
+  return { state: decayResult.state, events, nav: jobsResult.nav };
 }
 
 const NEED_DIMENSIONS_ORDER: readonly NeedDimension[] = ["hydration", "nutrition", "rest"];

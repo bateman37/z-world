@@ -1,5 +1,10 @@
-import type { ActionMethodDefinition, JobTarget, PriorityValue, SimulationStateV2 } from "@z-world/contracts";
+import type { ActionMethodDefinition, JobTarget, PriorityValue, SimulationStateV2, WorldObject } from "@z-world/contracts";
+import { OBJECT_CATALOG_BY_VARIANT, TRANSPORT_MEANS_VARIANT_BY_METHOD } from "@z-world/catalogs";
 import { resolveTargetLocation, isPersonCoLocated } from "./location-utils.js";
+import { isContainerUsable } from "../objects/storage.js";
+import { isLotSpoiled } from "../objects/decay.js";
+import { buildingIdOfTarget } from "../exploitation/targets.js";
+import { isBuildingTerminal } from "../exploitation/fabric.js";
 
 export interface EligibilityResult {
   readonly ok: boolean;
@@ -36,6 +41,7 @@ export function checkHardRequirements(
         if (target.kind !== "resource_lot") return fail("block.no_resource_lot_selected");
         const lot = state.resourceLots[target.resourceLotId];
         if (!lot || lot.quantity <= 0) return fail("block.resource_exhausted");
+        if (def.key === "eat" && isLotSpoiled(lot)) return fail("block.food_spoiled");
         continue;
       }
       case "requires_rest_support":
@@ -53,6 +59,63 @@ export function checkHardRequirements(
         continue; // comprobado en `isDirectlyEligible`/resolución, no aquí (depende de la persona ejecutora final).
       case "requires_known_method":
         continue; // en este catálogo todos los métodos activos son de clasificación abierta/improvisable/guiada conocida por defecto.
+      case "requires_transformation_profile": {
+        const profileId = resolveTransformationProfileId(state, target, def.key);
+        if (!profileId) return fail("block.no_transformation_profile");
+        continue;
+      }
+      case "requires_concrete_materials":
+        // Comprobado junto con `requires_transformation_profile` contra las
+        // recetas versionadas (§15.5/CAT-005 §4.3: nunca una pila
+        // universal `repair_materials`); la disponibilidad real de
+        // materiales se resuelve en fase `prepare`, no aquí.
+        continue;
+      case "requires_storage_container": {
+        if (target.kind !== "container") return fail("block.no_storage_container_selected");
+        const container = state.containers[target.containerId];
+        if (!container) return fail("block.target_no_longer_exists");
+        if (!isContainerUsable(state, container)) return fail("block.container_unusable");
+        continue;
+      }
+      case "requires_functional_installation": {
+        if (target.kind !== "world_object") return fail("block.installation_disconnected");
+        const obj = state.worldObjects[target.worldObjectId];
+        if (!obj) return fail("block.target_no_longer_exists");
+        const reason = installationBlockReason(state, obj);
+        if (reason) return fail(reason);
+        continue;
+      }
+      case "requires_building_standing": {
+        // S9: una demolición (o un desmantelamiento completo) es irreversible; nada vuelve a actuar sobre ese edificio.
+        const buildingId = buildingIdOfTarget(state, target);
+        if (buildingId && isBuildingTerminal(state.world, buildingId)) return fail(state.world.buildingFabrics?.[buildingId]?.structureState === "demolished" ? "block.building_demolished" : "block.building_dismantled");
+        continue;
+      }
+      case "requires_known_structure": {
+        if (target.kind !== "building") return fail("block.structure_not_inspected");
+        if (!hasKnowledge(state, target.buildingId, "structure", 3)) return fail("block.structure_not_inspected");
+        if (!state.world.buildingFabrics?.[target.buildingId]) return fail("block.building_layers_unavailable");
+        continue;
+      }
+      case "requires_known_installation": {
+        if (target.kind !== "building_installation") return fail("block.installation_not_surveyed");
+        if (!hasKnowledge(state, target.installationId, "installations", 3)) return fail("block.installation_not_surveyed");
+        continue;
+      }
+      case "requires_installed_closure": {
+        if (target.kind !== "opening") return fail("block.no_installed_closure");
+        const opening = state.world.openings[target.openingId];
+        const closure = opening?.installedClosureId ? state.world.installedClosures[opening.installedClosureId] : undefined;
+        if (!closure || closure.state === "destroyed") return fail("block.no_installed_closure");
+        continue;
+      }
+      case "requires_obstruction": {
+        if (target.kind !== "opening") return fail("block.no_obstruction");
+        if (!Object.values(state.world.obstructions).some((o) => o.openingId === target.openingId)) return fail("block.no_obstruction");
+        continue;
+      }
+      case "requires_irreversible_confirmation":
+        continue; // comprobado aparte en `checkIrreversibleConfirmation` (depende de `Job.irreversibleConfirmed`, que no existe todavía al crear el trabajo).
       default: {
         const exhaustive: never = requirement.kind;
         throw new Error(`Requisito duro no reconocido: ${JSON.stringify(exhaustive)}`);
@@ -60,6 +123,56 @@ export function checkHardRequirements(
     }
   }
   return ok;
+}
+
+/**
+ * Perfil de reparación/desmontaje concreto declarado por el objeto o
+ * mueble objetivo, según el método (§16.2/§16.3, S7). `null` si el
+ * objetivo no tiene ese perfil: nunca se inventa una receta genérica.
+ */
+export function resolveTransformationProfileId(state: SimulationStateV2, target: JobTarget, actionKey: string): string | null {
+  if (target.kind === "transport_means") {
+    const means = state.transportMeans[target.transportMeansId];
+    if (!means) return null;
+    // Compatibilidad explícita (S7): una carretilla/carro de una partida
+    // anterior a S7 no guarda perfil propio; se usa el perfil versionado v1
+    // de su método, declarado en el catálogo, nunca una receta genérica.
+    const catalogEntry = OBJECT_CATALOG_BY_VARIANT.get(means.variant || TRANSPORT_MEANS_VARIANT_BY_METHOD[means.method]);
+    if (actionKey === "repair") return means.repairProfileId ?? catalogEntry?.repairProfileId ?? null;
+    if (actionKey === "disassemble_selective" || actionKey === "disassemble_destructive") return means.disassemblyProfileId ?? catalogEntry?.disassemblyProfileId ?? null;
+    return null;
+  }
+  const entity = target.kind === "world_object" ? state.worldObjects[target.worldObjectId] : target.kind === "furniture" ? state.furniture[target.furnitureId] : null;
+  if (!entity) return null;
+  if (actionKey === "repair") return entity.repairProfileId;
+  if (actionKey === "disassemble_selective" || actionKey === "disassemble_destructive") return entity.disassemblyProfileId;
+  return null;
+}
+
+/**
+ * Motivo por el que una instalación técnica (bomba) no puede prestar su
+ * servicio hoy, o `null` si puede (S7 §6.10: "nunca produce agua solo por
+ * existir"): debe seguir conectada a una fuente de agua real del mundo y
+ * tener su función de bombeo activa.
+ */
+export function installationBlockReason(state: SimulationStateV2, obj: WorldObject): string | null {
+  if (!obj.installedAt) return "block.installation_disconnected";
+  const place = state.world.places[obj.installedAt.placeId];
+  if (!place) return "block.installation_disconnected";
+  if (obj.installedAt.nodeId) {
+    const node = state.world.nodes[obj.installedAt.nodeId];
+    if (!node || node.kind !== "water_source") return "block.installation_disconnected";
+  }
+  if (obj.functionalState !== "functional" && obj.functionalState !== "degraded") return "block.installation_not_functional";
+  if (!obj.functions.includes("water_pumping")) return "block.installation_not_functional";
+  return null;
+}
+
+const KNOWLEDGE_RANK: Readonly<Record<string, number>> = { unknown: 0, sighted: 1, observed: 2, inspected: 3, exploited: 4 };
+
+/** ¿La comunidad conoce la faceta de la entidad al menos en ese rango? */
+export function hasKnowledge(state: SimulationStateV2, entityId: string, facet: string, minRank: number): boolean {
+  return state.discoveries.some((d) => d.entityId === entityId && d.facet === facet && (KNOWLEDGE_RANK[d.state] ?? 0) >= minRank);
 }
 
 /** `Nunca` excluye tanto la selección automática como una orden directa silenciosa (§6.3/§11.7 del prompt S4-S6). */

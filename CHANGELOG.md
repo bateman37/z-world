@@ -4,6 +4,128 @@ Registra entregas documentales y de diseño de Z-World. No atribuye código ni
 funcionalidad implementada salvo que se indique explícitamente como
 `implemented` en la documentación afectada.
 
+## WEB-002 (subhito S9, Puerta C) — Explotación progresiva de edificios y cierre de S7–S9
+
+En `feat/web-002-s7-s9-objects-logistics-exploitation`, con una única PR
+contra `main` que agrupa S7, S8 y S9. Los dieciséis puntos de S9 quedan
+implementados y probados, con limitaciones explícitas (detalle en
+`docs/STATUS.md` §«S9 — Puerta C»), y se crea
+[DEC-0019](docs/decisions/DEC-0019_deep-objects-physical-logistics-and-building-exploitation.md).
+Resumen:
+
+- Cinco capas de edificio independientes (contenido suelto, mobiliario,
+  instalaciones, acabados, estructura), cada una con estado físico y de
+  conocimiento propios, y tres vidas persistentes (saqueo, desmontaje,
+  desmantelamiento o demolición) en `BuildingFabric`.
+- Catálogo `building-exploitation.ts` (`s9-v1`): 12 variantes de
+  instalación, 20 de acabado, 8 perfiles estructurales y el tuning de
+  accesos; 7 familias de recurso nuevas (tuberías, vidrio, cerámica,
+  mampostería, tejas, acero estructural, escombros).
+- Registro técnico de instalaciones (`d_then_b`), desconectar, desmontar y
+  desinstalar instalaciones (la bomba ENV-01 se retira entera), retirar
+  acabados, desmantelar por etapas y demoler con confirmación informada y
+  el edificio vacío; la demolición destruye lo que queda, deja escombros
+  transitables y es irreversible también tras recargar.
+- Accesos mutables: abrir, cerrar, bloquear, desbloquear, forzar, despejar,
+  atrancar, tapiar con madera concreta, reforzar, reparar, retirar
+  conservando la puerta (el hueco sigue transitable), destruir e instalar;
+  destinos de traslado «instalar en abertura» e «instalar en lugar».
+- Invalidación dirigida de navegación (`navigationRevision` por edificio,
+  `ensureNavigationCurrent`) y revalidación de movimientos en curso; los
+  cambios de acceso alteran también la compatibilidad logística de S8.
+- Habitabilidad por edificio integrada con el descanso de S6.
+- Generador `web-002-semantic-v4` (tejido de edificio con stream PRNG
+  derivado, sin alterar trazado ni IDs de v3).
+- Interfaz: sección «Edificios conocidos» con capas, accesos,
+  habitabilidad y previsualización irreversible; confirmación explícita de
+  toda acción irreversible; el mapa marca edificios terminales y accesos
+  no transitables.
+- Correcciones: inspeccionar un edificio en pie ahora lleva a su estancia
+  de entrada (la posición de su lugar cae dentro de la huella y no tenía
+  ruta); y, defecto previo de S4–S6, una orden directa interrumpida por
+  autoprotección ya no deja a su persona enganchada sin descansar y con toda
+  orden posterior «propuesta» para siempre: la persona descansa y la retoma
+  sola al recuperarse, conservando el trabajo hecho, sin remuestrear su
+  episodio ni duplicar la orden; defecto previo de S6/S7, la autoprotección ya reconoce el agua y
+  la comida que cada persona lleva en su mochila y no hace que todas se
+  disputen el mismo lote; y el material para tapiar una puerta interior vale
+  desde cualquiera de sus dos lados.
+- Autoprotección (defectos previos de S6 destapados por los E2E largos):
+  una persona con un trabajo bloqueado se desengancha para atender una
+  necesidad crítica; agua y comida solo se eligen con ruta conocida; sin
+  solución para la peor necesidad se atiende la siguiente y no se abandona
+  el trabajo para quedar ociosa; un solo aviso «sin solución» por episodio
+  (`NeedState.noSolutionReported`, aditivo); y un bloqueo por ruta ya no se
+  reanuda y rebloquea en cada tick.
+- Pruebas: 297 unitarias, 30 de integración PostgreSQL y 12 E2E en
+  Chromium real en verde sobre el árbol final de la rama; guion manual de
+  diecisiete puntos para Dennis en `docs/STATUS.md` (aceptación manual
+  pendiente).
+
+## WEB-002 (subhito S8, Puerta B) — Transporte y logística local
+
+En `feat/web-002-s7-s9-objects-logistics-exploitation`, sin PR todavía
+(S9 no ha empezado; `DEC-0019` se creará al completar S7+S8+S9). Los quince
+puntos de cierre de S8 quedan implementados y probados, con limitaciones
+explícitas (detalle en `docs/STATUS.md` §«S8 — Puerta B»). Resumen:
+
+- Los cinco métodos activos de SET-010 §3.2 (a pulso, recipiente personal,
+  porte coordinado, carretilla, carro de mano) en el catálogo versionado
+  `transport-methods.ts` (`s8-v1`) y un único motor de transporte;
+  carretilla y carro solo difieren en datos.
+- Carga física real (peso con contenido, volumen, bulto, mínimo de personas
+  y etiquetas de manipulación heredadas del contenido), medios localizados,
+  selector `Auto`/método impuesto con motivo de inviabilidad y cooperación
+  con topes 100/60/35/20 limitada por bulto y accesos.
+- Nueve fases logísticas reales dentro de `advance-jobs.ts`, con reservas de
+  carga, medio y porteadoras; rutas por anchura de accesos, superficie,
+  niebla y zonas; puntos de transferencia con el caso obligatorio carro →
+  acceso → porte manual → puerta estrecha → contenedor.
+- Cancelar, interrumpir o bloquear deja carga y medio en su posición
+  causal; fatiga del porte sobre las necesidades reales y ruido registrado
+  por tramos de ruta; desgaste por uso del medio.
+- Generador `web-002-semantic-v3` (carro ante el supermercado y carretilla
+  junto al refugio, sin alterar el trazado).
+- Interfaz: controles de traslado y ficha logística en el panel de trabajos;
+  el objetivo elegido se recuerda por clave estable.
+- Correcciones: llegada dentro de la estancia de destino cuando el
+  checkpoint final quedaba por encima del total redondeado, y accesos
+  cruzados conservados al replantear una ruta.
+- Pruebas: 267 unitarias, 27 de integración PostgreSQL y 10 E2E en verde.
+
+## WEB-002 (subhito S7, Puerta A) — Objetos profundos, inventarios y transformaciones
+
+En `feat/web-002-s7-s9-objects-logistics-exploitation`, sin PR todavía
+(S8 y S9 no han empezado). La lista de deuda auditada de la Puerta A queda
+cerrada con pruebas en verde, con limitaciones explícitas (detalle en
+`docs/STATUS.md` §«S7 — Puerta A»). Resumen:
+
+- Catálogo completo de las catorce familias de CAT-005 §3.1 con sus
+  variantes mínimas (`object-catalog.ts` `s7-v2`, `RESOURCE_CATALOG`) y
+  validación de cifras, perfiles y conservación de masa.
+- Los cuatro demostradores profundos de CAT-005 §3.2: armario/estantería
+  y frigorífico (ya parciales) más bomba de agua manual (instalada sobre
+  la fuente comunal, prueba/diagnóstico, avería por desgaste determinista,
+  reparación con piezas concretas, extracción de agua en recipientes
+  reales, desmontaje) y carretilla/carro como objeto completo (reparación
+  y desmontaje con perfiles propios).
+- `store`/`retrieve_from_storage` reales sobre contenedores con capacidad
+  y compatibilidad; división y fusión de lotes; recoger lotes sueltos;
+  vaciar antes de desmontar.
+- Deterioro determinista del alimento fresco (función cerrada del tiempo
+  simulado, sin doble contabilización); alimento echado a perder no
+  consumible.
+- Pertenencias iniciales de SCN-003 por persona, sin duplicar lo que v1
+  dejaba en el refugio; generador `web-002-semantic-v2` con trazado
+  espacial idéntico a v1.
+- Reservas profundas exclusivas de objeto/mueble/contenedor/medio.
+- Inventario localizado conocido en la interfaz y acciones de objetos en
+  el panel de trabajos.
+- Correcciones de determinismo tras recargar (IDs con contador global,
+  orden de iteración, precisión de `jsonb`) y de otros defectos previos
+  destapados por las nuevas pruebas.
+- Pruebas: 237 unitarias, 23 de integración PostgreSQL y 6 E2E en verde.
+
 ## WEB-002 (subhitos S4-S6) — Motor de resolución, trabajos planificados y necesidades causales
 
 Tres subhitos entregados juntos, por decisión expresa de Dennis, sobre el

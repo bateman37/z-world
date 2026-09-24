@@ -92,6 +92,8 @@ export interface MovementOrder {
   readonly travelledDistanceMeters: number;
   readonly startedAtSimSeconds: number;
   readonly locationCheckpoints?: readonly MovementLocationCheckpoint[];
+  /** Aberturas que atraviesa la ruta, en orden (S9: invalidación dirigida al cambiar un acceso). Opcional: órdenes anteriores a S9 no lo tienen. */
+  readonly crossedOpeningIds?: readonly string[];
 }
 
 /** Hechos públicos de una persona: todo lo que puede llegar a presentación. */
@@ -193,6 +195,7 @@ export const personPublicFactsSchema = z.object({
           }),
         )
         .optional(),
+      crossedOpeningIds: z.array(z.string()).optional(),
     })
     .nullable(),
   lastBlockReasonKey: z.string().nullable(),

@@ -12,6 +12,11 @@ import { generateSettlement } from "./settlement.js";
 import { generateBuildingContents } from "./buildings.js";
 import { generateEnvironmentPlaces } from "./environment-places.js";
 import { materializeScenarioGuarantees } from "./scenario.js";
+import { materializeWaterPump } from "./installations.js";
+import { materializeTransportDemonstrators } from "./transport-demonstrators.js";
+import { materializeBuildingFabric, S9_BUILDINGS_STREAM_LABEL } from "./building-fabric.js";
+import { buildWalkabilityGridV2 } from "../navigation-v2.js";
+import { createDerivedPrngStreamState } from "../../prng.js";
 import { SHELTER_DISTANCE_METERS } from "@z-world/catalogs";
 
 export { VILLAGE_GENERATOR_VERSION, DEFAULT_VILLAGE_GENERATOR_CONFIG, type VillageGeneratorConfig };
@@ -32,8 +37,14 @@ export interface VillageGenerationResult {
   readonly shelterDistanceMeters: number;
   readonly shelterWasWithinBudget: boolean;
   readonly nextEntityOrdinal: number;
+  readonly groupSupplies: ReturnType<typeof materializeScenarioGuarantees>["groupSupplies"];
   readonly degradations: readonly string[];
 }
+
+/** Etiqueta del stream derivado de S7 (ver `createDerivedPrngStreamState`). */
+export const S7_OBJECTS_STREAM_LABEL = "s7-objects";
+/** Etiqueta del stream derivado de S8 (demostradores de transporte, v3). */
+export const S8_TRANSPORT_STREAM_LABEL = "s8-transport";
 
 /**
  * Orquestador puro del generador semántico determinista (§7.1 de
@@ -83,6 +94,12 @@ export function generateVillage(seed: string, worldStream: PrngStream, config: V
   );
   degradations.push(...scenario.degradations);
 
+  // S7 (v2): instalaciones técnicas con su propio stream derivado, para no
+  // desplazar ninguna tirada del stream `world` (trazado idéntico a v1).
+  const s7Stream = new PrngStream(createDerivedPrngStreamState(seed, S7_OBJECTS_STREAM_LABEL));
+  const installations = materializeWaterPump(s7Stream, ids, environment.updatedNodes, environment.places);
+  degradations.push(...installations.degradations);
+
   const terrainAreas = Object.fromEntries(environment.updatedAreas.map((a) => [a.id, a]));
   const linearFeatures = Object.fromEntries(environment.updatedLines.map((l) => [l.id, l]));
   const nodes = Object.fromEntries(environment.updatedNodes.map((n) => [n.id, n]));
@@ -113,13 +130,42 @@ export function generateVillage(seed: string, worldStream: PrngStream, config: V
     lootingRoutes: Object.fromEntries(environment.lootingRoutes.map((r) => [r.id, r])),
   };
 
+  // S8 (v3): carro y carretilla demostradores, con su propio stream derivado (trazado idéntico a v1/v2).
+  const s8Stream = new PrngStream(createDerivedPrngStreamState(seed, S8_TRANSPORT_STREAM_LABEL));
+  const demonstrators = materializeTransportDemonstrators(
+    s8Stream,
+    ids,
+    buildWalkabilityGridV2(world),
+    terrain.arrivalPoint,
+    allPlaces,
+    allBuildings,
+    contents.rooms,
+    contents.floors,
+    contents.openings,
+    scenario.shelterBuildingId,
+  );
+  degradations.push(...demonstrators.degradations);
+
+  // S9 (v4): tejido de edificio (época, estructura, instalaciones y acabados) con su propio stream derivado, al final del
+  // pipeline: el trazado, los objetos y los IDs generados por v3 no cambian.
+  const s9Stream = new PrngStream(createDerivedPrngStreamState(seed, S9_BUILDINGS_STREAM_LABEL));
+  const fabric = materializeBuildingFabric(s9Stream, ids, world);
+  degradations.push(...fabric.degradations);
+  const worldWithFabric: SemanticWorldV2 = {
+    ...world,
+    buildingFabrics: fabric.buildingFabrics,
+    buildingInstallations: fabric.buildingInstallations,
+    buildingFinishes: fabric.buildingFinishes,
+    navigationRevision: { global: 0, byBuilding: {} },
+  };
+
   return {
-    world,
+    world: worldWithFabric,
     furniture: contents.furniture,
     containers: [...contents.containers, ...scenario.extraContainers],
-    worldObjects: [...contents.worldObjects, ...scenario.extraWorldObjects],
+    worldObjects: [...contents.worldObjects, ...scenario.extraWorldObjects, ...installations.worldObjects],
     resourceLots: [...contents.resourceLots, ...scenario.extraResourceLots],
-    transportMeans: scenario.transportMeans,
+    transportMeans: [...scenario.transportMeans, ...demonstrators.transportMeans],
     cultivationPlots: scenario.cultivationPlots,
     arrivalPoint: terrain.arrivalPoint,
     shelterPlaceId: scenario.shelterPlaceId,
@@ -127,6 +173,7 @@ export function generateVillage(seed: string, worldStream: PrngStream, config: V
     shelterDistanceMeters: scenario.shelterDistanceMeters,
     shelterWasWithinBudget: scenario.shelterDistanceMeters >= SHELTER_DISTANCE_METERS.min && scenario.shelterDistanceMeters <= SHELTER_DISTANCE_METERS.max,
     nextEntityOrdinal: ids.nextOrdinal,
+    groupSupplies: scenario.groupSupplies,
     degradations,
   };
 }
