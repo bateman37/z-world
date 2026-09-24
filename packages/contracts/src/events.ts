@@ -13,6 +13,8 @@ export const MOVE_REJECTION_CODES = [
   "no_known_route",
   "person_already_ordered",
   "stale_or_duplicate_command",
+  /** S9: un acceso de la ruta dejó de ser transitable (tapiado, barricada, bloqueo, demolición) durante el recorrido. */
+  "access_no_longer_passable",
 ] as const;
 export type MoveRejectionCode = (typeof MOVE_REJECTION_CODES)[number];
 

@@ -22,6 +22,7 @@ import {
   DISASSEMBLY_PROFILES_BY_ID,
   DRAW_WATER_LITERS_PER_JOB,
   EXCLUSIVE_TARGET_ACTION_KEYS,
+  EXPLOITATION_ACTION_KEYS,
   OBJECT_CATALOG_BY_VARIANT,
   REPAIR_PROFILES_BY_ID,
 } from "@z-world/catalogs";
@@ -63,6 +64,19 @@ import {
 import { teamWorkFactor } from "../transport/capacity.js";
 import { buildRouteOptions, zonePolicyAtPoint } from "../transport/route.js";
 import { resolveOwnNeedTarget } from "./own-need-resolution.js";
+import {
+  isAtS9Site,
+  recordLayerExploitation,
+  s9ApplyConsequences,
+  s9ApplySevereOutcome,
+  s9BlockerStillApplies,
+  s9DifficultyAdjustment,
+  s9Prepare,
+  s9ValidationReason,
+  s9WorkSite,
+} from "../exploitation/actions.js";
+import { computeHabitability } from "../exploitation/layers.js";
+import { buildingIdOfRoom } from "../exploitation/fabric.js";
 import { createJob } from "./job-factory.js";
 import { transitionJob } from "./job-transitions.js";
 import { jobsInOrder, valuesById } from "../ordered.js";
@@ -78,6 +92,8 @@ import {
 export interface AdvanceJobsResult {
   readonly state: SimulationStateV2;
   readonly events: readonly DomainEventV2[];
+  /** Índice de navegación vigente tras este paso (S9: un acceso cambiado lo invalida de forma dirigida en el mismo límite causal). */
+  readonly nav: NavigationIndexV2;
 }
 
 /**
@@ -104,7 +120,7 @@ import { emit, putJob, round6, setPerson, withNextEventId, type Ctx, type Engine
  */
 export function advanceJobs(state: SimulationStateV2, nav: NavigationIndexV2, simSecondsToAdvance: number): AdvanceJobsResult {
   const ctx: Ctx = { state, events: [], nav, simSecondsToAdvance };
-  if (simSecondsToAdvance <= 0) return { state: ctx.state, events: ctx.events };
+  if (simSecondsToAdvance <= 0) return { state: ctx.state, events: ctx.events, nav: ctx.nav };
 
   reviveBlockedJobs(ctx);
   assignIdlePeople(ctx);
@@ -112,7 +128,7 @@ export function advanceJobs(state: SimulationStateV2, nav: NavigationIndexV2, si
   applyWorkNeedDecline(ctx);
   runAutoprotection(ctx);
 
-  return { state: ctx.state, events: ctx.events };
+  return { state: ctx.state, events: ctx.events, nav: ctx.nav };
 }
 
 // --- Asignación -------------------------------------------------------------
@@ -220,7 +236,10 @@ function startJob(ctx: Ctx, jobId: string): void {
  * retira). Todo o nada: si una reserva falla, se liberan las ya hechas en
  * esta llamada y se devuelve el motivo de bloqueo.
  */
-type ReservationTarget = { kind: "resource_lot" | "world_object" | "furniture" | "container" | "transport_means" | "person"; id: string };
+type ReservationTarget = {
+  kind: "resource_lot" | "world_object" | "furniture" | "container" | "transport_means" | "person" | "opening" | "building" | "building_installation" | "building_finish";
+  id: string;
+};
 
 function reservationTargetsFor(job: Job): ReservationTarget[] {
   const targets: ReservationTarget[] = [];
@@ -248,6 +267,19 @@ function reservationTargetsFor(job: Job): ReservationTarget[] {
       break;
     case "transport_means":
       if (exclusive) targets.push({ kind: "transport_means", id: job.target.transportMeansId });
+      break;
+    // S9: un acceso, un edificio (desmantelar/demoler/registrar), una instalación o un acabado solo los trabaja un trabajo a la vez.
+    case "opening":
+      if (exclusive) targets.push({ kind: "opening", id: job.target.openingId });
+      break;
+    case "building":
+      if (exclusive) targets.push({ kind: "building", id: job.target.buildingId });
+      break;
+    case "building_installation":
+      if (exclusive) targets.push({ kind: "building_installation", id: job.target.installationId });
+      break;
+    case "building_finish":
+      if (exclusive) targets.push({ kind: "building_finish", id: job.target.finishId });
       break;
     default:
       break;
@@ -318,7 +350,12 @@ function reviveBlockedJobs(ctx: Ctx): void {
     // Un bloqueo de fase (S7) solo se reevalúa cuando su causa concreta ha
     // cambiado: reanudar y volver a bloquear en el mismo tick sería
     // telemetría sin límite causal.
-    if (current.transport ? transportBlockerStillApplies(ctx, current) : phaseBlockerStillApplies(ctx.state, current, executorId)) continue;
+    const stillBlocked = current.transport
+      ? transportBlockerStillApplies(ctx, current)
+      : EXPLOITATION_ACTION_KEYS.has(current.actionKey)
+        ? s9BlockerStillApplies(ctx.state, current, executorId, s9WorkSite(ctx.state, ctx.nav, current, executorId))
+        : phaseBlockerStillApplies(ctx.state, current, executorId);
+    if (stillBlocked) continue;
     if (acquireJobReservations(ctx, current.id)) continue;
     const result = transitionJob(ctx.state, ctx.state.jobs[current.id]!, "in_progress", null);
     ctx.state = { ...ctx.state, sequences: result.sequences };
@@ -382,6 +419,8 @@ function completePhase(ctx: Ctx, jobId: string): void {
 function finishJob(ctx: Ctx, jobId: string): void {
   const job = ctx.state.jobs[jobId];
   if (!job) return;
+  // S9: hito persistente de explotación por capa y vida del edificio (vale también para recoger, trasladar o desmontar de S7/S8).
+  recordLayerExploitation(ctx, job);
   const releaseResult = releaseJobReservations(ctx.state, jobId);
   ctx.state = releaseResult.state;
   ctx.events.push(...releaseResult.events);
@@ -527,6 +566,11 @@ function progressJob(ctx: Ctx, jobId: string): void {
     return;
   }
 
+  // S9: algunos métodos se trabajan desde un sitio propio (el lado de una abertura, una estancia del edificio o el exterior ante la huella).
+  const isS9 = EXPLOITATION_ACTION_KEYS.has(job.actionKey);
+  const s9Site = isS9 ? s9WorkSite(ctx.state, ctx.nav, job, executorId) : null;
+  const workLocation = s9Site ?? targetLocation;
+
   switch (phaseKind) {
     case "validate": {
       const hardCheck = checkHardRequirements(def, ctx.state, executorId, job.target);
@@ -534,7 +578,7 @@ function progressJob(ctx: Ctx, jobId: string): void {
         blockJob(ctx, jobId, hardCheck.reasonKey ?? "block.requirement_failed");
         return;
       }
-      const storageReason = storageValidationReason(ctx.state, job);
+      const storageReason = storageValidationReason(ctx.state, job) ?? (isS9 ? s9ValidationReason(ctx.state, job) : null);
       if (storageReason) {
         blockJob(ctx, jobId, storageReason);
         return;
@@ -543,6 +587,7 @@ function progressJob(ctx: Ctx, jobId: string): void {
       return;
     }
     case "travel": {
+      const targetLocation = workLocation;
       const destination = locationToNavPoint(ctx.state, targetLocation);
       // S8 (cooperación real): las ayudantes también acuden al lugar de trabajo; solo contribuyen si están allí.
       for (const assignment of job.assignments) {
@@ -551,7 +596,7 @@ function progressJob(ctx: Ctx, jobId: string): void {
         if (!helper || helper.activeJobId !== jobId || helper.public.activeMovementOrder || isPersonCoLocated(ctx.state, assignment.personId, targetLocation)) continue;
         startInternalMove(ctx, assignment.personId, destination, jobId, false);
       }
-      if (isPersonCoLocated(ctx.state, executorId, targetLocation)) {
+      if (s9Site ? isAtS9Site(ctx.state, executorId, s9Site) : isPersonCoLocated(ctx.state, executorId, targetLocation)) {
         completePhase(ctx, jobId);
         return;
       }
@@ -580,11 +625,17 @@ function progressJob(ctx: Ctx, jobId: string): void {
       return;
     }
     case "prepare": {
+      if (isS9) {
+        const outcome = s9Prepare(ctx, jobId, executorId, s9Site);
+        if (outcome.blockReasonKey) blockJob(ctx, jobId, outcome.blockReasonKey);
+        else completePhase(ctx, jobId);
+        return;
+      }
       progressPreparePhase(ctx, jobId);
       return;
     }
     case "execute": {
-      progressExecutePhase(ctx, jobId, def, executorId);
+      progressExecutePhase(ctx, jobId, def, executorId, s9Site);
       return;
     }
     case "record_result":
@@ -902,6 +953,8 @@ function startInternalMove(ctx: Ctx, personId: string, destination: { x: number;
         travelledDistanceMeters: 0,
         startedAtSimSeconds: ctx.state.clock.elapsedSimSeconds,
         locationCheckpoints: path.locationCheckpoints,
+        // S9: aberturas que cruza la ruta, para detener solo a quien las iba a cruzar si dejan de ser transitables.
+        crossedOpeningIds: [...path.openingIds],
       },
     },
   });
@@ -909,20 +962,23 @@ function startInternalMove(ctx: Ctx, personId: string, destination: { x: number;
 
 // --- Fase de ejecución: directa / D / B ---------------------------------
 
-function progressExecutePhase(ctx: Ctx, jobId: string, def: ActionMethodDefinition, executorId: string): void {
+function progressExecutePhase(ctx: Ctx, jobId: string, def: ActionMethodDefinition, executorId: string, site: Job["location"] | null): void {
   const job = ctx.state.jobs[jobId];
   if (!job) return;
 
   switch (def.model) {
     case "direct":
-      resolveDirectExecution(ctx, jobId, def, executorId);
+      resolveDirectExecution(ctx, jobId, def, executorId, site);
       return;
     case "d":
-      resolveModelDExecution(ctx, jobId, def, executorId);
+      resolveModelDExecution(ctx, jobId, def, executorId, site);
       return;
     case "b":
+      resolveModelBExecution(ctx, jobId, def, executorId, site);
+      return;
     case "d_then_b":
-      resolveModelBExecution(ctx, jobId, def, executorId);
+      // S9: primero el trabajo real (modelo D, con cooperación y ritmo) y, al terminarlo, un único episodio B no remuestreable.
+      if (accumulateModelDWork(ctx, jobId, def, executorId)) resolveModelBExecution(ctx, jobId, def, executorId, site);
       return;
     default: {
       const exhaustive: never = def.model;
@@ -932,14 +988,38 @@ function progressExecutePhase(ctx: Ctx, jobId: string, def: ActionMethodDefiniti
 }
 
 
-function resolveDirectExecution(ctx: Ctx, jobId: string, def: ActionMethodDefinition, executorId: string): void {
+function resolveDirectExecution(ctx: Ctx, jobId: string, def: ActionMethodDefinition, executorId: string, site: Job["location"] | null): void {
   const job = ctx.state.jobs[jobId];
   if (!job) return;
-  applyConsequences(ctx, job, def, executorId, "favorable");
+  const blocked = applyConsequences(ctx, job, def, executorId, "favorable", site);
+  if (blocked) {
+    blockJob(ctx, jobId, blocked);
+    return;
+  }
   completePhase(ctx, jobId);
 }
 
-function resolveModelDExecution(ctx: Ctx, jobId: string, def: ActionMethodDefinition, executorId: string): void {
+/** Acumula el trabajo del modelo D sin aplicar consecuencias; devuelve `true` cuando ya no queda trabajo (S9, `d_then_b`). */
+function accumulateModelDWork(ctx: Ctx, jobId: string, def: ActionMethodDefinition, executorId: string): boolean {
+  let job = ctx.state.jobs[jobId];
+  if (!job) return false;
+  if (job.workRemainingUnits <= 0) return true;
+  if (job.workRateVariation === null) {
+    const stream = new PrngStream(ctx.state.prng.resolution);
+    const variation = round6(sampleVariationD(stream));
+    ctx.state = { ...ctx.state, prng: { ...ctx.state.prng, resolution: stream.snapshot() } };
+    job = { ...job, workRateVariation: variation };
+    putJob(ctx, job);
+  }
+  const elapsedMinutes = (ctx.simSecondsToAdvance / 60) * (1 + (job.workRateVariation ?? 0)) * modelDTeamFactor(ctx, job, def, executorId);
+  const total = job.workTotalUnits ?? def.baseWorkUnits;
+  const remaining = round6(Math.max(0, job.workRemainingUnits - elapsedMinutes));
+  const progressRatio = round6(total > 0 ? Math.max(0, Math.min(1, 1 - remaining / total)) : 1);
+  putJob(ctx, { ...ctx.state.jobs[jobId]!, workRemainingUnits: remaining, progressRatio });
+  return remaining <= 0;
+}
+
+function resolveModelDExecution(ctx: Ctx, jobId: string, def: ActionMethodDefinition, executorId: string, site: Job["location"] | null): void {
   let job = ctx.state.jobs[jobId];
   if (!job) return;
 
@@ -957,7 +1037,7 @@ function resolveModelDExecution(ctx: Ctx, jobId: string, def: ActionMethodDefini
   if (job.actionKey === "rest") {
     const executor = ctx.state.people[executorId];
     if (executor) {
-      const tier = restSupportTier(job);
+      const tier = restSupportTier(ctx.state, job);
       const restNeedBefore = needOf(executor.needs, "rest").value;
       const nextNeeds = applyRestRecovery(executor.needs, elapsedMinutes, tier);
       setPerson(ctx, executorId, { ...executor, needs: nextNeeds });
@@ -970,10 +1050,15 @@ function resolveModelDExecution(ctx: Ctx, jobId: string, def: ActionMethodDefini
   }
 
   const remaining = round6(Math.max(0, job.workRemainingUnits - elapsedMinutes));
-  const progressRatio = round6(def.baseWorkUnits > 0 ? Math.min(1, 1 - remaining / def.baseWorkUnits) : 1);
+  const total = job.workTotalUnits ?? def.baseWorkUnits;
+  const progressRatio = round6(total > 0 ? Math.max(0, Math.min(1, 1 - remaining / total)) : 1);
   putJob(ctx, { ...ctx.state.jobs[jobId]!, workRemainingUnits: remaining, progressRatio });
   if (remaining <= 0) {
-    applyConsequences(ctx, ctx.state.jobs[jobId]!, def, executorId, "favorable");
+    const blocked = applyConsequences(ctx, ctx.state.jobs[jobId]!, def, executorId, "favorable", site);
+    if (blocked) {
+      blockJob(ctx, jobId, blocked);
+      return;
+    }
     completePhase(ctx, jobId);
   }
 }
@@ -981,7 +1066,8 @@ function resolveModelDExecution(ctx: Ctx, jobId: string, def: ActionMethodDefini
 /** Factor de equipo del modelo D: solo cuentan las ayudantes co-ubicadas con el blanco, hasta el máximo de participantes del método. */
 function modelDTeamFactor(ctx: Ctx, job: Job, def: ActionMethodDefinition, executorId: string): number {
   if (def.maxParticipants <= 1 || job.assignments.length <= 1 || job.actionKey === "rest") return 1;
-  const targetLocation = resolveTargetLocation(ctx.state, job.target);
+  // S9: las ayudantes cuentan si están en el sitio real de trabajo (el lado de la abertura, el exterior ante la huella...).
+  const targetLocation = (EXPLOITATION_ACTION_KEYS.has(job.actionKey) ? s9WorkSite(ctx.state, ctx.nav, job, executorId) : null) ?? resolveTargetLocation(ctx.state, job.target);
   if (!targetLocation) return 1;
   const capacityOf = (personId: string): number => {
     const person = ctx.state.people[personId];
@@ -994,19 +1080,29 @@ function modelDTeamFactor(ctx: Ctx, job: Job, def: ActionMethodDefinition, execu
   return teamWorkFactor([capacityOf(executorId), ...helpers], def.maxParticipants);
 }
 
-function restSupportTier(job: Job): RestSupportTier {
-  if (job.target.kind === "furniture") return "bed";
-  return "ground";
+/**
+ * Soporte de descanso (S6), integrado con la habitabilidad de S9 (SET-007
+ * §3.6): una cama es cama salvo en un edificio ya inhabitable (expuesto,
+ * medio desmantelado), donde cuenta como zona acondicionada; descansar en
+ * una estancia de un edificio habitable cuenta como zona acondicionada; en
+ * uno precario o sin tejido S9 (partida anterior), como suelo.
+ */
+function restSupportTier(state: SimulationStateV2, job: Job): RestSupportTier {
+  const roomId = job.target.kind === "room" ? job.target.roomId : job.target.kind === "furniture" ? (state.furniture[job.target.furnitureId] ? resolveRoomId(state, furnitureLocation(state.furniture[job.target.furnitureId]!)) : null) : null;
+  const buildingId = roomId ? buildingIdOfRoom(state.world, roomId) : null;
+  const band = buildingId ? computeHabitability(state, buildingId)?.band ?? null : null;
+  if (job.target.kind === "furniture") return band === "uninhabitable" || band === "inaccessible" ? "conditioned_zone" : "bed";
+  return band === "habitable" ? "conditioned_zone" : "ground";
 }
 
-function resolveModelBExecution(ctx: Ctx, jobId: string, def: ActionMethodDefinition, executorId: string): void {
+function resolveModelBExecution(ctx: Ctx, jobId: string, def: ActionMethodDefinition, executorId: string, site: Job["location"] | null): void {
   const job = ctx.state.jobs[jobId];
   if (!job) return;
   const executor = ctx.state.people[executorId];
   if (!executor) return;
 
   const capacityEffective = computeEffectiveCapacity(executor.public, def);
-  const difficultyEffective = def.difficulty;
+  const difficultyEffective = Math.max(0, Math.min(10, def.difficulty + s9DifficultyAdjustment(ctx.state, job)));
   const marginPrevious = round6(isUniversalCapacity(capacityEffective) ? 10 - difficultyEffective : capacityEffective - difficultyEffective);
 
   const stream = new PrngStream(ctx.state.prng.resolution);
@@ -1036,15 +1132,23 @@ function resolveModelBExecution(ctx: Ctx, jobId: string, def: ActionMethodDefini
   putJob(ctx, { ...ctx.state.jobs[jobId]!, episodeIds: [...ctx.state.jobs[jobId]!.episodeIds, episodeId] });
 
   if (band === "severe") {
+    // S9: un resultado grave desperdicia el material comprometido o daña lo manipulado (persistente, sin nuevo sorteo).
+    if (EXPLOITATION_ACTION_KEYS.has(job.actionKey)) s9ApplySevereOutcome(ctx, ctx.state.jobs[jobId]!);
     failJobCausally(ctx, jobId, "block.severe_outcome");
     return;
   }
 
-  applyConsequences(ctx, ctx.state.jobs[jobId]!, def, executorId, band);
+  const blocked = applyConsequences(ctx, ctx.state.jobs[jobId]!, def, executorId, band, site);
+  if (blocked) {
+    blockJob(ctx, jobId, blocked);
+    return;
+  }
   completePhase(ctx, jobId);
 }
 
-function applyConsequences(ctx: Ctx, job: Job, def: ActionMethodDefinition, executorId: string, band: OutcomeBand): void {
+/** Aplica las consecuencias del método; devuelve un motivo de bloqueo si el mundo cambió entre tanto y la consecuencia ya no es posible (S9). */
+function applyConsequences(ctx: Ctx, job: Job, def: ActionMethodDefinition, executorId: string, band: OutcomeBand, site: Job["location"] | null): string | null {
+  if (EXPLOITATION_ACTION_KEYS.has(job.actionKey)) return s9ApplyConsequences(ctx, ENGINE_OPS, job, executorId, band, site);
   for (const reveal of def.revealsKnowledge) {
     const entityId = discoveryEntityIdForTarget(job.target);
     if (!entityId) continue;
@@ -1071,6 +1175,7 @@ function applyConsequences(ctx: Ctx, job: Job, def: ActionMethodDefinition, exec
   if (job.actionKey === "draw_water") {
     applyDrawWaterConsequences(ctx, job, executorId);
   }
+  return null;
 }
 
 /** Probar/diagnosticar (S7 §6.10): la comunidad reconoce el estado funcional real y las causas de las funciones inactivas. */

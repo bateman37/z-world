@@ -13,6 +13,7 @@ import {
 import { JOB_PHASE_KINDS, JOB_STATES, OUTCOME_BAND_VALUES, RESERVATION_TARGET_KINDS, ZONE_POLICIES, DESIGNATION_KINDS } from "./work-v2.js";
 import { NEED_BANDS, NEED_DIMENSIONS } from "./needs-v2.js";
 import { TRANSPORT_METHODS } from "./objects-v2.js";
+import { BUILDING_LAYERS, BUILDING_LIFE_STAGES, demolitionLossesSchema } from "./building-exploitation-v2.js";
 
 /**
  * Eventos de dominio del runtime V2 (S3 de WEB-002 §5.1): reutiliza sin
@@ -29,7 +30,7 @@ const baseEventFields = {
   causedByCommandId: z.string().nullable(),
 };
 
-export const DISCOVERY_ENTITY_KINDS = ["place", "building", "opening", "room"] as const;
+export const DISCOVERY_ENTITY_KINDS = ["place", "building", "opening", "room", "building_installation"] as const;
 export type DiscoveryEntityKind = (typeof DISCOVERY_ENTITY_KINDS)[number];
 
 export const roomEnteredEventSchema = z.object({
@@ -357,7 +358,7 @@ export const loadDeliveredEventSchema = z.object({
   type: z.literal("load_delivered"),
   jobId: z.string(),
   loadBundleId: z.string(),
-  destinationKind: z.enum(["container", "room", "world_point", "transfer_point"]),
+  destinationKind: z.enum(["container", "room", "world_point", "transfer_point", "install_at_opening", "install_at_place"]),
   destinationId: z.string().nullable(),
 });
 
@@ -384,6 +385,128 @@ export const transportMeansParkedEventSchema = z.object({
   jobId: z.string().nullable(),
   transportMeansId: z.string(),
   disposition: z.enum(["parked", "returned", "abandoned"]),
+});
+
+// --- S9 — Puerta C: accesos mutables y explotación progresiva de edificios ---
+
+/** Cambios de acceso de WLD-011 §3.4: cada uno es un límite causal que altera navegación y logística en el mismo instante. */
+export const ACCESS_CHANGE_KINDS = [
+  "opened",
+  "closed",
+  "locked",
+  "unlocked",
+  "forced",
+  "obstruction_cleared",
+  "barricaded",
+  "boarded_up",
+  "reinforced",
+  "closure_repaired",
+  "closure_removed",
+  "closure_destroyed",
+  "closure_installed",
+  "building_demolished",
+  "building_dismantled",
+] as const;
+export type AccessChangeKind = (typeof ACCESS_CHANGE_KINDS)[number];
+
+export const accessChangedEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("access_changed"),
+  openingId: z.string(),
+  buildingId: z.string().nullable(),
+  change: z.enum(ACCESS_CHANGE_KINDS),
+  jobId: z.string().nullable(),
+  passableAfter: z.boolean(),
+  /** Objeto en que se convirtió un cierre retirado, o que se instaló (identidad conservada). */
+  objectId: z.string().nullable().default(null),
+  noiseBand: z.enum(["quiet", "audible", "loud"]).default("quiet"),
+});
+
+export const installationSurveyedEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("installation_surveyed"),
+  buildingId: z.string(),
+  jobId: z.string(),
+  revealedInstallationIds: z.array(z.string()),
+  complete: z.boolean(),
+});
+
+export const installationDisconnectedEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("installation_disconnected"),
+  installationId: z.string(),
+  buildingId: z.string(),
+  jobId: z.string(),
+});
+
+export const installationDismantledEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("installation_dismantled"),
+  installationId: z.string(),
+  buildingId: z.string(),
+  jobId: z.string(),
+  producedResourceLotIds: z.array(z.string()),
+  /** Fracción de la receta recuperada (extracción torpe = pérdida persistente, SET-007 §3.5). */
+  recoveryRatio: z.number().min(0).max(1),
+});
+
+export const finishRecoveredEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("finish_recovered"),
+  finishId: z.string(),
+  buildingId: z.string(),
+  jobId: z.string(),
+  producedResourceLotIds: z.array(z.string()),
+});
+
+export const structureDismantledEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("structure_dismantled"),
+  buildingId: z.string(),
+  jobId: z.string(),
+  stagesDone: z.number().int().nonnegative(),
+  stagesTotal: z.number().int().positive(),
+  producedResourceLotIds: z.array(z.string()),
+});
+
+export const buildingDemolishedEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("building_demolished"),
+  buildingId: z.string(),
+  jobId: z.string(),
+  producedResourceLotIds: z.array(z.string()),
+  losses: demolitionLossesSchema,
+});
+
+export const buildingLifeStageChangedEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("building_life_stage_changed"),
+  buildingId: z.string(),
+  lifeStage: z.enum(BUILDING_LIFE_STAGES),
+});
+
+export const buildingLayerExhaustedEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("building_layer_exhausted"),
+  buildingId: z.string(),
+  layer: z.enum(BUILDING_LAYERS),
+});
+
+export const objectUninstalledEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("object_uninstalled"),
+  objectId: z.string(),
+  jobId: z.string(),
+  placeId: z.string().nullable(),
+});
+
+export const objectInstalledEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("object_installed"),
+  objectId: z.string(),
+  jobId: z.string(),
+  siteKind: z.enum(["opening", "place"]),
+  siteId: z.string(),
 });
 
 export const domainEventV2Schema = z.discriminatedUnion("type", [
@@ -435,6 +558,17 @@ export const domainEventV2Schema = z.discriminatedUnion("type", [
   loadTransferredEventSchema,
   loadDepositedEventSchema,
   transportMeansParkedEventSchema,
+  accessChangedEventSchema,
+  installationSurveyedEventSchema,
+  installationDisconnectedEventSchema,
+  installationDismantledEventSchema,
+  finishRecoveredEventSchema,
+  structureDismantledEventSchema,
+  buildingDemolishedEventSchema,
+  buildingLifeStageChangedEventSchema,
+  buildingLayerExhaustedEventSchema,
+  objectUninstalledEventSchema,
+  objectInstalledEventSchema,
 ]);
 
 export type DomainEventV2 = z.infer<typeof domainEventV2Schema>;

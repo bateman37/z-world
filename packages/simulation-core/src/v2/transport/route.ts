@@ -122,13 +122,13 @@ function segmentSurface(nav: NavigationIndexV2, a: WorldPoint, b: WorldPoint, ro
 
 /** Metros de cada superficie a lo largo de la ruta (§7.3: carro y carretilla reaccionan al terreno). */
 export function surfaceBreakdown(nav: NavigationIndexV2, path: PathResultV2): TransportSurfaceMeters {
-  const totals: Record<SurfaceKind, number> = { road: 0, open_ground: 0, dense_vegetation: 0, interior: 0 };
+  const totals: Record<SurfaceKind, number> = { road: 0, open_ground: 0, dense_vegetation: 0, interior: 0, rubble: 0 };
   for (let i = 1; i < path.waypoints.length; i++) {
     const a = path.waypoints[i - 1]!;
     const b = path.waypoints[i]!;
     totals[segmentSurface(nav, a, b, path.waypointRoomIds[i - 1] ?? null, path.waypointRoomIds[i] ?? null)] += Math.hypot(b.x - a.x, b.y - a.y);
   }
-  return { road: round3(totals.road), open_ground: round3(totals.open_ground), dense_vegetation: round3(totals.dense_vegetation), interior: round3(totals.interior) };
+  return { road: round3(totals.road), open_ground: round3(totals.open_ground), dense_vegetation: round3(totals.dense_vegetation), interior: round3(totals.interior), rubble: round3(totals.rubble) };
 }
 
 /** Distancia acumulada a la que la ruta pasa más cerca de cada abertura, en orden y hacia delante. */

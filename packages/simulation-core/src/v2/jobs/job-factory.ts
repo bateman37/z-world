@@ -1,6 +1,7 @@
 import type { ActionMethodDefinition, AttentionMode, DomainEventV2, Job, JobOrigin, JobPhase, JobTarget, PaceMode, SimulationStateV2 } from "@z-world/contracts";
 import { nextEventId } from "../../sequences.js";
 import { resolveTargetLocation } from "./location-utils.js";
+import { s9WorkUnits } from "../exploitation/actions.js";
 
 export interface CreateJobParams {
   readonly actionKey: string;
@@ -43,6 +44,8 @@ export function createJob(state: SimulationStateV2, params: CreateJobParams): Cr
   if (!location) return { rejectedReasonKey: "block.target_no_longer_exists" };
 
   const phases: JobPhase[] = params.def.phases.map((kind) => ({ kind, state: "pending" as const }));
+  // S9: la duración real depende del blanco (puerta/portón, receta, m² de huella), fijada por el catálogo versionado al crear el trabajo.
+  const specificWorkUnits = s9WorkUnits(state, params.actionKey, params.target, params.storageItem ?? null);
   const jobId = nextJobId(state);
   const { eventId, sequences } = nextEventId(state.sequences);
 
@@ -71,7 +74,7 @@ export function createJob(state: SimulationStateV2, params: CreateJobParams): Cr
     reservationIds: [],
     episodeIds: [],
     progressRatio: 0,
-    workRemainingUnits: params.def.baseWorkUnits,
+    workRemainingUnits: specificWorkUnits ?? params.def.baseWorkUnits,
     workRateVariation: null,
     directOrder: params.directOrder,
     disassemblyScope: params.disassemblyScope ?? null,
@@ -79,6 +82,7 @@ export function createJob(state: SimulationStateV2, params: CreateJobParams): Cr
     storageItem: params.storageItem ?? null,
     storageQuantity: params.storageQuantity ?? null,
     transport: params.transport ?? null,
+    workTotalUnits: specificWorkUnits,
     createdAtSimSeconds: state.clock.elapsedSimSeconds,
     updatedAtSimSeconds: state.clock.elapsedSimSeconds,
   };

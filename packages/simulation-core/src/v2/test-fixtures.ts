@@ -105,6 +105,11 @@ export function makeSyntheticBuildingState(seed: string): SimulationStateV2 {
     placeHistories: {},
     lootPressureZones: {},
     lootingRoutes: {},
+    // S9: sin tejido de edificio (mundo sintético/migrado): capas 3-5 no disponibles, accesos sí.
+    buildingFabrics: {},
+    buildingInstallations: {},
+    buildingFinishes: {},
+    navigationRevision: { global: 0, byBuilding: {} },
   };
 
   let fog = createInitialFogGrid({ bounds }, 5);

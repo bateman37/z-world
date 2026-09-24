@@ -3,6 +3,8 @@ import { OBJECT_CATALOG_BY_VARIANT, TRANSPORT_MEANS_VARIANT_BY_METHOD } from "@z
 import { resolveTargetLocation, isPersonCoLocated } from "./location-utils.js";
 import { isContainerUsable } from "../objects/storage.js";
 import { isLotSpoiled } from "../objects/decay.js";
+import { buildingIdOfTarget } from "../exploitation/targets.js";
+import { isBuildingTerminal } from "../exploitation/fabric.js";
 
 export interface EligibilityResult {
   readonly ok: boolean;
@@ -83,6 +85,35 @@ export function checkHardRequirements(
         if (reason) return fail(reason);
         continue;
       }
+      case "requires_building_standing": {
+        // S9: una demolición (o un desmantelamiento completo) es irreversible; nada vuelve a actuar sobre ese edificio.
+        const buildingId = buildingIdOfTarget(state, target);
+        if (buildingId && isBuildingTerminal(state.world, buildingId)) return fail(state.world.buildingFabrics?.[buildingId]?.structureState === "demolished" ? "block.building_demolished" : "block.building_dismantled");
+        continue;
+      }
+      case "requires_known_structure": {
+        if (target.kind !== "building") return fail("block.structure_not_inspected");
+        if (!hasKnowledge(state, target.buildingId, "structure", 3)) return fail("block.structure_not_inspected");
+        if (!state.world.buildingFabrics?.[target.buildingId]) return fail("block.building_layers_unavailable");
+        continue;
+      }
+      case "requires_known_installation": {
+        if (target.kind !== "building_installation") return fail("block.installation_not_surveyed");
+        if (!hasKnowledge(state, target.installationId, "installations", 3)) return fail("block.installation_not_surveyed");
+        continue;
+      }
+      case "requires_installed_closure": {
+        if (target.kind !== "opening") return fail("block.no_installed_closure");
+        const opening = state.world.openings[target.openingId];
+        const closure = opening?.installedClosureId ? state.world.installedClosures[opening.installedClosureId] : undefined;
+        if (!closure || closure.state === "destroyed") return fail("block.no_installed_closure");
+        continue;
+      }
+      case "requires_obstruction": {
+        if (target.kind !== "opening") return fail("block.no_obstruction");
+        if (!Object.values(state.world.obstructions).some((o) => o.openingId === target.openingId)) return fail("block.no_obstruction");
+        continue;
+      }
       case "requires_irreversible_confirmation":
         continue; // comprobado aparte en `checkIrreversibleConfirmation` (depende de `Job.irreversibleConfirmed`, que no existe todavía al crear el trabajo).
       default: {
@@ -135,6 +166,13 @@ export function installationBlockReason(state: SimulationStateV2, obj: WorldObje
   if (obj.functionalState !== "functional" && obj.functionalState !== "degraded") return "block.installation_not_functional";
   if (!obj.functions.includes("water_pumping")) return "block.installation_not_functional";
   return null;
+}
+
+const KNOWLEDGE_RANK: Readonly<Record<string, number>> = { unknown: 0, sighted: 1, observed: 2, inspected: 3, exploited: 4 };
+
+/** ¿La comunidad conoce la faceta de la entidad al menos en ese rango? */
+export function hasKnowledge(state: SimulationStateV2, entityId: string, facet: string, minRank: number): boolean {
+  return state.discoveries.some((d) => d.entityId === entityId && d.facet === facet && (KNOWLEDGE_RANK[d.state] ?? 0) >= minRank);
 }
 
 /** `Nunca` excluye tanto la selección automática como una orden directa silenciosa (§6.3/§11.7 del prompt S4-S6). */

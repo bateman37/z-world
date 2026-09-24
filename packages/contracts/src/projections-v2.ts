@@ -17,6 +17,7 @@ import type { FreshnessBand, NoiseBand } from "./events-v2.js";
 import type { TransportDestination, TransportMethodChoice, TransportStep } from "./work-v2.js";
 import type { BulkClass, TransportMethod } from "./objects-v2.js";
 import type { PriorityId } from "./catalog-ids.js";
+import type { BuildingLayer, BuildingLifeStage, ConstructionEra, ExploitationStage, HabitabilityBand, LayerKnowledgeState, LayerPhysicalState } from "./building-exploitation-v2.js";
 
 /**
  * Proyecciones de solo lectura del runtime V2 (S3 de WEB-002 §5.8).
@@ -58,6 +59,8 @@ export interface VisibleBuildingProjection {
   readonly id: string;
   readonly placeId: string;
   readonly footprint: readonly WorldPoint[];
+  /** S9: el edificio fue desmantelado del todo o demolido (se dibuja como solar/escombros, nunca como edificio en pie). */
+  readonly terminal?: "dismantled" | "demolished" | null;
 }
 
 export interface VisibleRoomProjection {
@@ -70,6 +73,8 @@ export interface VisibleOpeningProjection {
   readonly id: string;
   readonly position: WorldPoint;
   readonly connectsToExterior: boolean;
+  /** S9: transitabilidad conocida del acceso (cierre bloqueado, barricada, tapiado...). */
+  readonly passable?: boolean;
 }
 
 export interface MapEntitiesProjectionV2 {
@@ -165,6 +170,8 @@ export interface ContextualActionTargetProjection {
   readonly storageItem?: StorageItemRef & { readonly labelKey: string; readonly holderPersonId: string | null };
   /** Agrupa blancos de traslado que están en el mismo lugar (para componer una carga con varios elementos, S8). */
   readonly cargoGroupKey?: string;
+  /** Detalle legible adicional del blanco (S9: estancias que conecta un acceso, edificio de una instalación...). */
+  readonly detailKeys?: readonly string[];
 }
 
 /**
@@ -199,9 +206,72 @@ export interface InventoryEntryProjection {
 export interface ContextualActionOptionProjection {
   readonly actionKey: string;
   readonly labelKey: string;
+  /** El método es irreversible (desmontar, desguazar, destruir un cierre, desmontar una instalación, retirar un acabado, desmantelar, demoler): la orden exige confirmación informada. */
+  readonly irreversible?: boolean;
   readonly targets: readonly ContextualActionTargetProjection[];
   /** Opciones propias del traslado (S8). Ausente en el resto de acciones. */
   readonly transport?: TransportOrderOptionsProjection;
+}
+
+/**
+ * Estado por capas de un edificio conocido (S9 — Puerta C, SET-007 §3.1/§3.4,
+ * §10.2 del prompt S7-S9). Cada capa lleva su propio conocimiento y su
+ * propio estado físico: nunca se colapsan en una cifra única, y un edificio
+ * vaciado de contenido suelto no aparece como «agotado».
+ */
+export interface BuildingLayerProjection {
+  readonly layer: BuildingLayer;
+  readonly knowledge: LayerKnowledgeState;
+  readonly physical: LayerPhysicalState;
+  /** Elementos que la comunidad sabe que quedan en la capa (`null` si no se conoce lo bastante para contarlos). */
+  readonly knownRemaining: number | null;
+  readonly knownTotal: number | null;
+}
+
+export interface BuildingAccessProjection {
+  readonly openingId: string;
+  readonly widthClass: "narrow" | "normal" | "wide" | "gate";
+  readonly connectsToExterior: boolean;
+  readonly closureKind: "door" | "gate" | "window" | null;
+  /** `open` | `closed` | `locked` | `destroyed` | `none` (hueco sin cierre, p. ej. puerta retirada). */
+  readonly closureState: "open" | "closed" | "locked" | "destroyed" | "none";
+  readonly obstructionKind: "blockade" | "boarded_up" | "rubble" | "furniture_block" | null;
+  readonly passable: boolean;
+  readonly reinforced: boolean;
+  readonly lockBroken: boolean;
+}
+
+/** Habitabilidad/reutilización cualitativa y causal (§8.3 del prompt S7-S9). */
+export interface BuildingHabitabilityProjection {
+  readonly band: HabitabilityBand;
+  readonly uses: { readonly shelter: boolean; readonly rest: boolean; readonly storage: boolean; readonly work: boolean };
+  /** Causas conocidas que reducen la habitabilidad (`habitability.factor.*`). */
+  readonly factorKeys: readonly string[];
+}
+
+/** Previsualización cualitativa de una consecuencia irreversible según el conocimiento actual (nunca cantidades exactas desconocidas). */
+export interface IrreversiblePreviewProjection {
+  readonly actionKey: "dismantle_structure" | "demolish_building";
+  readonly consequenceKeys: readonly string[];
+  readonly knownLosses: { readonly furniture: number; readonly installations: number; readonly finishes: number; readonly looseItems: number };
+}
+
+export interface BuildingExploitationProjection {
+  readonly buildingId: string;
+  readonly placeId: string;
+  readonly profileId: string | null;
+  /** `false` si la partida es anterior a `web-002-semantic-v4` y el edificio no tiene capas 3-5 materializadas (degradación explícita). */
+  readonly layersAvailable: boolean;
+  readonly stage: ExploitationStage;
+  readonly lifeStage: BuildingLifeStage | null;
+  /** Época constructiva, solo si la estructura está inspeccionada. */
+  readonly era: ConstructionEra | null;
+  readonly layers: readonly BuildingLayerProjection[];
+  readonly habitability: BuildingHabitabilityProjection | null;
+  readonly accesses: readonly BuildingAccessProjection[];
+  readonly structureStagesDone: number | null;
+  readonly structureStagesTotal: number | null;
+  readonly previews: readonly IrreversiblePreviewProjection[];
 }
 
 /** Envoltorio de todas las proyecciones que el runtime V2 envía a React. */
@@ -221,5 +291,7 @@ export interface WorkerProjectionsV2 {
   readonly designations: readonly DesignationProjection[];
   readonly contextualActions: readonly ContextualActionOptionProjection[];
   readonly inventory: readonly InventoryEntryProjection[];
+  /** Edificios conocidos con su estado por capas (S9). */
+  readonly buildings: readonly BuildingExploitationProjection[];
   readonly revision: number;
 }

@@ -52,6 +52,19 @@ const SNAPSHOT_TRIGGERING_EVENT_TYPES: ReadonlySet<DomainEventV2["type"]> = new 
   "load_transferred",
   "load_deposited",
   "transport_means_parked",
+  // Accesos y explotación de edificios (S9): cada cambio de acceso, capa o estructura es un límite causal que se guarda.
+  "access_changed",
+  "installation_surveyed",
+  "installation_disconnected",
+  "installation_dismantled",
+  "finish_recovered",
+  "structure_dismantled",
+  "building_demolished",
+  "building_life_stage_changed",
+  "building_layer_exhausted",
+  "object_uninstalled",
+  "object_installed",
+  "movement_blocked",
 ]);
 
 /**
@@ -182,8 +195,10 @@ export class WorkerSessionV2 {
     this.lastTickNowMs = nowMs;
     if (elapsedRealSeconds <= 0) return [];
 
-    const { state, events } = advanceSimulationV2(this.state, elapsedRealSeconds, this.nav);
+    const { state, events, nav } = advanceSimulationV2(this.state, elapsedRealSeconds, this.nav);
     this.state = state;
+    // S9: el índice derivado ya refleja cualquier acceso o estructura que haya cambiado en este paso (invalidación dirigida).
+    this.nav = nav;
     this.appendToLog(events);
 
     const messages: FromWorkerMessageV2[] = [];

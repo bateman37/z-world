@@ -27,15 +27,26 @@ export interface WalkabilityGridV2 {
   readonly surface: Uint8Array;
 }
 
-/** Códigos de `WalkabilityGridV2.surface`: tierra (por defecto), carretera firme, vegetación densa/bosque, otro (agua/obstáculo). */
-export const SURFACE_CODE = { open_ground: 0, road: 1, dense_vegetation: 2, other: 3 } as const;
+/** Códigos de `WalkabilityGridV2.surface`: tierra (por defecto), carretera firme, vegetación densa/bosque, otro (agua/obstáculo) y escombros de una demolición (S9). */
+export const SURFACE_CODE = { open_ground: 0, road: 1, dense_vegetation: 2, other: 3, rubble: 4 } as const;
 
-export function surfaceKindAt(grid: WalkabilityGridV2, index: number): "road" | "open_ground" | "dense_vegetation" {
+export type ExteriorSurfaceKind = "road" | "open_ground" | "dense_vegetation" | "rubble";
+
+export function surfaceKindAt(grid: WalkabilityGridV2, index: number): ExteriorSurfaceKind {
   const code = grid.surface[index] ?? SURFACE_CODE.open_ground;
   if (code === SURFACE_CODE.road) return "road";
   if (code === SURFACE_CODE.dense_vegetation) return "dense_vegetation";
+  if (code === SURFACE_CODE.rubble) return "rubble";
   return "open_ground";
 }
+
+/**
+ * Coste de caminar sobre la huella de un edificio que ya no existe como
+ * tal (S9): los escombros de una demolición son transitables pero lentos;
+ * un solar desmantelado queda como terreno despejado.
+ */
+export const RUBBLE_COST_MULTIPLIER = 2.2;
+export const CLEARED_SITE_COST_MULTIPLIER = 1.2;
 
 function pointInPolygon(point: WorldPoint, polygon: readonly WorldPoint[]): boolean {
   let inside = false;
@@ -93,30 +104,52 @@ function distanceToSegment(p: WorldPoint, a: WorldPoint, b: WorldPoint): number 
   return Math.hypot(p.x - projX, p.y - projY);
 }
 
+/** Región rectangular de celdas `[colStart..colEnd] × [rowStart..rowEnd]` (inclusiva). */
+export interface GridCellRegion {
+  readonly colStart: number;
+  readonly colEnd: number;
+  readonly rowStart: number;
+  readonly rowEnd: number;
+}
+
+function intersectRegion(a: GridCellRegion, b: GridCellRegion | null): GridCellRegion | null {
+  if (!b) return a;
+  const region = { colStart: Math.max(a.colStart, b.colStart), colEnd: Math.min(a.colEnd, b.colEnd), rowStart: Math.max(a.rowStart, b.rowStart), rowEnd: Math.min(a.rowEnd, b.rowEnd) };
+  return region.colStart > region.colEnd || region.rowStart > region.rowEnd ? null : region;
+}
+
+/** Estado estructural terminal de un edificio (S9) visto desde la rejilla: la huella deja de bloquear. */
+function terminalFootprintState(world: SemanticWorldV2, buildingId: string): "demolished" | "dismantled" | null {
+  const state = world.buildingFabrics?.[buildingId]?.structureState;
+  return state === "demolished" || state === "dismantled" ? state : null;
+}
+
 /**
- * Construye la rejilla de transitabilidad exterior a partir del mundo
- * semántico V2: terreno con su propio `transitable`/`traversalCostMultiplier`,
- * vías (carreteras transitables con coste reducido, cursos de agua
- * infranqueables) y las huellas de los edificios (siempre bloquean; la
- * entrada real ocurre por el grafo de accesos, no por la rejilla).
+ * Rasteriza el mundo sobre `grid` (terreno → vías → huellas), limitado a
+ * `region` si se indica. Las mismas entidades en el mismo orden estable
+ * escriben las mismas celdas, así que rasterizar solo una región produce
+ * exactamente lo mismo que reconstruir la rejilla entera (invalidación
+ * dirigida de S9, verificada por prueba de equivalencia).
  */
-export function buildWalkabilityGridV2(
-  world: SemanticWorldV2,
-  resolutionMeters: number = NAVIGATION_RESOLUTION_METERS_V2,
-): WalkabilityGridV2 {
-  const { bounds } = world;
-  const columns = Math.max(1, Math.ceil((bounds.maxX - bounds.minX) / resolutionMeters));
-  const rows = Math.max(1, Math.ceil((bounds.maxY - bounds.minY) / resolutionMeters));
-  const walkable = new Uint8Array(columns * rows);
-  const costMultiplier = new Float32Array(columns * rows).fill(1);
-  const surface = new Uint8Array(columns * rows);
-  const grid: WalkabilityGridV2 = { resolutionMeters, columns, rows, originX: bounds.minX, originY: bounds.minY, walkable, costMultiplier, surface };
+function rasterizeWorld(world: SemanticWorldV2, grid: WalkabilityGridV2, region: GridCellRegion | null): void {
+  const { columns, resolutionMeters } = grid;
+  const { walkable, costMultiplier, surface } = grid;
+  if (region) {
+    for (let row = region.rowStart; row <= region.rowEnd; row++) {
+      for (let col = region.colStart; col <= region.colEnd; col++) {
+        const index = row * columns + col;
+        walkable[index] = 0;
+        costMultiplier[index] = 1;
+        surface[index] = SURFACE_CODE.open_ground;
+      }
+    }
+  }
 
   for (const area of valuesById(world.terrainAreas)) {
-    const areaBounds = boundsOf(area.polygon);
-    const { colStart, colEnd, rowStart, rowEnd } = cellRangeForBounds(areaBounds, grid);
-    for (let row = rowStart; row <= rowEnd; row++) {
-      for (let col = colStart; col <= colEnd; col++) {
+    const range = intersectRegion(cellRangeForBounds(boundsOf(area.polygon), grid), region);
+    if (!range) continue;
+    for (let row = range.rowStart; row <= range.rowEnd; row++) {
+      for (let col = range.colStart; col <= range.colEnd; col++) {
         const cellCenter: WorldPoint = {
           x: grid.originX + (col + 0.5) * resolutionMeters,
           y: grid.originY + (row + 0.5) * resolutionMeters,
@@ -133,28 +166,14 @@ export function buildWalkabilityGridV2(
   for (const line of valuesById(world.linearFeatures)) {
     const halfWidth = Math.max(1, line.widthMeters / 2);
     const linePoints = line.polyline;
-    let lineMinX = Infinity;
-    let lineMinY = Infinity;
-    let lineMaxX = -Infinity;
-    let lineMaxY = -Infinity;
-    for (const p of linePoints) {
-      lineMinX = Math.min(lineMinX, p.x);
-      lineMinY = Math.min(lineMinY, p.y);
-      lineMaxX = Math.max(lineMaxX, p.x);
-      lineMaxY = Math.max(lineMaxY, p.y);
-    }
-    const { colStart, colEnd, rowStart, rowEnd } = cellRangeForBounds(
-      { minX: lineMinX, minY: lineMinY, maxX: lineMaxX, maxY: lineMaxY },
-      grid,
-      halfWidth,
-    );
-
     const isRoad = line.kind === "road" && line.wayState !== "obstructed";
     const isWater = line.kind === "watercourse";
     if (!isRoad && !isWater) continue;
+    const range = intersectRegion(cellRangeForBounds(boundsOf(linePoints), grid, halfWidth), region);
+    if (!range) continue;
 
-    for (let row = rowStart; row <= rowEnd; row++) {
-      for (let col = colStart; col <= colEnd; col++) {
+    for (let row = range.rowStart; row <= range.rowEnd; row++) {
+      for (let col = range.colStart; col <= range.colEnd; col++) {
         const cellCenter: WorldPoint = {
           x: grid.originX + (col + 0.5) * resolutionMeters,
           y: grid.originY + (row + 0.5) * resolutionMeters,
@@ -180,21 +199,74 @@ export function buildWalkabilityGridV2(
   }
 
   for (const building of valuesById(world.buildings)) {
-    const buildingBounds = boundsOf(building.footprint);
-    const { colStart, colEnd, rowStart, rowEnd } = cellRangeForBounds(buildingBounds, grid);
-    for (let row = rowStart; row <= rowEnd; row++) {
-      for (let col = colStart; col <= colEnd; col++) {
+    const range = intersectRegion(cellRangeForBounds(boundsOf(building.footprint), grid), region);
+    if (!range) continue;
+    const terminal = terminalFootprintState(world, building.id);
+    for (let row = range.rowStart; row <= range.rowEnd; row++) {
+      for (let col = range.colStart; col <= range.colEnd; col++) {
         const cellCenter: WorldPoint = {
           x: grid.originX + (col + 0.5) * resolutionMeters,
           y: grid.originY + (row + 0.5) * resolutionMeters,
         };
         if (!pointInPolygon(cellCenter, building.footprint)) continue;
-        walkable[row * columns + col] = 0;
+        const index = row * columns + col;
+        if (terminal === null) {
+          walkable[index] = 0;
+        } else {
+          // S9: una huella demolida queda cubierta de escombros transitables; una desmantelada, como solar despejado.
+          walkable[index] = 1;
+          costMultiplier[index] = terminal === "demolished" ? RUBBLE_COST_MULTIPLIER : CLEARED_SITE_COST_MULTIPLIER;
+          surface[index] = terminal === "demolished" ? SURFACE_CODE.rubble : SURFACE_CODE.open_ground;
+        }
       }
     }
   }
+}
 
+/**
+ * Construye la rejilla de transitabilidad exterior a partir del mundo
+ * semántico V2: terreno con su propio `transitable`/`traversalCostMultiplier`,
+ * vías (carreteras transitables con coste reducido, cursos de agua
+ * infranqueables) y las huellas de los edificios (siempre bloquean; la
+ * entrada real ocurre por el grafo de accesos, no por la rejilla). Desde S9,
+ * la huella de un edificio demolido (escombros) o desmantelado (solar) es
+ * transitable.
+ */
+export function buildWalkabilityGridV2(
+  world: SemanticWorldV2,
+  resolutionMeters: number = NAVIGATION_RESOLUTION_METERS_V2,
+): WalkabilityGridV2 {
+  const { bounds } = world;
+  const columns = Math.max(1, Math.ceil((bounds.maxX - bounds.minX) / resolutionMeters));
+  const rows = Math.max(1, Math.ceil((bounds.maxY - bounds.minY) / resolutionMeters));
+  const walkable = new Uint8Array(columns * rows);
+  const costMultiplier = new Float32Array(columns * rows).fill(1);
+  const surface = new Uint8Array(columns * rows);
+  const grid: WalkabilityGridV2 = { resolutionMeters, columns, rows, originX: bounds.minX, originY: bounds.minY, walkable, costMultiplier, surface };
+  rasterizeWorld(world, grid, null);
   return grid;
+}
+
+/** Celdas que cubre la huella de un edificio (más un margen), para invalidar solo esa región. */
+export function footprintCellRegion(grid: WalkabilityGridV2, footprint: readonly WorldPoint[], paddingMeters = 0): GridCellRegion {
+  return cellRangeForBounds(boundsOf(footprint), grid, paddingMeters);
+}
+
+/**
+ * Copia de la rejilla con las regiones indicadas re-rasterizadas desde el
+ * mundo actual (S9): invalidación dirigida cuando un edificio se desmantela
+ * o se demuele. Nunca muta la rejilla original (puede estar compartida).
+ */
+export function patchWalkabilityGridV2(world: SemanticWorldV2, grid: WalkabilityGridV2, regions: readonly GridCellRegion[]): WalkabilityGridV2 {
+  if (regions.length === 0) return grid;
+  const patched: WalkabilityGridV2 = {
+    ...grid,
+    walkable: new Uint8Array(grid.walkable),
+    costMultiplier: new Float32Array(grid.costMultiplier),
+    surface: new Uint8Array(grid.surface),
+  };
+  for (const region of regions) rasterizeWorld(world, patched, region);
+  return patched;
 }
 
 export function worldToCellV2(

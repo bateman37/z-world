@@ -139,6 +139,47 @@ export const DISASSEMBLY_PROFILES: readonly DisassemblyProfile[] = [
     baseWorkUnitsSelective: 60,
     baseWorkUnitsDestructive: 20,
   },
+  // S9 (Puerta C): mobiliario genérico del generador (mesas, sofás, mostradores, cocinas, estanterías de obra...), capa 2
+  // de SET-007: desmontarlo da madera o chapa según su material dominante. 40 kg de peso por defecto; nunca más de lo que pesa.
+  {
+    id: "disassembly.furniture.generic_wood.v1",
+    version: 1,
+    outputs: [{ resourceFamily: "wood_and_planks", selectiveQuantity: 16, destructiveQuantity: 22 }],
+    functionsLost: [],
+    baseWorkUnitsSelective: 60,
+    baseWorkUnitsDestructive: 20,
+  },
+  {
+    id: "disassembly.furniture.generic_metal.v1",
+    version: 1,
+    outputs: [
+      { resourceFamily: "sheet_metal", selectiveQuantity: 14, destructiveQuantity: 20 },
+      { resourceFamily: "mechanical_parts_i", selectiveQuantity: 1, destructiveQuantity: 0 },
+    ],
+    functionsLost: [],
+    baseWorkUnitsSelective: 60,
+    baseWorkUnitsDestructive: 20,
+  },
 ];
+
+/** Mobiliario genérico de material dominante metálico (S9); el resto se desmonta como madera. */
+export const GENERIC_METAL_FURNITURE_KINDS: ReadonlySet<string> = new Set([
+  "furniture.stove",
+  "furniture.fridge",
+  "furniture.sink",
+  "furniture.tub",
+  "furniture.hydraulic_lift",
+  "furniture.gate_rail",
+  "furniture.locker",
+  "furniture.parts_shelf",
+  "furniture.pallet_rack",
+  "furniture.shelving_unit",
+  "furniture.counter_till",
+  "furniture.camp_stove_counter",
+]);
+
+export function genericFurnitureDisassemblyProfileId(kind: string): string {
+  return GENERIC_METAL_FURNITURE_KINDS.has(kind) ? "disassembly.furniture.generic_metal.v1" : "disassembly.furniture.generic_wood.v1";
+}
 
 export const DISASSEMBLY_PROFILES_BY_ID: ReadonlyMap<string, DisassemblyProfile> = new Map(DISASSEMBLY_PROFILES.map((p) => [p.id, p]));

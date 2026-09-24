@@ -15,7 +15,10 @@ import type {
   WorkerProjectionsV2,
 } from "@z-world/contracts";
 import { toSimulatedDayTime } from "@z-world/contracts";
-import { copyKey } from "@z-world/catalogs";
+import { ACTION_METHODS_BY_KEY, copyKey } from "@z-world/catalogs";
+import type { BuildingExploitationProjection } from "@z-world/contracts";
+
+const ACTION_DESCRIPTIONS: ReadonlyMap<string, string> = new Map([...ACTION_METHODS_BY_KEY.values()].map((m) => [m.key, m.descriptionKey]));
 
 /** Parámetros propios de una orden de traslado (S8, SET-010 §3.9). */
 export interface TransportOrderParams {
@@ -121,7 +124,9 @@ export function WorkPanel({
   // Los dos métodos de desmontaje son irreversibles (§16.4 del prompt
   // S7-S9): la orden directa exige confirmación informada explícita, nunca
   // implícita por pulsar "Ordenar" una sola vez.
-  const isIrreversibleAction = selectedOption?.actionKey === "disassemble_selective" || selectedOption?.actionKey === "disassemble_destructive";
+  // S9: cualquier método marcado irreversible en el catálogo (destruir un cierre, desmontar una instalación, retirar un acabado,
+  // desmantelar, demoler) exige la misma confirmación informada.
+  const isIrreversibleAction = selectedOption?.irreversible === true || selectedOption?.actionKey === "disassemble_selective" || selectedOption?.actionKey === "disassemble_destructive";
 
   // Retirar solo una parte de un lote lo divide en el núcleo (S7 §6.5); vacío = el lote entero.
   const isPartialRetrieve = selectedOption?.actionKey === "retrieve_from_storage" && targets[targetIndex]?.storageItem?.kind === "resource_lot";
@@ -237,10 +242,11 @@ export function WorkPanel({
                     {isTransport
                       ? `${copyKey(t.labelKey)}${t.storageItem?.holderPersonId ? ` (lo lleva ${projections.personCards.find((c) => c.personId === t.storageItem!.holderPersonId)?.firstName ?? ""})` : ""}`
                       : t.storageItem
-                      ? selectedOption?.actionKey === "store"
+                      ? selectedOption?.actionKey === "store" || selectedOption?.actionKey === "install"
                         ? `${copyKey(t.storageItem.labelKey)} → ${copyKey(t.labelKey)}`
                         : `${copyKey(t.storageItem.labelKey)} (en ${copyKey(t.labelKey)})`
                       : copyKey(t.labelKey)}
+                    {t.detailKeys && t.detailKeys.length > 0 ? ` (${t.detailKeys.map((k) => copyKey(k)).join(" · ")})` : ""}
                     {t.blockedReasonKey ? ` — ${copyKey(t.blockedReasonKey)}` : ""}
                   </option>
                 ))}
@@ -281,10 +287,11 @@ export function WorkPanel({
             )}
             {isIrreversibleAction && (
               <label style={{ display: "block", marginTop: 6, color: "var(--z-danger)" }}>
-                <input type="checkbox" checked={irreversibleConfirmed} onChange={(e) => setIrreversibleConfirmed(e.target.checked)} /> Confirmo que esta acción es irreversible y puede perder
-                componentes/función para siempre.
+                <input type="checkbox" aria-label="Confirmar acción irreversible" checked={irreversibleConfirmed} onChange={(e) => setIrreversibleConfirmed(e.target.checked)} /> Confirmo que esta acción es irreversible y
+                puede perder componentes, función o el edificio para siempre.
               </label>
             )}
+            {selectedOption && <div className="z-muted" style={{ fontSize: 12, marginTop: 4 }}>{copyKey(ACTION_DESCRIPTIONS.get(selectedOption.actionKey) ?? "")}</div>}
             <button style={{ marginTop: 8 }} disabled={!selectedPersonId || targets.length === 0 || (isIrreversibleAction && !irreversibleConfirmed)} onClick={handleOrder}>
               Ordenar
             </button>
@@ -293,6 +300,8 @@ export function WorkPanel({
       </section>
 
       <InventorySection entries={projections.inventory} personNames={Object.fromEntries(projections.personCards.map((c) => [c.personId, c.firstName]))} />
+
+      <BuildingsSection buildings={projections.buildings} />
 
       <section>
         <h3>Trabajos</h3>
@@ -411,9 +420,27 @@ function TransportControls(props: {
         Destino:{" "}
         <select aria-label="Destino del traslado" value={props.destinationIndex} onChange={(e) => props.onDestination(Number(e.target.value))}>
           {options.destinations.map((d, i) => (
-            <option key={i} value={i} data-destination-id={d.destination.kind === "container" ? d.destination.containerId : d.destination.kind === "room" ? d.destination.roomId : d.destination.kind === "transfer_point" ? d.destination.transferPointId : "arrival_point"}>
+            <option
+              key={i}
+              value={i}
+              disabled={d.blockedReasonKey !== null}
+              data-destination-id={
+                d.destination.kind === "container"
+                  ? d.destination.containerId
+                  : d.destination.kind === "room"
+                    ? d.destination.roomId
+                    : d.destination.kind === "transfer_point"
+                      ? d.destination.transferPointId
+                      : d.destination.kind === "install_at_opening"
+                        ? `install:${d.destination.openingId}`
+                        : d.destination.kind === "install_at_place"
+                          ? `install:${d.destination.placeId}`
+                          : "arrival_point"
+              }
+            >
               {d.destination.kind === "container" ? "Contenedor: " : d.destination.kind === "room" ? "Estancia: " : ""}
               {copyKey(d.labelKey)}
+              {d.blockedReasonKey ? ` — ${copyKey(d.blockedReasonKey)}` : ""}
             </option>
           ))}
         </select>
@@ -507,7 +534,7 @@ function TransportJobDetails({ job, personNames }: { readonly job: JobProjection
         </div>
       )}
       {t.planNoteKey && <div>{copyKey(t.planNoteKey)}</div>}
-      {t.nextJobId && <div>Sigue en una nueva etapa a pulso desde el punto de transferencia.</div>}
+      {t.nextJobId && <div>{t.destinationLabelKey.startsWith("destination.install") ? "Sigue la instalación en el sitio (etapa propia)." : "Sigue en una nueva etapa a pulso desde el punto de transferencia."}</div>}
       {t.previousJobId && <div>Etapa tras un punto de transferencia.</div>}
     </div>
   );
@@ -551,6 +578,85 @@ function InventorySection({ entries, personNames }: { readonly entries: readonly
               {entry.freshness ? ` — ${copyKey(`freshness.${entry.freshness}`)}${entry.freshness !== "spoiled" ? spoilText(entry.spoilsAtSimSeconds) : ""}` : ""}
               {entry.capacity ? ` — capacidad ${entry.capacity.used}/${entry.capacity.total}` : ""}
               <div className="z-muted">{locationText(entry, personNames)}</div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+/**
+ * Estado por capas de los edificios conocidos (S9 — Puerta C, SET-007):
+ * cada capa con su conocimiento y su estado físico propios (nunca una cifra
+ * única), la vida del edificio, la habitabilidad y sus causas, los accesos
+ * con su cierre/obstrucción y la previsualización cualitativa de desmantelar
+ * o demoler según lo que ya se sabe.
+ */
+function BuildingsSection({ buildings }: { readonly buildings: readonly BuildingExploitationProjection[] }) {
+  const [openId, setOpenId] = useState<string | null>(null);
+  return (
+    <section aria-label="Edificios conocidos">
+      <h3>Edificios</h3>
+      {buildings.length === 0 ? (
+        <p className="z-muted">Ningún edificio conocido todavía.</p>
+      ) : (
+        <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 4, fontSize: 12 }}>
+          {buildings.map((b) => (
+            <li key={b.buildingId} className="z-panel" style={{ padding: 6 }} data-building-id={b.buildingId} data-building-stage={b.stage} data-habitability={b.habitability?.band ?? "unknown"}>
+              <button style={{ all: "unset", cursor: "pointer", display: "block", width: "100%" }} onClick={() => setOpenId(openId === b.buildingId ? null : b.buildingId)} aria-expanded={openId === b.buildingId}>
+                <strong>{b.profileId ? copyKey(`place.${b.profileId}`) : "Edificio sin identificar"}</strong> — {copyKey(`exploitation_stage.${b.stage}`)}
+                {b.habitability ? ` · ${copyKey(`habitability.${b.habitability.band}`)}` : ""}
+              </button>
+              {openId === b.buildingId && (
+                <div style={{ marginTop: 4 }}>
+                  {!b.layersAvailable && <div className="z-muted">{copyKey("block.building_layers_unavailable")}</div>}
+                  {b.lifeStage && <div>{copyKey(`life_stage.${b.lifeStage}`)}{b.era ? ` · ${copyKey(`era.${b.era}`)}` : ""}</div>}
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <tbody>
+                      {b.layers.map((l) => (
+                        <tr key={l.layer} data-layer={l.layer} data-layer-physical={l.physical} data-layer-knowledge={l.knowledge}>
+                          <td>{copyKey(`layer.${l.layer}`)}</td>
+                          <td>{copyKey(`layer_knowledge.${l.knowledge}`)}</td>
+                          <td>
+                            {copyKey(`layer_physical.${l.physical}`)}
+                            {l.knownRemaining !== null ? ` · quedan ${l.knownRemaining}${l.knownTotal !== null ? `/${l.knownTotal}` : ""}` : ""}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {b.structureStagesTotal !== null && (
+                    <div>
+                      Estructura: {b.structureStagesDone}/{b.structureStagesTotal} etapas desmanteladas
+                    </div>
+                  )}
+                  {b.habitability && (
+                    <div>
+                      Usos: {[b.habitability.uses.shelter && "refugio", b.habitability.uses.rest && "descanso", b.habitability.uses.storage && "almacén", b.habitability.uses.work && "taller"].filter(Boolean).join(", ") || "ninguno"}
+                      {b.habitability.factorKeys.length > 0 && <div className="z-muted">{b.habitability.factorKeys.map((k) => copyKey(k)).join(" ")}</div>}
+                    </div>
+                  )}
+                  {b.accesses.length > 0 && (
+                    <ul style={{ margin: "4px 0", paddingLeft: 16 }}>
+                      {b.accesses.map((a) => (
+                        <li key={a.openingId} data-opening-id={a.openingId} data-passable={a.passable ? "yes" : "no"}>
+                          {a.connectsToExterior ? "Acceso exterior" : "Puerta interior"} ({copyKey(`access.width.${a.widthClass}`)}): {copyKey(`closure_state.${a.closureState}`)}
+                          {a.obstructionKind ? ` · ${copyKey(`obstruction.${a.obstructionKind}`)}` : ""}
+                          {a.reinforced ? " · reforzado" : ""}
+                          {a.lockBroken ? " · mecanismo roto" : ""} — {a.passable ? "transitable" : "no transitable"}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {b.previews.map((p) => (
+                    <div key={p.actionKey} style={{ color: "var(--z-danger)", marginTop: 4 }} data-preview={p.actionKey}>
+                      <strong>{copyKey(`action.${p.actionKey}.label`)}:</strong> {p.consequenceKeys.map((k) => copyKey(k)).join(" ")}
+                      {` (se sabe que quedan: ${p.knownLosses.looseItems} objetos sueltos, ${p.knownLosses.furniture} muebles, ${p.knownLosses.installations} instalaciones, ${p.knownLosses.finishes} acabados)`}
+                    </div>
+                  ))}
+                </div>
+              )}
             </li>
           ))}
         </ul>

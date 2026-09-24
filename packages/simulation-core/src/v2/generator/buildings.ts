@@ -19,7 +19,7 @@ import type {
   WorldPoint,
 } from "@z-world/contracts";
 import { BUILDING_PROGRAMS_BY_PROFILE, OBJECT_CATALOG_BY_VARIANT, type ObjectCatalogEntry, type RoomProgramRole } from "@z-world/catalogs";
-import { REPAIR_PROFILES_BY_ID, DISASSEMBLY_PROFILES_BY_ID } from "@z-world/catalogs";
+import { REPAIR_PROFILES_BY_ID, DISASSEMBLY_PROFILES_BY_ID, genericFurnitureDisassemblyProfileId } from "@z-world/catalogs";
 
 const WARDROBE_REPAIR_PROFILE_ID = "repair.storage_furniture.wardrobe_shelf.v1";
 const WARDROBE_DISASSEMBLY_PROFILE_ID = "disassembly.storage_furniture.wardrobe_shelf.v1";
@@ -196,7 +196,8 @@ function makeFurniture(base: { id: string; roomId: string; kind: string; conditi
     functions: entry ? [...entry.defaultFunctions] : [],
     inactiveFunctionReasons: {},
     repairProfileId: null,
-    disassemblyProfileId: null,
+    // S9 (v4): todo mueble del programa es capa 2 recuperable: se desmonta en madera o chapa según su material dominante.
+    disassemblyProfileId: genericFurnitureDisassemblyProfileId(base.kind),
     provenance: "generated",
     knownEvidenceIds: [],
   };

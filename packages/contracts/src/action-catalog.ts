@@ -24,6 +24,8 @@ export const ACTION_TARGET_KINDS = [
   "world_object",
   "container",
   "transport_means",
+  "building_installation",
+  "building_finish",
   "area",
   "own_need",
 ] as const;
@@ -56,6 +58,20 @@ export const HARD_REQUIREMENT_KINDS = [
   "requires_storage_container",
   /** El blanco es una instalación técnica funcional conectada a su fuente real (bomba de agua, S7 §6.10: nunca produce agua solo por existir). */
   "requires_functional_installation",
+  /**
+   * S9 (Puerta C, `DEC-0019`): el edificio del blanco sigue en pie como
+   * edificio (no desmantelado del todo ni demolido). Una demolición es
+   * irreversible: nada vuelve a actuar sobre sus estancias ni sus capas.
+   */
+  "requires_building_standing",
+  /** S9: la estructura del edificio está inspeccionada (faceta `structure` ≥ `inspected`) antes de desmantelarla o demolerla. */
+  "requires_known_structure",
+  /** S9: la instalación del blanco la ha reconocido un registro técnico (faceta `installations` ≥ `inspected`). */
+  "requires_known_installation",
+  /** S9: la abertura del blanco tiene un cierre instalado no destruido (abrir, cerrar, bloquear, forzar, reforzar, retirar...). */
+  "requires_installed_closure",
+  /** S9: la abertura del blanco tiene una obstrucción que despejar. */
+  "requires_obstruction",
 ] as const;
 export type HardRequirementKind = (typeof HARD_REQUIREMENT_KINDS)[number];
 

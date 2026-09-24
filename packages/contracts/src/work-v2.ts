@@ -191,6 +191,10 @@ export type JobTarget =
   | { readonly kind: "container"; readonly containerId: string }
   /** Carretilla/carro como objeto completo (S7 §6.10): reparar, desmontar, diagnosticar. El uso como medio de carga es S8. */
   | { readonly kind: "transport_means"; readonly transportMeansId: string }
+  /** Instalación desmontable de un edificio (capa 3, S9). */
+  | { readonly kind: "building_installation"; readonly installationId: string }
+  /** Acabado recuperable de un edificio (capa 4, S9). */
+  | { readonly kind: "building_finish"; readonly finishId: string }
   | { readonly kind: "area"; readonly polygon: readonly WorldPoint[] }
   | { readonly kind: "own_need"; readonly personId: string; readonly dimension: NeedDimension };
 
@@ -204,6 +208,8 @@ export const jobTargetSchema: z.ZodType<JobTarget> = z.discriminatedUnion("kind"
   z.object({ kind: z.literal("world_object"), worldObjectId: z.string() }),
   z.object({ kind: z.literal("container"), containerId: z.string() }),
   z.object({ kind: z.literal("transport_means"), transportMeansId: z.string() }),
+  z.object({ kind: z.literal("building_installation"), installationId: z.string() }),
+  z.object({ kind: z.literal("building_finish"), finishId: z.string() }),
   z.object({ kind: z.literal("area"), polygon: z.array(worldPointSchema) }),
   z.object({ kind: z.literal("own_need"), personId: z.string(), dimension: z.enum(NEED_DIMENSIONS) }),
 ]);
@@ -222,13 +228,23 @@ export type TransportDestination =
   | { readonly kind: "container"; readonly containerId: string }
   | { readonly kind: "room"; readonly roomId: string }
   | { readonly kind: "world_point"; readonly point: WorldPoint }
-  | { readonly kind: "transfer_point"; readonly transferPointId: string };
+  | { readonly kind: "transfer_point"; readonly transferPointId: string }
+  /**
+   * S9: «instalar» como destino real de un traslado (una puerta recuperada
+   * hacia una abertura sin cierre, o la bomba hacia una fuente `ENV-01`):
+   * la carga se deja junto al sitio y una etapa `install` encadenada, con
+   * su propia reserva, la instala.
+   */
+  | { readonly kind: "install_at_opening"; readonly openingId: string }
+  | { readonly kind: "install_at_place"; readonly placeId: string };
 
 export const transportDestinationSchema: z.ZodType<TransportDestination> = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("container"), containerId: z.string().min(1) }),
   z.object({ kind: z.literal("room"), roomId: z.string().min(1) }),
   z.object({ kind: z.literal("world_point"), point: worldPointSchema }),
   z.object({ kind: z.literal("transfer_point"), transferPointId: z.string().min(1) }),
+  z.object({ kind: z.literal("install_at_opening"), openingId: z.string().min(1) }),
+  z.object({ kind: z.literal("install_at_place"), placeId: z.string().min(1) }),
 ]);
 
 /** Selector de método de SET-010 §3.9: `auto` o uno de los cinco métodos activos. Nunca se confunde con prioridad, equipo, ritmo ni atención. */
@@ -260,6 +276,8 @@ export interface TransportSurfaceMeters {
   readonly open_ground: number;
   readonly dense_vegetation: number;
   readonly interior: number;
+  /** Escombros de un edificio demolido (S9). Opcional en el tipo y `.default(0)` en el esquema. */
+  readonly rubble?: number;
 }
 
 /** Parada forzada de una etapa: el medio no puede seguir más allá de este acceso (S8, SET-010 §3.8). */
@@ -318,6 +336,7 @@ const surfaceMetersSchema = z.object({
   open_ground: z.number().nonnegative(),
   dense_vegetation: z.number().nonnegative(),
   interior: z.number().nonnegative(),
+  rubble: z.number().nonnegative().default(0),
 });
 
 export const transportJobStateSchema = z.object({
@@ -415,6 +434,13 @@ export interface Job {
   readonly storageQuantity: number | null;
   /** Estado del traslado (S8). `null` fuera de `transport` y en trabajos anteriores a S8 (default seguro). */
   readonly transport: TransportJobState | null;
+  /**
+   * Trabajo total real de este trabajo concreto cuando difiere del valor de
+   * referencia del método (S9: puerta frente a portón, receta de la
+   * instalación, m² de huella). `null` = `baseWorkUnits` del método. Opcional
+   * en el tipo y con `.default(null)` en el esquema.
+   */
+  readonly workTotalUnits?: number | null;
   readonly createdAtSimSeconds: number;
   readonly updatedAtSimSeconds: number;
 }
@@ -455,6 +481,7 @@ export const jobSchema = z.object({
     .default(null),
   storageQuantity: z.number().positive().nullable().default(null),
   transport: transportJobStateSchema.nullable().default(null),
+  workTotalUnits: z.number().positive().nullable().default(null),
   createdAtSimSeconds: z.number().int().nonnegative(),
   updatedAtSimSeconds: z.number().int().nonnegative(),
 });
@@ -467,6 +494,11 @@ export const RESERVATION_TARGET_KINDS = [
   "room",
   "furniture",
   "container",
+  /** S9: accesos, edificios (desmantelar/demoler), instalaciones y acabados se comprometen en exclusiva. */
+  "opening",
+  "building",
+  "building_installation",
+  "building_finish",
 ] as const;
 export type ReservationTargetKind = (typeof RESERVATION_TARGET_KINDS)[number];
 

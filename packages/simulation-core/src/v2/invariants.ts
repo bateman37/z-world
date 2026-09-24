@@ -1,5 +1,9 @@
 import type { EntityLocation, SimulationStateV2 } from "@z-world/contracts";
+import { isFabricTerminal } from "@z-world/contracts";
 import { containerUsedUnits } from "./objects/storage.js";
+import { resolveRoomId, resolveTargetLocation } from "./jobs/location-utils.js";
+import { buildingIdOfRoomInWorld, isOpeningPassable } from "./room-graph.js";
+import { buildingIdOfTarget } from "./exploitation/targets.js";
 
 /**
  * Validador de invariantes relacionales de `SimulationStateV2` (§6.2,
@@ -38,6 +42,10 @@ export function validateSimulationStateV2Invariants(state: SimulationStateV2): I
   checkExteriorOpeningsConnectToRoom(state, violations);
   checkDiscoveryRecordsValid(state, violations);
   checkFogGridShape(state, violations);
+  checkS9ClosuresAndOpenings(state, violations);
+  checkS9BuildingLayers(state, violations);
+  checkS9TerminalBuildings(state, violations);
+  checkS9JobsReferenceLiveTargets(state, violations);
 
   return { ok: violations.length === 0, violations };
 }
@@ -385,6 +393,8 @@ function checkGlobalIdUniqueness(state: SimulationStateV2, violations: Invariant
     ["world.placeHistories", state.world.placeHistories],
     ["world.lootPressureZones", state.world.lootPressureZones],
     ["world.lootingRoutes", state.world.lootingRoutes],
+    ["world.buildingInstallations", state.world.buildingInstallations ?? {}],
+    ["world.buildingFinishes", state.world.buildingFinishes ?? {}],
     ["workZones", state.workZones],
     ["designations", state.designations],
     ["jobs", state.jobs],
@@ -533,6 +543,112 @@ function checkClosureObstructionExclusivity(state: SimulationStateV2, violations
         code: "closure_as_portable_object",
         message: `El cierre instalado ${closure.id} coincide con un objeto portátil, lo que no es válido.`,
       });
+    }
+  }
+}
+
+/**
+ * S9 (WLD-011 §4): abertura, cierre y obstrucción siguen siendo tres
+ * identidades separadas y coherentes. Un cierre instalado está referenciado
+ * por su abertura (y un cierre retirado ya no existe como cierre, sino como
+ * objeto con la misma identidad); la abertura persiste tras retirar la
+ * puerta; un acceso tapiado, barricado u obstruido no es transitable.
+ */
+function checkS9ClosuresAndOpenings(state: SimulationStateV2, violations: InvariantViolation[]): void {
+  for (const opening of Object.values(state.world.openings)) {
+    if (!opening.installedClosureId) continue;
+    const closure = state.world.installedClosures[opening.installedClosureId];
+    if (!closure) violations.push({ code: "opening_references_missing_closure", message: `La abertura ${opening.id} referencia un cierre inexistente: ${opening.installedClosureId}.` });
+    else if (closure.openingId !== opening.id) violations.push({ code: "closure_opening_mismatch", message: `El cierre ${closure.id} no pertenece a la abertura ${opening.id} que lo referencia.` });
+  }
+  for (const closure of Object.values(state.world.installedClosures)) {
+    const opening = state.world.openings[closure.openingId];
+    if (opening && opening.installedClosureId !== closure.id) violations.push({ code: "closure_not_installed", message: `El cierre ${closure.id} ya no está instalado en su abertura ${closure.openingId} pero sigue existiendo como cierre.` });
+  }
+  for (const obj of Object.values(state.worldObjects)) {
+    if (!obj.provenance?.startsWith("closure_removed:")) continue;
+    const openingId = obj.provenance.slice("closure_removed:".length);
+    if (!state.world.openings[openingId]) violations.push({ code: "removed_closure_without_opening", message: `La puerta retirada ${obj.id} procede de una abertura que ya no existe (${openingId}): retirar un cierre nunca elimina la abertura.` });
+  }
+  const obstructed = new Set(Object.values(state.world.obstructions).map((o) => o.openingId));
+  for (const openingId of obstructed) {
+    if (state.world.openings[openingId] && isOpeningPassable(openingId, state.world)) violations.push({ code: "obstructed_opening_passable", message: `La abertura ${openingId} está obstruida/tapiada pero figura como transitable.` });
+  }
+}
+
+/** S9: capas coherentes (instalaciones/acabados de edificios reales, etapas dentro de rango, estados terminales con su marca temporal). */
+function checkS9BuildingLayers(state: SimulationStateV2, violations: InvariantViolation[]): void {
+  for (const fabric of Object.values(state.world.buildingFabrics ?? {})) {
+    if (!state.world.buildings[fabric.buildingId]) violations.push({ code: "fabric_without_building", message: `Tejido de edificio sin edificio: ${fabric.buildingId}.` });
+    if (fabric.dismantleStagesDone > fabric.dismantleStagesTotal) violations.push({ code: "fabric_stages_overflow", message: `El edificio ${fabric.buildingId} tiene más etapas desmanteladas que las existentes.` });
+    if (fabric.structureState === "dismantled" && (fabric.dismantleStagesDone !== fabric.dismantleStagesTotal || fabric.dismantledAtSimSeconds === null)) violations.push({ code: "fabric_dismantled_incoherent", message: `El edificio ${fabric.buildingId} figura desmantelado sin completar sus etapas.` });
+    if (fabric.structureState === "demolished" && fabric.demolishedAtSimSeconds === null) violations.push({ code: "fabric_demolished_without_time", message: `El edificio ${fabric.buildingId} figura demolido sin instante de demolición.` });
+    if (fabric.demolishedAtSimSeconds !== null && fabric.structureState !== "demolished") violations.push({ code: "fabric_demolition_reverted", message: `El edificio ${fabric.buildingId} fue demolido y ya no figura como demolido: la demolición es irreversible.` });
+    if (isFabricTerminal(fabric) && fabric.lifeStage !== "terminal") violations.push({ code: "fabric_terminal_life_stage", message: `El edificio ${fabric.buildingId} es terminal pero su vida no lo es.` });
+  }
+  for (const installation of Object.values(state.world.buildingInstallations ?? {})) {
+    if (!state.world.buildings[installation.buildingId]) violations.push({ code: "installation_without_building", message: `La instalación ${installation.id} referencia un edificio inexistente.` });
+    for (const roomId of installation.roomIds) {
+      if (buildingIdOfRoomInWorld(state.world, roomId) !== installation.buildingId) violations.push({ code: "installation_room_outside_building", message: `La instalación ${installation.id} da servicio a una estancia de otro edificio: ${roomId}.` });
+    }
+    if ((installation.state === "dismantled" || installation.state === "destroyed") && installation.functionalState !== "parts_only" && installation.functionalState !== "irreparable") {
+      violations.push({ code: "dismantled_installation_still_functional", message: `La instalación ${installation.id} está desmontada o destruida pero conserva estado funcional.` });
+    }
+  }
+  for (const finish of Object.values(state.world.buildingFinishes ?? {})) {
+    if (!state.world.buildings[finish.buildingId]) violations.push({ code: "finish_without_building", message: `El acabado ${finish.id} referencia un edificio inexistente.` });
+    if (finish.roomId && buildingIdOfRoomInWorld(state.world, finish.roomId) !== finish.buildingId) violations.push({ code: "finish_room_outside_building", message: `El acabado ${finish.id} está en una estancia de otro edificio.` });
+  }
+}
+
+/**
+ * S9: un edificio desmantelado o demolido no conserva estancias habitadas,
+ * contenido, mobiliario, instalaciones activas, acabados instalados ni
+ * cierres activos (§12 del prompt S7-S9).
+ */
+function checkS9TerminalBuildings(state: SimulationStateV2, violations: InvariantViolation[]): void {
+  const terminal = new Set(Object.values(state.world.buildingFabrics ?? {}).filter((f) => isFabricTerminal(f)).map((f) => f.buildingId));
+  if (terminal.size === 0) return;
+  const inTerminal = (location: EntityLocation): boolean => {
+    const roomId = resolveRoomId(state, location);
+    const buildingId = roomId ? buildingIdOfRoomInWorld(state.world, roomId) : null;
+    return buildingId !== null && terminal.has(buildingId);
+  };
+  for (const person of Object.values(state.people)) if (inTerminal(person.location)) violations.push({ code: "person_inside_terminal_building", message: `La persona ${person.public.id} está dentro de un edificio demolido o desmantelado.` });
+  for (const obj of Object.values(state.worldObjects)) if (inTerminal(obj.location)) violations.push({ code: "object_inside_terminal_building", message: `El objeto ${obj.id} sigue dentro de un edificio demolido o desmantelado.` });
+  for (const lot of Object.values(state.resourceLots)) if (inTerminal(lot.location)) violations.push({ code: "lot_inside_terminal_building", message: `El lote ${lot.id} sigue dentro de un edificio demolido o desmantelado.` });
+  for (const furniture of Object.values(state.furniture)) {
+    const buildingId = buildingIdOfRoomInWorld(state.world, furniture.roomId);
+    if (buildingId && terminal.has(buildingId) && (furniture.movedToLocation === null || inTerminal(furniture.movedToLocation))) violations.push({ code: "furniture_inside_terminal_building", message: `El mueble ${furniture.id} sigue en un edificio demolido o desmantelado.` });
+  }
+  for (const installation of Object.values(state.world.buildingInstallations ?? {})) {
+    if (terminal.has(installation.buildingId) && (installation.state === "connected" || installation.state === "disconnected")) violations.push({ code: "terminal_building_active_installation", message: `La instalación ${installation.id} sigue activa en un edificio demolido o desmantelado.` });
+  }
+  for (const finish of Object.values(state.world.buildingFinishes ?? {})) {
+    if (terminal.has(finish.buildingId) && finish.state === "installed") violations.push({ code: "terminal_building_installed_finish", message: `El acabado ${finish.id} sigue instalado en un edificio demolido o desmantelado.` });
+  }
+  for (const opening of Object.values(state.world.openings)) {
+    const buildingId = opening.connectsRoomId ? buildingIdOfRoomInWorld(state.world, opening.connectsRoomId) : null;
+    if (!buildingId || !terminal.has(buildingId) || !opening.installedClosureId) continue;
+    const closure = state.world.installedClosures[opening.installedClosureId];
+    if (closure && closure.state !== "destroyed") violations.push({ code: "terminal_building_active_closure", message: `El cierre ${closure.id} sigue activo en un edificio demolido o desmantelado.` });
+  }
+}
+
+/**
+ * S9 (§12: «trabajos no referencian objetivos destruidos sin bloqueo/fallo
+ * causal»): ningún trabajo vivo sigue actuando sobre un edificio desmantelado
+ * o demolido, ni sobre algo que desapareció con él.
+ */
+function checkS9JobsReferenceLiveTargets(state: SimulationStateV2, violations: InvariantViolation[]): void {
+  const terminal = new Set(Object.values(state.world.buildingFabrics ?? {}).filter((f) => isFabricTerminal(f)).map((f) => f.buildingId));
+  if (terminal.size === 0) return;
+  for (const job of Object.values(state.jobs)) {
+    if (job.state === "completed" || job.state === "cancelled" || job.state === "causal_failure") continue;
+    const buildingId = buildingIdOfTarget(state, job.target);
+    const gone = job.target.kind !== "own_need" && job.target.kind !== "area" && !resolveTargetLocation(state, job.target);
+    if ((buildingId && terminal.has(buildingId)) || (gone && job.state !== "blocked")) {
+      violations.push({ code: "live_job_on_destroyed_target", message: `El trabajo ${job.id} (${job.state}) sigue actuando sobre un edificio demolido/desmantelado o algo destruido con él.` });
     }
   }
 }

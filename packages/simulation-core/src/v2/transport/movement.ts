@@ -81,7 +81,7 @@ function loadEffortFactor(
   return round6(0.6 + 0.8 * Math.max(0, Math.min(1.5, share)));
 }
 
-function surfaceAt(nav: NavigationIndexV2, point: { x: number; y: number }): "road" | "open_ground" | "dense_vegetation" {
+function surfaceAt(nav: NavigationIndexV2, point: { x: number; y: number }): "road" | "open_ground" | "dense_vegetation" | "rubble" {
   const cell = worldToCellV2(nav.grid, point);
   if (!cell) return "open_ground";
   return surfaceKindAt(nav.grid, cell.row * nav.grid.columns + cell.col);

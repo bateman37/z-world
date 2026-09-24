@@ -93,6 +93,16 @@ import {
 } from "./work-v2.js";
 import type { LocalSectorFixture } from "./world.js";
 import { localSectorFixtureSchema } from "./world.js";
+import {
+  buildingFabricSchema,
+  buildingFinishSchema,
+  buildingInstallationSchema,
+  navigationRevisionSchema,
+  type BuildingFabric,
+  type BuildingFinish,
+  type BuildingInstallation,
+  type NavigationRevision,
+} from "./building-exploitation-v2.js";
 
 export const SIMULATION_STATE_V2_SCHEMA_VERSION = 2 as const;
 
@@ -145,6 +155,19 @@ export interface SemanticWorldV2 {
   readonly placeHistories: Readonly<Record<string, PlaceHistory>>;
   readonly lootPressureZones: Readonly<Record<string, LootPressureZone>>;
   readonly lootingRoutes: Readonly<Record<string, LootingRoute>>;
+  /**
+   * Explotación progresiva de edificios (S9 — Puerta C, `DEC-0019`):
+   * tejido estructural por edificio (capa 5, vidas e hitos), instalaciones
+   * desmontables (capa 3) y acabados recuperables (capa 4). Opcionales en el
+   * tipo y con `.default({})` en el esquema: una partida anterior a
+   * `web-002-semantic-v4` carga sin ellas (degradación explícita, nunca se
+   * regeneran ni se añaden al cargar).
+   */
+  readonly buildingFabrics?: Readonly<Record<string, BuildingFabric>>;
+  readonly buildingInstallations?: Readonly<Record<string, BuildingInstallation>>;
+  readonly buildingFinishes?: Readonly<Record<string, BuildingFinish>>;
+  /** Revisión de accesos/estructura para invalidar de forma dirigida la navegación derivada (S9). */
+  readonly navigationRevision?: NavigationRevision;
 }
 
 export const semanticWorldV2Schema = z.object({
@@ -171,6 +194,10 @@ export const semanticWorldV2Schema = z.object({
   placeHistories: z.record(z.string(), placeHistorySchema),
   lootPressureZones: z.record(z.string(), lootPressureZoneSchema),
   lootingRoutes: z.record(z.string(), lootingRouteSchema),
+  buildingFabrics: z.record(z.string(), buildingFabricSchema).default({}),
+  buildingInstallations: z.record(z.string(), buildingInstallationSchema).default({}),
+  buildingFinishes: z.record(z.string(), buildingFinishSchema).default({}),
+  navigationRevision: navigationRevisionSchema.default({ global: 0, byBuilding: {} }),
 });
 
 export interface MigrationRecord {

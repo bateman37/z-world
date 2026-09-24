@@ -30,3 +30,10 @@ export { isLocationKnown, isRoomKnown, planRoute, surfaceBreakdown } from "./v2/
 export { destinationBlockReason, destinationNavPoint, meansBlockReason, planTransport } from "./v2/transport/plan.js";
 export { settleTransportOnStop, emptyTransportState } from "./v2/transport/phases.js";
 export { transportMovementFactors } from "./v2/transport/movement.js";
+// S9 — Puerta C: explotación progresiva de edificios, accesos mutables y habitabilidad.
+export { buildingLayerKnowledge, buildingLayerTruths, censusBuildingContent, computeHabitability, discoveryRankIndex, exploitationStageOf, layerOfWorldObject } from "./v2/exploitation/layers.js";
+export { fabricOf, finishesOf, installationsOf, isBuildingTerminal, openingsOfBuilding, roomsOfBuilding, buildingIdOfOpening } from "./v2/exploitation/fabric.js";
+export { buildingIdOfTarget } from "./v2/exploitation/targets.js";
+export { installSiteBlockReason, installSiteOfDestination } from "./v2/exploitation/install-sites.js";
+export { s9PrepareReason, s9ValidationReason, s9WorkUnits } from "./v2/exploitation/actions.js";
+export { checkHardRequirements, hasKnowledge } from "./v2/jobs/eligibility.js";

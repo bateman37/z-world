@@ -1,3 +1,4 @@
+import { installSiteBlockReason, installSiteLocation, installSiteOfDestination } from "../exploitation/install-sites.js";
 import type {
   CargoRef,
   EntityLocation,
@@ -87,6 +88,12 @@ export function destinationNavPoint(state: SimulationStateV2, destination: Trans
       const point = state.transferPoints[destination.transferPointId];
       return point ? locationToNavPoint(state, point.location) : null;
     }
+    case "install_at_opening":
+    case "install_at_place": {
+      const site = installSiteOfDestination(destination)!;
+      const location = installSiteLocation(state, site);
+      return location ? locationToNavPoint(state, location) : null;
+    }
     default: {
       const exhaustive: never = destination;
       throw new Error(`Destino no reconocido: ${JSON.stringify(exhaustive)}`);
@@ -106,6 +113,9 @@ export function destinationLocation(state: SimulationStateV2, destination: Trans
       return { kind: "world_point", point: destination.point };
     case "transfer_point":
       return state.transferPoints[destination.transferPointId] ? { kind: "transfer_point", transferPointId: destination.transferPointId } : null;
+    case "install_at_opening":
+    case "install_at_place":
+      return installSiteLocation(state, installSiteOfDestination(destination)!);
     default: {
       const exhaustive: never = destination;
       throw new Error(`Destino no reconocido: ${JSON.stringify(exhaustive)}`);
@@ -138,6 +148,12 @@ export function destinationBlockReason(state: SimulationStateV2, destination: Tr
       return zonePolicyAtPoint(state, destination.point) === "forbidden" ? "block.target_in_forbidden_zone" : null;
     case "transfer_point":
       return state.transferPoints[destination.transferPointId] ? null : "block.target_no_longer_exists";
+    case "install_at_opening":
+    case "install_at_place": {
+      // S9: la carga es exactamente el objeto que se va a instalar (una puerta/portón o la bomba), y el sitio lo admite.
+      if (cargo.length !== 1 || cargo[0]!.kind !== "world_object") return "block.install_requires_single_object";
+      return installSiteBlockReason(state, installSiteOfDestination(destination)!, cargo[0]!.id);
+    }
     default: {
       const exhaustive: never = destination;
       throw new Error(`Destino no reconocido: ${JSON.stringify(exhaustive)}`);
@@ -182,15 +198,15 @@ export function routeCost(route: TransportRoute, def: TransportMethodDefinition 
   let seconds = 0;
   let fatigue = 0;
   let noise = 0;
-  for (const surface of ["road", "open_ground", "dense_vegetation", "interior"] as const) {
-    const meters = route.surfaceMeters[surface];
+  for (const surface of ["road", "open_ground", "dense_vegetation", "interior", "rubble"] as const) {
+    const meters = route.surfaceMeters[surface] ?? 0;
     if (meters <= 0) continue;
     seconds += meters / (BASE_WALK_SPEED_METERS_PER_SIM_SECOND_V2 * surfaceSpeed(def, surface));
     const behaviour = def?.surfaces[surface];
     fatigue += (meters * (behaviour?.effort ?? 1) * carriers) / 100;
     noise += meters * (behaviour?.noisePerMeter ?? 0.05);
   }
-  return { minutes: seconds / 60, fatigue, noise, roughMeters: route.surfaceMeters.open_ground + route.surfaceMeters.dense_vegetation };
+  return { minutes: seconds / 60, fatigue, noise, roughMeters: route.surfaceMeters.open_ground + route.surfaceMeters.dense_vegetation + (route.surfaceMeters.rubble ?? 0) };
 }
 
 /** Anchura mínima de acceso que exigen la carga y el método juntos. */

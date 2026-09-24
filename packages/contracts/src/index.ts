@@ -22,6 +22,7 @@ export * from "./place-history-v2.js";
 export * from "./work-v2.js";
 export * from "./action-catalog.js";
 export * from "./needs-v2.js";
+export * from "./building-exploitation-v2.js";
 export * from "./state-v2.js";
 export * from "./events-v2.js";
 export * from "./projections-v2.js";

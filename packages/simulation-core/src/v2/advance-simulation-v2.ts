@@ -4,7 +4,7 @@ import { advanceClock } from "../clock.js";
 import { revealAroundObservers } from "../fog.js";
 import { nextEventId } from "../sequences.js";
 import { updateDiscoveryV2 } from "./discovery.js";
-import type { NavigationIndexV2 } from "./room-graph.js";
+import { ensureNavigationCurrent, type NavigationIndexV2 } from "./room-graph.js";
 import { advanceJobs, isWorkingPhase } from "./jobs/advance-jobs.js";
 import { transportMovementFactors, transportTravelLimit } from "./transport/movement.js";
 import { applyResourceDecay } from "./objects/decay.js";
@@ -20,6 +20,13 @@ export { BASE_WALK_SPEED_METERS_PER_SIM_SECOND_V2 };
 export interface AdvanceSimulationV2Result {
   readonly state: SimulationStateV2;
   readonly events: readonly DomainEventV2[];
+  /**
+   * Índice de navegación vigente tras el paso (S9): si un trabajo cambió un
+   * acceso o la estructura de un edificio, ya refleja ese cambio (invalidación
+   * dirigida). Quien orquesta debería conservarlo para el siguiente paso;
+   * aunque no lo haga, el núcleo lo re-deriva del mundo, nunca usa uno obsoleto.
+   */
+  readonly nav: NavigationIndexV2;
 }
 
 function pointAlongPath(path: readonly WorldPoint[], distanceMeters: number): WorldPoint {
@@ -67,13 +74,15 @@ function locationAtCheckpoint(
  * nunca lee el reloj de sistema). Progresa reloj, movimiento multi-tramo
  * (exterior/interior), niebla y descubrimiento pasivo.
  */
-export function advanceSimulationV2(state: SimulationStateV2, elapsedRealSeconds: number, nav: NavigationIndexV2): AdvanceSimulationV2Result {
+export function advanceSimulationV2(state: SimulationStateV2, elapsedRealSeconds: number, navIn: NavigationIndexV2): AdvanceSimulationV2Result {
+  // S9: el índice derivado nunca puede ir por detrás de los accesos/estructura del mundo (coste O(1) si ya está al día).
+  const nav = ensureNavigationCurrent(navIn, state.world);
   const previousSimSeconds = state.clock.elapsedSimSeconds;
   const nextClock = advanceClock(state.clock, elapsedRealSeconds);
   const simSecondsToAdvance = nextClock.elapsedSimSeconds - previousSimSeconds;
 
   if (simSecondsToAdvance <= 0) {
-    return { state: { ...state, clock: nextClock }, events: [] };
+    return { state: { ...state, clock: nextClock }, events: [], nav };
   }
 
   let sequences = state.sequences;
@@ -182,7 +191,7 @@ export function advanceSimulationV2(state: SimulationStateV2, elapsedRealSeconds
   const decayResult = applyResourceDecay(jobsResult.state);
   events.push(...decayResult.events);
 
-  return { state: decayResult.state, events };
+  return { state: decayResult.state, events, nav: jobsResult.nav };
 }
 
 const NEED_DIMENSIONS_ORDER: readonly NeedDimension[] = ["hydration", "nutrition", "rest"];

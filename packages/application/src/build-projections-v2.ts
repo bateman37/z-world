@@ -24,6 +24,8 @@ import type {
 import { toSimulatedDayTime } from "@z-world/contracts";
 import { ACTION_METHODS_BY_KEY } from "@z-world/catalogs";
 import { buildInventoryProjection, buildObjectActionOptions, buildObjectKnowledge, buildTransportActionOption, buildTransportJobProjection, derivePossessions, knownConsumableLots } from "./build-object-projections-v2.js";
+import { buildBuildingInspectTargets, buildBuildingsProjection, buildExploitationActionOptions, buildInstallDestinations } from "./build-exploitation-projections-v2.js";
+import { isBuildingTerminal, isOpeningPassable } from "@z-world/simulation-core";
 
 /**
  * Construye las proyecciones de solo lectura del runtime V2 (S3 §5.8):
@@ -109,18 +111,28 @@ function buildMapEntitiesProjection(state: SimulationStateV2): MapEntitiesProjec
 
   const buildings = Object.values(state.world.buildings)
     .filter((building) => knowledgeAtLeast(discovery, building.id, "structure", 2))
-    .map((building) => ({ id: building.id, placeId: building.placeId, footprint: building.footprint }));
+    .map((building) => {
+      // S9: un edificio desmantelado o demolido se dibuja como solar/escombros, nunca como edificio en pie.
+      const structureState = state.world.buildingFabrics?.[building.id]?.structureState;
+      const terminal = structureState === "demolished" || structureState === "dismantled" ? structureState : null;
+      return { id: building.id, placeId: building.placeId, footprint: building.footprint, terminal };
+    });
 
   const rooms = Object.values(state.world.rooms)
     .filter((room) => knowledgeAtLeast(discovery, room.id, "rooms", 2))
     .map((room) => {
       const floor = state.world.floors[room.floorId];
       return { id: room.id, buildingId: floor?.buildingId ?? "", polygon: room.polygon };
-    });
+    })
+    .filter((room) => !isBuildingTerminal(state.world, room.buildingId || null));
 
   const openings = Object.values(state.world.openings)
     .filter((opening) => knowledgeAtLeast(discovery, opening.id, "accesses", 2))
-    .map((opening) => ({ id: opening.id, position: opening.position, connectsToExterior: opening.connectsToExterior }));
+    .filter((opening) => {
+      const floor = opening.connectsRoomId ? state.world.floors[state.world.rooms[opening.connectsRoomId]?.floorId ?? ""] : undefined;
+      return !isBuildingTerminal(state.world, floor?.buildingId ?? null);
+    })
+    .map((opening) => ({ id: opening.id, position: opening.position, connectsToExterior: opening.connectsToExterior, passable: isOpeningPassable(opening.id, state.world) }));
 
   const people = state.peopleOrder
     .map((id) => state.people[id])
@@ -240,6 +252,17 @@ const EVENT_MESSAGE_KEYS: Readonly<Record<DomainEventV2["type"], string>> = {
   load_transferred: "log.load_transferred",
   load_deposited: "log.load_deposited",
   transport_means_parked: "log.transport_means_parked",
+  access_changed: "log.access_changed",
+  installation_surveyed: "log.installation_surveyed",
+  installation_disconnected: "log.installation_disconnected",
+  installation_dismantled: "log.installation_dismantled",
+  finish_recovered: "log.finish_recovered",
+  structure_dismantled: "log.structure_dismantled",
+  building_demolished: "log.building_demolished",
+  building_life_stage_changed: "log.building_life_stage_changed",
+  building_layer_exhausted: "log.building_layer_exhausted",
+  object_uninstalled: "log.object_uninstalled",
+  object_installed: "log.object_installed",
 };
 
 export function toOperationalLogEntryV2(event: DomainEventV2): OperationalLogEntryProjection {
@@ -250,6 +273,9 @@ export function toOperationalLogEntryV2(event: DomainEventV2): OperationalLogEnt
   if ("roomId" in event) params.roomId = event.roomId;
   if ("entityId" in event) params.entityId = event.entityId;
   if ("facet" in event) params.facet = event.facet;
+  if (event.type === "access_changed") params.change = event.change;
+  if (event.type === "building_layer_exhausted") params.layer = event.layer;
+  if (event.type === "building_life_stage_changed") params.lifeStage = event.lifeStage;
   return {
     eventId: event.eventId,
     simSeconds: event.simSeconds,
@@ -338,13 +364,17 @@ function buildContextualActionsProjection(state: SimulationStateV2): readonly Co
     .map((p) => ({ target: { kind: "place", placeId: p.id } as JobTarget, labelKey: "target.unidentified_place", blockedReasonKey: null }));
   if (observeTargets.length > 0) options.push({ actionKey: "observe", labelKey: "action.observe.label", targets: observeTargets });
 
-  const inspectTargets: ContextualActionTargetProjection[] = Object.values(state.world.rooms)
-    .filter((r) => hasFacetAtLeast(r.id, "rooms", RANK, 2))
-    .map((r) => ({ target: { kind: "room", roomId: r.id } as JobTarget, labelKey: roomLabelKey(r), blockedReasonKey: null }));
+  const inspectTargets: ContextualActionTargetProjection[] = [
+    ...Object.values(state.world.rooms)
+      .filter((r) => hasFacetAtLeast(r.id, "rooms", RANK, 2) && !isBuildingTerminal(state.world, state.world.floors[r.floorId]?.buildingId ?? null))
+      .map((r) => ({ target: { kind: "room", roomId: r.id } as JobTarget, labelKey: roomLabelKey(r), blockedReasonKey: null })),
+    // S9: inspeccionar un edificio revela su estructura (época, materiales, etapas), requisito para desmantelarlo o demolerlo.
+    ...buildBuildingInspectTargets(state),
+  ];
   if (inspectTargets.length > 0) options.push({ actionKey: "inspect", labelKey: "action.inspect.label", targets: inspectTargets });
 
   const registerTargets: ContextualActionTargetProjection[] = Object.values(state.world.rooms)
-    .filter((r) => hasFacetAtLeast(r.id, "rooms", RANK, 2))
+    .filter((r) => hasFacetAtLeast(r.id, "rooms", RANK, 2) && !isBuildingTerminal(state.world, state.world.floors[r.floorId]?.buildingId ?? null))
     .map((r) => ({ target: { kind: "room", roomId: r.id } as JobTarget, labelKey: roomLabelKey(r), blockedReasonKey: null }));
   if (registerTargets.length > 0) options.push({ actionKey: "register", labelKey: "action.register.label", targets: registerTargets });
 
@@ -357,7 +387,7 @@ function buildContextualActionsProjection(state: SimulationStateV2): readonly Co
   if (eatTargets.length > 0) options.push({ actionKey: "eat", labelKey: "action.eat.label", targets: eatTargets });
 
   const restTargets: ContextualActionTargetProjection[] = Object.values(state.world.rooms)
-    .filter((r) => discoveryByEntity.has(r.id))
+    .filter((r) => discoveryByEntity.has(r.id) && !isBuildingTerminal(state.world, state.world.floors[r.floorId]?.buildingId ?? null))
     .map((r) => ({ target: { kind: "room", roomId: r.id } as JobTarget, labelKey: "target.room_rest", blockedReasonKey: null }));
   if (restTargets.length > 0) options.push({ actionKey: "rest", labelKey: "action.rest.label", targets: restTargets });
 
@@ -367,7 +397,14 @@ function buildContextualActionsProjection(state: SimulationStateV2): readonly Co
 
   // Traslados (S8): carga conocida, destinos con capacidad real, medios conocidos y selector Auto/método.
   const transportOption = buildTransportActionOption(state, knowledge);
-  if (transportOption) options.push(transportOption);
+  if (transportOption) {
+    // S9: «instalar» como destino real del traslado (puerta hacia una abertura sin cierre, bomba hacia una fuente sin bomba).
+    const transport = transportOption.transport ? { ...transportOption.transport, destinations: [...transportOption.transport.destinations, ...buildInstallDestinations(state)] } : transportOption.transport;
+    options.push({ ...transportOption, ...(transport ? { transport } : {}) });
+  }
+
+  // S9: accesos, instalaciones, acabados y estructura (explotación progresiva por capas).
+  options.push(...buildExploitationActionOptions(state, knowledge));
 
   return options;
 }
@@ -405,6 +442,7 @@ export function buildWorkerProjectionsV2(params: {
     designations: buildDesignationsProjection(state),
     contextualActions: buildContextualActionsProjection(state),
     inventory: buildInventoryProjection(state, buildObjectKnowledge(state)),
+    buildings: buildBuildingsProjection(state),
     revision: params.revision,
   };
 }

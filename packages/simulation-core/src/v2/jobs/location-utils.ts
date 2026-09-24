@@ -1,5 +1,6 @@
 import type { EntityLocation, JobTarget, SimulationStateV2, WorldPoint } from "@z-world/contracts";
 import { furnitureLocation } from "@z-world/contracts";
+import { isRoomInTerminalBuilding } from "../exploitation/fabric.js";
 
 /**
  * Traduce un `JobTarget` (WEB-002 §11.1, subhito S5) a la `EntityLocation`
@@ -21,10 +22,26 @@ export function resolveTargetLocation(state: SimulationStateV2, target: JobTarge
       return place ? { kind: "world_point", point: place.position } : null;
     }
     case "room":
-      return state.world.rooms[target.roomId] ? { kind: "room", roomId: target.roomId } : null;
+      // S9: las estancias de un edificio desmantelado o demolido ya no existen como lugar utilizable (irreversible).
+      if (!state.world.rooms[target.roomId] || isRoomInTerminalBuilding(state.world, target.roomId)) return null;
+      return { kind: "room", roomId: target.roomId };
     case "opening": {
       const opening = state.world.openings[target.openingId];
       return opening ? { kind: "world_point", point: opening.position } : null;
+    }
+    case "building_installation": {
+      // S9: una instalación se trabaja desde una de las estancias a las que da servicio (o desde el edificio si no tiene ninguna).
+      const installation = state.world.buildingInstallations?.[target.installationId];
+      if (!installation) return null;
+      const roomId = installation.roomIds.find((id) => state.world.rooms[id]);
+      if (roomId) return isRoomInTerminalBuilding(state.world, roomId) ? null : { kind: "room", roomId };
+      return resolveTargetLocation(state, { kind: "building", buildingId: installation.buildingId });
+    }
+    case "building_finish": {
+      const finish = state.world.buildingFinishes?.[target.finishId];
+      if (!finish) return null;
+      if (finish.roomId && state.world.rooms[finish.roomId]) return isRoomInTerminalBuilding(state.world, finish.roomId) ? null : { kind: "room", roomId: finish.roomId };
+      return resolveTargetLocation(state, { kind: "building", buildingId: finish.buildingId });
     }
     case "resource_lot": {
       const lot = state.resourceLots[target.resourceLotId];

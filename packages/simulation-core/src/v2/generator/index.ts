@@ -14,6 +14,7 @@ import { generateEnvironmentPlaces } from "./environment-places.js";
 import { materializeScenarioGuarantees } from "./scenario.js";
 import { materializeWaterPump } from "./installations.js";
 import { materializeTransportDemonstrators } from "./transport-demonstrators.js";
+import { materializeBuildingFabric, S9_BUILDINGS_STREAM_LABEL } from "./building-fabric.js";
 import { buildWalkabilityGridV2 } from "../navigation-v2.js";
 import { createDerivedPrngStreamState } from "../../prng.js";
 import { SHELTER_DISTANCE_METERS } from "@z-world/catalogs";
@@ -145,8 +146,21 @@ export function generateVillage(seed: string, worldStream: PrngStream, config: V
   );
   degradations.push(...demonstrators.degradations);
 
+  // S9 (v4): tejido de edificio (época, estructura, instalaciones y acabados) con su propio stream derivado, al final del
+  // pipeline: el trazado, los objetos y los IDs generados por v3 no cambian.
+  const s9Stream = new PrngStream(createDerivedPrngStreamState(seed, S9_BUILDINGS_STREAM_LABEL));
+  const fabric = materializeBuildingFabric(s9Stream, ids, world);
+  degradations.push(...fabric.degradations);
+  const worldWithFabric: SemanticWorldV2 = {
+    ...world,
+    buildingFabrics: fabric.buildingFabrics,
+    buildingInstallations: fabric.buildingInstallations,
+    buildingFinishes: fabric.buildingFinishes,
+    navigationRevision: { global: 0, byBuilding: {} },
+  };
+
   return {
-    world,
+    world: worldWithFabric,
     furniture: contents.furniture,
     containers: [...contents.containers, ...scenario.extraContainers],
     worldObjects: [...contents.worldObjects, ...scenario.extraWorldObjects, ...installations.worldObjects],

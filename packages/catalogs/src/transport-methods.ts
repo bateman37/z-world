@@ -13,12 +13,15 @@ import { TRANSPORT_METHODS } from "@z-world/contracts";
  * generado, y están documentadas en `docs/STATUS.md` («S8 — Puerta B»).
  *
  * Datos declarados pero sin terreno que los ejercite todavía (el generador
- * no produce pendientes, escalones, escaleras, barro, grava ni escombros):
- * `maxSlopePercent`, `stairs` y las superficies `mud`/`gravel`/`rubble` no
- * existen como celdas del mundo, así que no se inventan.
+ * no produce pendientes, escalones, escaleras, barro ni grava):
+ * `maxSlopePercent`, `stairs` y las superficies `mud`/`gravel` no existen
+ * como celdas del mundo, así que no se inventan. Los escombros (`rubble`)
+ * sí existen desde S9: los deja la demolición de un edificio sobre su huella
+ * (`s8-v2` añade solo esa superficie; el resto de cifras de `s8-v1` no
+ * cambia).
  */
 
-export const TRANSPORT_TUNING_VERSION = "s8-v1" as const;
+export const TRANSPORT_TUNING_VERSION = "s8-v2" as const;
 
 export const OPENING_WIDTH_CLASSES = ["narrow", "normal", "wide", "gate"] as const;
 export type OpeningWidthClass = (typeof OPENING_WIDTH_CLASSES)[number];
@@ -27,8 +30,8 @@ export const OPENING_WIDTH_RANK: Readonly<Record<OpeningWidthClass, number>> = {
 
 export const BULK_RANK: Readonly<Record<BulkClass, number>> = { small: 0, medium: 1, large: 2, bulky: 3 };
 
-/** Superficies que el mundo generado distingue hoy (carretera firme, tierra, vegetación densa/bosque, interior). */
-export const SURFACE_KINDS = ["road", "open_ground", "dense_vegetation", "interior"] as const;
+/** Superficies que el mundo distingue hoy (carretera firme, tierra, vegetación densa/bosque, interior y, desde S9, escombros de una demolición). */
+export const SURFACE_KINDS = ["road", "open_ground", "dense_vegetation", "interior", "rubble"] as const;
 export type SurfaceKind = (typeof SURFACE_KINDS)[number];
 
 export interface SurfaceBehaviour {
@@ -102,6 +105,7 @@ export const TRANSPORT_METHOD_DEFINITIONS: readonly TransportMethodDefinition[] 
       open_ground: { speed: 0.8, noisePerMeter: 0.1, effort: 2 },
       dense_vegetation: { speed: 0.65, noisePerMeter: 0.15, effort: 2.4 },
       interior: { speed: 0.8, noisePerMeter: 0.1, effort: 1.8 },
+      rubble: { speed: 0.5, noisePerMeter: 0.2, effort: 2.8 },
     },
     emptySpeed: 1,
     prepareMinutes: 0,
@@ -131,6 +135,7 @@ export const TRANSPORT_METHOD_DEFINITIONS: readonly TransportMethodDefinition[] 
       open_ground: { speed: 0.9, noisePerMeter: 0.05, effort: 1.4 },
       dense_vegetation: { speed: 0.8, noisePerMeter: 0.08, effort: 1.7 },
       interior: { speed: 0.9, noisePerMeter: 0.05, effort: 1.3 },
+      rubble: { speed: 0.6, noisePerMeter: 0.1, effort: 2.2 },
     },
     emptySpeed: 1,
     prepareMinutes: 0,
@@ -161,6 +166,7 @@ export const TRANSPORT_METHOD_DEFINITIONS: readonly TransportMethodDefinition[] 
       open_ground: { speed: 0.55, noisePerMeter: 0.3, effort: 2.6 },
       dense_vegetation: { speed: 0.35, noisePerMeter: 0.45, effort: 3.2 },
       interior: { speed: 0.5, noisePerMeter: 0.3, effort: 2.4 },
+      rubble: { speed: 0.3, noisePerMeter: 0.5, effort: 3.6 },
     },
     emptySpeed: 1,
     prepareMinutes: 1,
@@ -192,6 +198,8 @@ export const TRANSPORT_METHOD_DEFINITIONS: readonly TransportMethodDefinition[] 
       // Una rueda en bosque: posible pero lenta y cansada.
       dense_vegetation: { speed: 0.45, noisePerMeter: 0.8, effort: 2.3 },
       interior: { speed: 0.8, noisePerMeter: 0.5, effort: 1.3 },
+      // Una rueda sobre escombros: posible pero muy lenta, ruidosa y cansada.
+      rubble: { speed: 0.35, noisePerMeter: 1, effort: 2.8 },
     },
     emptySpeed: 0.95,
     prepareMinutes: 1,
@@ -223,6 +231,8 @@ export const TRANSPORT_METHOD_DEFINITIONS: readonly TransportMethodDefinition[] 
       open_ground: { speed: 0.6, noisePerMeter: 1.4, effort: 1.8 },
       dense_vegetation: null,
       interior: { speed: 0.9, noisePerMeter: 0.6, effort: 1.1 },
+      // Las ruedecitas de un carro de compra no cruzan escombros (S9).
+      rubble: null,
     },
     emptySpeed: 1,
     prepareMinutes: 1,

@@ -166,6 +166,11 @@ function migrateWorld(v1: SimulationStateV1, degradations: string[]): SemanticWo
     placeHistories: {},
     lootPressureZones: {},
     lootingRoutes: {},
+    // S9: sin tejido de edificio (mundo sintético/migrado): capas 3-5 no disponibles, accesos sí.
+    buildingFabrics: {},
+    buildingInstallations: {},
+    buildingFinishes: {},
+    navigationRevision: { global: 0, byBuilding: {} },
   };
 }
 

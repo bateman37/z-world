@@ -32,6 +32,7 @@ import {
   isRoomKnown,
   meansBlockReason,
   summarizeCargo,
+  isBuildingTerminal,
 } from "@z-world/simulation-core";
 
 /**
@@ -462,6 +463,7 @@ export function buildTransportOrderOptions(state: SimulationStateV2, knowledge: 
   }
   for (const room of Object.values(state.world.rooms).sort((a, b) => (a.id < b.id ? -1 : 1))) {
     if (!isRoomKnown(state, room.id)) continue;
+    if (isBuildingTerminal(state.world, state.world.floors[room.floorId]?.buildingId ?? null)) continue; // S9: ya no existe como estancia.
     destinations.push({ destination: { kind: "room", roomId: room.id }, labelKey: room.programRoleKey ? `room_role.${room.programRoleKey}` : "target.room", blockedReasonKey: null });
   }
   for (const point of Object.values(state.transferPoints).sort((a, b) => (a.id < b.id ? -1 : 1))) {
@@ -480,6 +482,8 @@ const STEP_OF_PLACEMENT = (state: SimulationStateV2, job: Job): TransportJobProj
 
 function destinationLabelKey(state: SimulationStateV2, job: Job): string {
   const destination = job.transport!.destination;
+  if (destination.kind === "install_at_opening") return "destination.install_at_opening";
+  if (destination.kind === "install_at_place") return "destination.install_at_place";
   if (destination.kind === "container") return containerLabelKey(state, destination.containerId);
   if (destination.kind === "room") {
     const room = state.world.rooms[destination.roomId];

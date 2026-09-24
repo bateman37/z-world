@@ -1,3 +1,4 @@
+import { installSiteLocation, installSiteOfDestination, installSiteTarget, type InstallSite } from "../exploitation/install-sites.js";
 import type {
   CargoRef,
   DomainEventV2,
@@ -122,6 +123,7 @@ function startMoveAlong(ctx: Ctx, personId: string, jobId: string, route: Transp
         travelledDistanceMeters: 0,
         startedAtSimSeconds: ctx.state.clock.elapsedSimSeconds,
         locationCheckpoints: checkpoints,
+        crossedOpeningIds: [...route.path.openingIds],
       },
     },
   });
@@ -165,7 +167,7 @@ export function progressTransportValidate(ctx: Ctx, ops: EngineOps, jobId: strin
     requiredCarriers: Math.max(1, chosen.requiredCarriers),
     usefulCarrierLimit: Math.max(1, chosen.usefulLimit),
     routeDistanceMeters: round3(chosen.route?.path.totalDistanceMeters ?? 0),
-    surfaceMeters: chosen.route?.surfaceMeters ?? { road: 0, open_ground: 0, dense_vegetation: 0, interior: 0 },
+    surfaceMeters: chosen.route?.surfaceMeters ?? { road: 0, open_ground: 0, dense_vegetation: 0, interior: 0, rubble: 0 },
     routeAccesses: [],
     routeTravelledMeters: 0,
     planNoteKey: plan.chosenBy === "auto" ? `transport_plan.auto.${chosen.method}` : chosen.stagedStop ? "transport_plan.imposed_staged" : "transport_plan.imposed",
@@ -454,7 +456,7 @@ function noiseBandFor(perMeter: number): "quiet" | "audible" | "loud" {
 }
 
 /** Superficie bajo una persona (interior si está en una estancia). */
-export function surfaceUnder(ctx: Pick<Ctx, "state" | "nav">, person: PersonStateV2): "road" | "open_ground" | "dense_vegetation" | "interior" {
+export function surfaceUnder(ctx: Pick<Ctx, "state" | "nav">, person: PersonStateV2): "road" | "open_ground" | "dense_vegetation" | "interior" | "rubble" {
   if (person.location.kind === "room") return "interior";
   const cell = worldToCellV2(ctx.nav.grid, person.public.position);
   if (!cell) return "open_ground";
@@ -559,7 +561,7 @@ function applyFragileWear(ctx: Ctx, jobId: string): void {
   const job = ctx.state.jobs[jobId];
   const transport = job?.transport;
   if (!job || !transport || !isWheeled(transport.method)) return;
-  const rough = transport.surfaceMeters.open_ground + transport.surfaceMeters.dense_vegetation;
+  const rough = transport.surfaceMeters.open_ground + transport.surfaceMeters.dense_vegetation + (transport.surfaceMeters.rubble ?? 0);
   if (rough <= 0) return;
   const loss = (rough / 10) * FRAGILE_WHEELED_ROUGH_LOSS_PER_10M * (job.attention === "careful" ? 0.5 : 1);
   // Incluye lo frágil que va dentro de un recipiente de la carga (etiqueta heredada del contenido).
@@ -623,16 +625,21 @@ export function progressTransportDeliver(ctx: Ctx, ops: EngineOps, jobId: string
         if (ref.kind === "resource_lot") ops.mergeStoredLotIntoContainer(ctx, ref.id, destination.containerId, jobId);
       }
     } else {
+      const installSite = installSiteOfDestination(destination);
       const location: EntityLocation =
         destination.kind === "room"
           ? { kind: "room", roomId: destination.roomId }
           : destination.kind === "transfer_point"
             ? { kind: "transfer_point", transferPointId: destination.transferPointId }
-            : personPhysicalLocation(primary);
+            : installSite
+              ? (installSiteLocation(ctx.state, installSite) ?? personPhysicalLocation(primary))
+              : personPhysicalLocation(primary);
       for (const ref of transport.cargo) {
         dropFromBundle(ctx, ref, transport.loadBundleId);
         placeCargo(ctx, ref, location);
       }
+      // S9: «instalar» como destino real: una etapa `install` encadenada, con su propia reserva, instala lo entregado.
+      if (installSite && transport.cargo[0]?.kind === "world_object") chainInstallJob(ctx, jobId, installSite, transport.cargo[0].id);
     }
     if (bundleId) {
       const eventId = withNextEventId(ctx);
@@ -644,7 +651,18 @@ export function progressTransportDeliver(ctx: Ctx, ops: EngineOps, jobId: string
         jobId,
         loadBundleId: bundleId,
         destinationKind: destination.kind,
-        destinationId: destination.kind === "container" ? destination.containerId : destination.kind === "room" ? destination.roomId : destination.kind === "transfer_point" ? destination.transferPointId : null,
+        destinationId:
+          destination.kind === "container"
+            ? destination.containerId
+            : destination.kind === "room"
+              ? destination.roomId
+              : destination.kind === "transfer_point"
+                ? destination.transferPointId
+                : destination.kind === "install_at_opening"
+                  ? destination.openingId
+                  : destination.kind === "install_at_place"
+                    ? destination.placeId
+                    : null,
       });
     }
   }
@@ -725,6 +743,30 @@ function deliverToTransferPoint(ctx: Ctx, jobId: string, primary: PersonStateV2)
   emit(ctx, { type: "load_transferred", eventId, simSeconds: ctx.state.clock.elapsedSimSeconds, causedByCommandId: null, jobId, transferPointId, nextJobId });
 }
 
+/** Etapa `install` que sigue a un traslado con destino de instalación (S9): mismo equipo, orden y modos que el traslado. */
+function chainInstallJob(ctx: Ctx, jobId: string, site: InstallSite, objectId: string): void {
+  const job = ctx.state.jobs[jobId]!;
+  const def = ACTION_METHODS_BY_KEY.get("install");
+  if (!def) return;
+  const created = createJob(ctx.state, {
+    actionKey: "install",
+    def,
+    target: installSiteTarget(site),
+    origin: job.origin,
+    causingCommandOrDesignationId: job.causingCommandOrDesignationId,
+    directOrder: job.directOrder,
+    requestedPersonIds: job.requestedPersonIds.length > 0 ? job.requestedPersonIds : job.assignments.map((a) => a.personId),
+    pace: job.pace,
+    attention: job.attention,
+    urgency: job.urgency,
+    storageItem: { kind: "world_object", id: objectId },
+  });
+  if ("rejectedReasonKey" in created) return;
+  ctx.state = { ...ctx.state, sequences: created.sequences, jobs: { ...ctx.state.jobs, [created.job.id]: created.job } };
+  ctx.events.push(...created.events);
+  putTransport(ctx, jobId, { nextJobId: created.job.id });
+}
+
 export function cargoTarget(ref: CargoRef): Job["target"] {
   if (ref.kind === "world_object") return { kind: "world_object", worldObjectId: ref.id };
   if (ref.kind === "resource_lot") return { kind: "resource_lot", resourceLotId: ref.id };
@@ -752,7 +794,7 @@ export function emptyTransportState(cargo: readonly CargoRef[], destination: Tra
     usefulCarrierLimit: 1,
     routeAccesses: [],
     routeDistanceMeters: 0,
-    surfaceMeters: { road: 0, open_ground: 0, dense_vegetation: 0, interior: 0 },
+    surfaceMeters: { road: 0, open_ground: 0, dense_vegetation: 0, interior: 0, rubble: 0 },
     travelledLoadedMeters: 0,
     routeTravelledMeters: 0,
     noiseUnits: 0,

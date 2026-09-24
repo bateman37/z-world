@@ -203,6 +203,14 @@ export const RESOURCE_CATALOG: readonly ResourceCatalogEntry[] = [
   { family: "electrical_components_i", labelKey: "resource.electrical_components_i", unit: "kilogram", kgPerUnit: 1, role: "material", perishable: false },
   { family: "mechanical_parts_i", labelKey: "resource.mechanical_parts_i", unit: "kilogram", kgPerUnit: 1, role: "material", perishable: false },
   { family: "electric_motors_ii", labelKey: "resource.electric_motors_ii", unit: "kilogram", kgPerUnit: 1, role: "material", perishable: false },
+  // S9 (Puerta C): materiales de instalaciones, acabados y estructura de edificios (CAT-002 §3.6-§3.9).
+  { family: "piping", labelKey: "resource.piping", unit: "kilogram", kgPerUnit: 1, role: "material", perishable: false },
+  { family: "glass", labelKey: "resource.glass", unit: "kilogram", kgPerUnit: 1, role: "material", perishable: false },
+  { family: "ceramics", labelKey: "resource.ceramics", unit: "kilogram", kgPerUnit: 1, role: "material", perishable: false },
+  { family: "masonry", labelKey: "resource.masonry", unit: "kilogram", kgPerUnit: 1, role: "material", perishable: false },
+  { family: "roof_tiles", labelKey: "resource.roof_tiles", unit: "kilogram", kgPerUnit: 1, role: "material", perishable: false },
+  { family: "structural_steel", labelKey: "resource.structural_steel", unit: "kilogram", kgPerUnit: 1, role: "material", perishable: false },
+  { family: "rubble", labelKey: "resource.rubble", unit: "kilogram", kgPerUnit: 1, role: "material", perishable: false },
 ];
 
 export const RESOURCE_CATALOG_BY_FAMILY: ReadonlyMap<ResourceFamily, ResourceCatalogEntry> = new Map(RESOURCE_CATALOG.map((e) => [e.family, e]));

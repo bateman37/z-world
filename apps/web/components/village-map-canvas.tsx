@@ -167,11 +167,14 @@ export function VillageMapCanvas({
         else ctx.lineTo(s.x, s.y);
       });
       ctx.closePath();
-      ctx.fillStyle = "#5a4a2f";
+      // S9: un edificio demolido se dibuja como escombros; uno desmantelado, como solar despejado.
+      ctx.fillStyle = building.terminal === "demolished" ? "#4a4541" : building.terminal === "dismantled" ? "#3a3d33" : "#5a4a2f";
       ctx.fill();
-      ctx.strokeStyle = "#c9a45c";
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = building.terminal ? "rgba(160, 150, 140, 0.6)" : "#c9a45c";
+      ctx.lineWidth = building.terminal ? 1 : 2;
+      if (building.terminal) ctx.setLineDash([4, 3]);
       ctx.stroke();
+      ctx.setLineDash([]);
     }
 
     for (const room of mapEntities.rooms) {
@@ -199,7 +202,8 @@ export function VillageMapCanvas({
       const s = toScreen(opening.position);
       ctx.beginPath();
       ctx.arc(s.x, s.y, 3, 0, Math.PI * 2);
-      ctx.fillStyle = "#7fb3ff";
+      // S9: un acceso bloqueado, barricado o tapiado se ve en rojo (no transitable).
+      ctx.fillStyle = opening.passable === false ? "#e0605a" : "#7fb3ff";
       ctx.fill();
     }
 

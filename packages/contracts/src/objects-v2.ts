@@ -253,6 +253,20 @@ export const RESOURCE_FAMILIES = [
   "electrical_components_i",
   "mechanical_parts_i",
   "electric_motors_ii",
+  /**
+   * Materiales de explotación de edificios (S9 — Puerta C, CAT-002
+   * §3.6-§3.9): tuberías (instalación de agua/calefacción), vidrio
+   * (ventanas), cerámica (sanitarios, baldosas, azulejos), mampostería
+   * (ladrillo/bloque/piedra), tejas, acero estructural (perfiles, ferralla)
+   * y escombros. Aditivos: ninguna partida anterior los contiene.
+   */
+  "piping",
+  "glass",
+  "ceramics",
+  "masonry",
+  "roof_tiles",
+  "structural_steel",
+  "rubble",
 ] as const;
 export type ResourceFamily = (typeof RESOURCE_FAMILIES)[number];
 

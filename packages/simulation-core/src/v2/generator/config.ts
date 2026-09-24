@@ -7,7 +7,7 @@
  */
 
 /** Identificador inequívoco de esta versión del generador (§7.1). Cambiarlo nunca reescribe partidas ya generadas con una versión anterior (§7.4/§25.2). */
-export const VILLAGE_GENERATOR_VERSION = "web-002-semantic-v3" as const;
+export const VILLAGE_GENERATOR_VERSION = "web-002-semantic-v4" as const;
 
 /**
  * Historial de versiones del generador (§5.2 del prompt S7-S9). Una
@@ -29,8 +29,15 @@ export const VILLAGE_GENERATOR_VERSION = "web-002-semantic-v3" as const;
  *   una carretilla junto a la entrada del refugio (stream derivado
  *   `s8-transport`). Todo lo generado por v2 —incluido el medio aleatorio
  *   del taller— se conserva idéntico.
+ * - `web-002-semantic-v4` (S9, Puerta C): añade el tejido de cada edificio
+ *   de los cuatro perfiles con programa (época constructiva, perfil
+ *   estructural versionado, instalaciones por sistema y acabados
+ *   recuperables por estancia; stream derivado `s9-buildings`, al final del
+ *   pipeline). Todo lo generado por v3 —trazado, objetos, medios e IDs— se
+ *   conserva idéntico; una partida v1-v3 carga sin capas 3-5 (degradación
+ *   explícita: no se regeneran ni se añaden al cargar).
  */
-export const PREVIOUS_VILLAGE_GENERATOR_VERSIONS = ["web-002-semantic-v1", "web-002-semantic-v2"] as const;
+export const PREVIOUS_VILLAGE_GENERATOR_VERSIONS = ["web-002-semantic-v1", "web-002-semantic-v2", "web-002-semantic-v3"] as const;
 
 export interface VillageGeneratorConfig {
   /** Media huella del sector, en metros. 1500 → sector de ~3 × 3 km (§7.1). */
