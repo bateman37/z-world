@@ -71,10 +71,10 @@ export function agricultureValidationReason(state: SimulationStateV2, job: Job, 
       const crop = CROP_PROFILES_BY_ID.get(job.cropId ?? "garden_vegetables") ?? null;
       if (!crop) return "block.unknown_crop";
       if (!parcel) return "block.target_no_longer_exists";
-      const areaM2 = parcelAreaM2(state, plot.parcelId);
-      const neededSeedsKg = round6(areaM2 * crop.seedKgPerM2);
+      // Sembrar no exige semillas para el campo entero: la superficie realmente sembrada se deriva de lo que hay
+      // disponible (§5.4 del prompt de subhito), nunca al revés. Solo bloquea si no hay ninguna semilla localizada.
       const availableSeeds = resourceLotsAtFieldEdge(state, plot.parcelId, executorId, crop.seedResourceFamily).reduce((sum, lot) => sum + lot.quantity, 0);
-      if (availableSeeds < neededSeedsKg) return "block.missing_seeds";
+      if (availableSeeds <= 0) return "block.missing_seeds";
       if (!toolAtFieldEdge(state, plot.parcelId, executorId, crop.requiredToolVariant)) return "block.missing_tool";
       return null;
     }
@@ -99,16 +99,20 @@ export function agriculturePrepare(ctx: Ctx, jobId: string, executorId: string):
   if (!plot) return { blockReasonKey: "block.target_no_longer_exists" };
   const crop = CROP_PROFILES_BY_ID.get(job.cropId ?? "garden_vegetables");
   if (!crop) return { blockReasonKey: "block.unknown_crop" };
+  // Reserva como máximo lo que exige el campo entero, nunca más de lo disponible (§5.4: la superficie sembrada se deriva
+  // de las semillas efectivamente reservadas/consumidas, calculada en `agricultureApplyConsequences`).
   const areaM2 = parcelAreaM2(ctx.state, plot.parcelId);
-  const neededKg = round6(areaM2 * crop.seedKgPerM2);
-  let remaining = neededKg;
+  const fullFieldKg = round6(areaM2 * crop.seedKgPerM2);
+  let remaining = fullFieldKg;
+  let reservedAny = false;
   for (const lot of resourceLotsAtFieldEdge(ctx.state, plot.parcelId, executorId, crop.seedResourceFamily)) {
     if (remaining <= 0) break;
     if (lot.reservedByJobId && lot.reservedByJobId !== jobId) continue;
     ctx.state = { ...ctx.state, resourceLots: { ...ctx.state.resourceLots, [lot.id]: { ...lot, reservedByJobId: jobId } } };
     remaining -= lot.quantity;
+    reservedAny = true;
   }
-  if (remaining > 1e-6) return { blockReasonKey: "block.missing_seeds" };
+  if (!reservedAny) return { blockReasonKey: "block.missing_seeds" };
   return { blockReasonKey: null };
 }
 
@@ -151,7 +155,9 @@ function consumeReservedSeeds(ctx: Ctx, jobId: string, family: string, quantity:
       delete resourceLots[lot.id];
       ctx.state = { ...ctx.state, resourceLots };
     } else {
-      ctx.state = { ...ctx.state, resourceLots: { ...ctx.state.resourceLots, [lot.id]: { ...lot, quantity: next } } };
+      // Lo que sobra de la reserva (se pidió más de lo que exigía la superficie realmente sembrada) queda libre, nunca
+      // atrapado bajo un trabajo ya terminado.
+      ctx.state = { ...ctx.state, resourceLots: { ...ctx.state.resourceLots, [lot.id]: { ...lot, quantity: next, reservedByJobId: null } } };
     }
     const eventId = withNextEventId(ctx);
     emit(ctx, { type: "resource_lot_consumed", eventId, simSeconds: ctx.state.clock.elapsedSimSeconds, causedByCommandId: null, resourceLotId: lot.id, jobId, quantity: take });
@@ -177,9 +183,14 @@ export function agricultureApplyConsequences(ctx: Ctx, job: Job, executorId: str
     case "sow": {
       const crop = CROP_PROFILES_BY_ID.get(job.cropId ?? "garden_vegetables");
       if (!crop) return "block.unknown_crop";
-      const areaM2 = parcelAreaM2(ctx.state, plot.parcelId);
-      const seedsKg = round6(areaM2 * crop.seedKgPerM2);
-      consumeReservedSeeds(ctx, job.id, crop.seedResourceFamily, seedsKg);
+      const fullAreaM2 = parcelAreaM2(ctx.state, plot.parcelId);
+      // La superficie realmente sembrada se deriva de las semillas ya reservadas en `prepare` (§5.4), nunca al revés:
+      // sembrar con menos semillas de las que exige el campo entero siembra menos superficie, nunca bloquea el trabajo.
+      const reservedKg = round6(valuesById(ctx.state.resourceLots).filter((l) => l.family === crop.seedResourceFamily && l.reservedByJobId === job.id).reduce((sum, l) => sum + l.quantity, 0));
+      const fullFieldKg = round6(fullAreaM2 * crop.seedKgPerM2);
+      const consumedKg = Math.min(reservedKg, fullFieldKg);
+      const sownAreaM2 = Math.min(fullAreaM2, round6(consumedKg / crop.seedKgPerM2));
+      consumeReservedSeeds(ctx, job.id, crop.seedResourceFamily, consumedKg);
       const cycleId = nextCropCycleId(ctx);
       const cycle: CropCycle = {
         id: cycleId,
@@ -188,8 +199,8 @@ export function agricultureApplyConsequences(ctx: Ctx, job: Job, executorId: str
         sownAtSimSeconds: now,
         harvestableAtSimSeconds: now + crop.growthSimSeconds,
         cared: false,
-        sownAreaM2: areaM2,
-        seedsSownKg: seedsKg,
+        sownAreaM2,
+        seedsSownKg: consumedKg,
         careEvents: [],
         lastCaredAtSimSeconds: null,
         harvestedAtSimSeconds: null,
@@ -198,7 +209,7 @@ export function agricultureApplyConsequences(ctx: Ctx, job: Job, executorId: str
       ctx.state = { ...ctx.state, cultivationPlots: { ...ctx.state.cultivationPlots, [plot.id]: { ...ctx.state.cultivationPlots[plot.id]!, activeCropCycleId: cycleId, damageLevel: 0 } } };
       setPlotState(ctx, plot.id, "growing");
       const eventId = withNextEventId(ctx);
-      emit(ctx, { type: "crop_sown", eventId, simSeconds: now, causedByCommandId: null, cultivationPlotId: plot.id, cropCycleId: cycleId, cropId: crop.id, sownAreaM2: areaM2, jobId: job.id });
+      emit(ctx, { type: "crop_sown", eventId, simSeconds: now, causedByCommandId: null, cultivationPlotId: plot.id, cropCycleId: cycleId, cropId: crop.id, sownAreaM2, jobId: job.id });
       return null;
     }
     case "tend_crop": {
