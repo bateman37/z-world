@@ -9,6 +9,7 @@ import { releaseJobReservations } from "./jobs/reservations.js";
 import { valuesById } from "./ordered.js";
 import { transitionJob } from "./jobs/job-transitions.js";
 import { emptyTransportState, settleTransportOnStop } from "./transport/phases.js";
+import { generateTerrainDesignationJobs } from "./terrain/designations.js";
 
 export interface ApplyCommandV2Result {
   readonly state: SimulationStateV2;
@@ -319,6 +320,7 @@ function applyOrderContextualAction(
     storageItem: command.storageItem ?? null,
     storageQuantity: command.storageQuantity ?? null,
     transport,
+    cropId: command.actionKey === "sow" ? (command.cropId ?? "garden_vegetables") : null,
   });
   if ("rejectedReasonKey" in created) return { state, events: [] };
   const nextState: SimulationStateV2 = { ...state, sequences: created.sequences, jobs: { ...state.jobs, [created.job.id]: created.job } };
@@ -475,7 +477,12 @@ function applyCreateAreaDesignation(
   ];
 
   const generatedJobIds: string[] = [];
-  if (command.kind === "systematic_recon") {
+  if (command.kind === "clear_area" || command.kind === "cut_vegetation" || command.kind === "prepare_soil" || command.kind === "harvest" || command.kind === "build_barrier") {
+    const result = generateTerrainDesignationJobs(nextState, command.designationId, command.kind, command.polygon, command.wayCrossingMode);
+    nextState = result.state;
+    events.push(...result.events);
+    generatedJobIds.push(...result.generatedJobIds);
+  } else if (command.kind === "systematic_recon") {
     const def = ACTION_METHODS_BY_KEY.get("observe");
     if (def) {
       for (const place of valuesById(nextState.world.places)) {

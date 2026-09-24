@@ -8,6 +8,9 @@ import { buildFullNavigationIndexV2 } from "../room-graph.js";
 import { derivePerimeterNetworks } from "./perimeter.js";
 import { valuesById } from "../ordered.js";
 import { setPlotState } from "../agriculture/plot-state.js";
+import { resolveHolderPersonId, locationWorldPoint } from "../objects/storage.js";
+import { resolveRoomId } from "../jobs/location-utils.js";
+import { reserveResourceLot } from "../jobs/reservations.js";
 
 /** Métodos S10 de entorno mutable (limpieza, carretera, barrera) — no incluye los de agricultura, ver `agriculture/actions.ts`. */
 const ENVIRONMENT_ACTION_KEYS = new Set(["clear_vegetation", "clear_debris", "clear_road", "remove_way_function", "build_barrier"]);
@@ -122,6 +125,53 @@ export function terrainMaterialsFor(job: Job) {
 
 export function terrainBlockerStillApplies(state: SimulationStateV2, job: Job): boolean {
   return terrainValidationReason(state, job) !== null;
+}
+
+const MATERIAL_REACH_METERS = 6;
+
+function materialLotsInReach(state: SimulationStateV2, location: EntityLocation, executorId: string, family: ResourceFamily): ResourceLot[] {
+  const siteRoom = resolveRoomId(state, location);
+  const sitePoint = siteRoom ? null : locationWorldPoint(state, location);
+  return valuesById(state.resourceLots)
+    .filter((lot) => lot.family === family && lot.quantity > 0 && (lot.reservedByJobId === null || lot.reservedByJobId === undefined))
+    .filter((lot) => {
+      const holder = resolveHolderPersonId(state, lot.location);
+      if (holder === executorId) return true;
+      if (holder !== null) return false;
+      const lotRoom = resolveRoomId(state, lot.location);
+      if (siteRoom) return lotRoom === siteRoom;
+      if (lotRoom !== null || !sitePoint) return false;
+      const point = locationWorldPoint(state, lot.location);
+      return point !== null && distance(point, sitePoint) <= MATERIAL_REACH_METERS;
+    });
+}
+
+/** Fase `prepare` de `build_barrier` (§4.1: "reservas necesarias"): reserva la madera concreta que se consumirá al terminar, sin moverla todavía. */
+export function terrainPrepare(ctx: Ctx, jobId: string, executorId: string): { readonly blockReasonKey: string | null } {
+  const job = ctx.state.jobs[jobId];
+  if (!job || job.actionKey !== "build_barrier") return { blockReasonKey: null };
+  const requirements = terrainMaterialsFor(job);
+  if (requirements.length === 0) return { blockReasonKey: null };
+  const location = resolveTargetLocation(ctx.state, job.target);
+  if (!location) return { blockReasonKey: "block.target_no_longer_exists" };
+  const segment = job.target.kind === "barrier_segment" ? ctx.state.world.barrierSegments[job.target.barrierSegmentId] : undefined;
+  const from = segment ? ctx.state.world.anchors[segment.fromAnchorId] : undefined;
+  const to = segment ? ctx.state.world.anchors[segment.toAnchorId] : undefined;
+  const meters = from && to ? distance(from.position, to.position) : 1;
+  for (const requirement of requirements) {
+    let remaining = requirement.quantity * meters;
+    for (const lot of materialLotsInReach(ctx.state, location, executorId, requirement.resourceFamily)) {
+      if (remaining <= 0) break;
+      const reserved = reserveResourceLot(ctx.state, ctx.state.jobs[jobId]!, lot.id, "prepare");
+      if (!reserved) continue;
+      ctx.state = reserved.state;
+      ctx.events.push(...reserved.events);
+      ctx.state = { ...ctx.state, jobs: { ...ctx.state.jobs, [jobId]: { ...ctx.state.jobs[jobId]!, reservationIds: [...ctx.state.jobs[jobId]!.reservationIds, reserved.reservation.id] } } };
+      remaining -= lot.quantity;
+    }
+    if (remaining > 1e-6) return { blockReasonKey: "block.missing_materials" };
+  }
+  return { blockReasonKey: null };
 }
 
 function newResourceLot(ctx: Ctx, family: ResourceFamily, quantity: number, location: EntityLocation, provenance: string): string | null {

@@ -1,6 +1,6 @@
 import type { CropCycle, EntityLocation, Job, ResourceLot, SimulationStateV2, WorldObject } from "@z-world/contracts";
 import { effectiveTerrainCoverage } from "@z-world/contracts";
-import { CROP_PROFILES_BY_ID, TERRAIN_TRANSFORM_TUNING } from "@z-world/catalogs";
+import { CROP_PROFILES_BY_ID } from "@z-world/catalogs";
 import { emit, withNextEventId, type Ctx } from "../jobs/engine-ctx.js";
 import { resolveHolderPersonId } from "../objects/storage.js";
 import { polygonArea } from "../generator/geometry-helpers.js";
