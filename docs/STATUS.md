@@ -36,8 +36,12 @@ al final). S8 (Puerta B: transporte y logística local) y S9 (Puerta C: explotac
 progresiva de edificios y accesos mutables) están cerrados con
 limitaciones explícitas (ver «S8 — Puerta B» y «S9 — Puerta C» al final);
 la entrega S7–S9 queda registrada en
-[DEC-0019](decisions/DEC-0019_deep-objects-physical-logistics-and-building-exploitation.md)
-y propuesta en una única PR contra `main`, sin fusionar. Quedan S10 y S11
+[DEC-0019](decisions/DEC-0019_deep-objects-physical-logistics-and-building-exploitation.md).
+S10 (entorno mutable y agricultura) está cerrado con limitaciones
+explícitas (ver «S10 — entorno mutable y agricultura» al final) y
+registrado en
+[DEC-0020](decisions/DEC-0020_mutable-environment-and-agriculture.md).
+Ninguna de las ramas S7-S10 se ha fusionado aún contra `main`. Queda S11
 sin fecha.
 
 El prototipo histórico Godot queda preservado íntegro, sin más desarrollo
@@ -2387,6 +2391,171 @@ RES-17 a ~256 m (lugar en (170,1, −166,1)); carretilla junto al refugio en
     no se ofrecen. Opcional: en la cabaña RES-17, «Desmantelar estructura
     (por etapas)» tres veces hasta dejar un solar y comparar lo recuperado
     con una demolición.
+
+## S10 — entorno mutable y agricultura: cerrado con limitaciones explícitas
+
+Rama `feat/web-002-s10-agriculture-mutable-environment`, sin fusionar
+contra `main`. Canon:
+[WLD-010](20-world/WLD-010_mutable-terrain-and-spatial-construction.md)
+§3.5-§3.7 y [SET-011](40-settlement/SET-011_initial-agriculture-loop.md)
+§3, sobre la arquitectura de trabajos/reservas de
+[DEC-0018](decisions/DEC-0018_resolution-engine-planned-work-and-causal-needs.md).
+La decisión de la entrega es
+[DEC-0020](decisions/DEC-0020_mutable-environment-and-agriculture.md).
+
+### Qué hay y cómo funciona
+
+1. **Tres capas mutables sobre la geometría ya generada**: cobertura de
+   terreno (`none`/`vegetation`/`debris`), estado de vía
+   (`transitable`/`obstructed`/`cleared`/`function_removed`) y barrera
+   lineal entre anclajes (`BarrierSegment`), nunca una malla ni un mundo
+   paralelo.
+2. **Mismo motor de trabajos que S4-S9**: `clear_vegetation`,
+   `clear_debris`, `clear_road`, `remove_way_function`, `build_barrier`,
+   `prepare_soil`, `sow`, `tend_crop` y `harvest` son
+   `ActionMethodDefinition`s del mismo catálogo, con las mismas fases,
+   planificador, prioridades y reservas exclusivas.
+3. **Geometría de parcela libre**: cualquier polígono dibujado por el
+   jugador puede prepararse, no solo las parcelas de ejemplo del
+   generador; `evaluateCultivationSuitability` devuelve un veredicto
+   causal explícito (apta/apta con preparación/desconocida/bloqueada por
+   físico, acceso o requisitos), nunca un booleano opaco.
+4. **Perímetro derivado**: `PerimeterNetwork.closed` se deriva por
+   unión-búsqueda sobre los tramos de barrera realmente construidos
+   (ciclo real de ≥3 anclajes distintos), nunca un campo editable.
+5. **Progreso parcial persistente**: preparar suelo o despejar cobertura
+   conserva su avance (`preparationProgress`) a través de pausa/reanudación
+   manual y de interrupción por autoprotección (S6), sin rerrollear nada.
+6. **Vías tratadas con causalidad, no en binario**: obstruida sigue
+   siendo transitable (más lenta), nunca bloqueada; despejar conserva la
+   función viaria, retirar la función es irreversible en este alcance y
+   exige confirmación informada.
+7. **Ciclo agrícola completo y determinista**: preparar → sembrar →
+   crecer → cosechable → cosechar, con reloj real (sin botón de
+   "crecer ahora"), daño por abandono derivado (nunca acumulado por
+   tick) y pérdida del cultivo si se abandona demasiado.
+8. **Sembrar deriva la superficie de la semilla realmente disponible**:
+   nunca exige la cantidad nominal del campo entero; bloquea solo si no
+   hay ninguna semilla localizada en el borde del campo o en la persona.
+9. **Rendimiento causal**: `baseYieldKgPerM2 * superficieRealmenteSembrada
+   * capacidad * cuidado * dañoInverso * variación`, explícitamente
+   provisional (SET-011 §7 deja abierto el catálogo/fórmulas/tiempos
+   exactos); un solo cultivo real jugable (`garden_vegetables`, 12 días)
+   y un perfil de ciclo abreviado exclusivo de las pruebas
+   (`test_fast_vegetables`, nunca en una partida real).
+10. **Panel «Parcelas de cultivo»**: estado, progreso de preparación y
+    daño observables sin depender del lienzo; selector real de cultivo
+    al sembrar (ya no fijo, desde que el catálogo tiene más de uno);
+    designación de entorno mutable/agricultura con geometría por
+    coordenadas y modo de cruce con vía para barreras.
+11. **Persistencia aditiva**: todos los campos nuevos son
+    requeridos-pero-nulos en TypeScript con `.default()` en Zod; un
+    snapshot anterior a S10 carga con cobertura/daño/progreso por
+    defecto seguro y sigue avanzando el reloj sin excepciones.
+12. **Correcciones reales encontradas por las pruebas** (detalle en
+    DEC-0020 §9): la geometría de una parcela nueva usaba el polígono
+    del terreno de fondo entero en vez del que dibujó el jugador; la
+    marca de "escombros" del generador etiquetaba por error el único
+    terreno de fondo transitable que cubre casi todo el mapa;
+    `locationWorldPoint` no resolvía el borde de un campo
+    (`field_edge`), así que una cosecha real nunca podía elegirse como
+    objetivo de traslado; y un traslado interrumpido por autoprotección
+    no se retoma solo (a diferencia de una orden directa), hay que
+    replantearlo.
+13. **Integración PostgreSQL** (`s10-agriculture.integration.test.ts`):
+    preparar→sembrar→crecer→cosechar con guardar/recargar en cada fase
+    sobre la parcela garantizada real; conflicto de revisión real entre
+    dos clientes que consumen la misma semilla; snapshot con los campos
+    de S10 despojados a mano que sigue avanzando.
+14. **E2E en Chromium real**: `e2e/s10-agriculture.spec.ts` (ciclo
+    agrícola completo con interrupción/reanudación de progreso parcial,
+    pausa sin crecimiento, cuidar, cosechar, trasladar y persistir) y
+    `e2e/s10-mutable-environment.spec.ts` (acceso regional obstruido
+    garantizado → despejar conservando función → persistir → retirar
+    función viaria con confirmación irreversible → persistir).
+
+### Limitaciones explícitas (no se arrastran en silencio)
+
+- **Perímetro sin paredes de edificio como arista implícita**: solo
+  cuentan los tramos de barrera construidos explícitamente.
+- **Navegación**: reconstrucción completa del índice tras un cambio de
+  terreno/vía/barrera, no el parcheo dirigido por edificio que S9 ya
+  tiene (aceptable al tamaño de mundo actual; documentado como
+  simplificación consciente en DEC-0020 §11).
+- **Catálogo de cultivos mínimo**: un solo cultivo real jugable;
+  fórmulas y tiempos exactos siguen abiertos (SET-011 §7).
+- **Sin estaciones ni clima**: el ciclo de un cultivo no depende de
+  fecha ni temporada.
+- **E2E de barrera/perímetro no automatizada en Chromium**: construir
+  una barrera cruzando una vía, elegir tipo de cruce, cerrar un lazo y
+  reabrirlo por hueco/brecha están cubiertos por pruebas unitarias
+  reales (`terrain-agriculture.test.ts`), pero no por un recorrido en
+  navegador; queda como trabajo pendiente explícito de esta misma
+  puerta, no de S11.
+- **Aceptación manual**: no ejecutada. El guion está abajo.
+
+### Validaciones del cierre de la rama S10 (esta sesión)
+
+Ejecutado y en verde al cerrar, sobre el árbol final de la rama:
+
+- `npm run typecheck` (todos los paquetes y `apps/web`) y `npm run lint`
+  (paquetes y web): sin errores ni avisos.
+- `npx vitest run`: **305 pruebas unitarias en 32 ficheros en verde** (297
+  de S1–S9 sin regresión + 8 nuevas de
+  `terrain/terrain-agriculture.test.ts`).
+- `npm run test:integration` (PostgreSQL 16 real, `zworld_test`): **33 en
+  verde** (30 previas + 3 de `s10-agriculture.integration.test.ts`).
+- `npm run build` (incluido `apps/web`) correcto.
+- `npx playwright test`: **14 E2E en verde** (los 12 de S1–S9 sin
+  regresión — con una corrección real: el filtro de trabajos de S7
+  buscaba en todo el panel y coincidía por subcadena con «Sin preparar»
+  del nuevo panel de parcelas de S10, se acotó a su propia sección — y
+  los 2 nuevos de S10). Varias iteraciones de esta sesión fallaron antes
+  de llegar a verde y destaparon los defectos reales descritos en el
+  punto 12 de arriba; ninguna aserción se relajó para ocultarlos.
+
+### Guion de aceptación manual para Dennis (S10)
+
+Semilla estable `probe-seed-92`, generador `web-002-semantic-v4`. El
+generador garantiza siempre una `CultivationPlot` sin preparar con 1-3 kg
+de semillas y una herramienta agrícola reales en el borde de su campo
+(a ~430 m del punto de llegada), y al menos un acceso regional obstruido
+cerca del borde del mapa. Jugar a ×1 durante la preparación/siembra (el
+reloj determinista avanza 72 s simulados por s real a ×1: a ×10 el ciclo
+del cultivo de verificación pasaría en menos de un segundo real) y a ×10
+para el resto. Todo se hace en `/village/[id]`:
+
+1. **Crear la partida** con la semilla y seleccionar a la protagonista
+   mejor descansada/hidratada/alimentada (evita interrupciones por
+   autoprotección durante el recorrido).
+2. **Panel «Parcelas de cultivo»**: la parcela garantizada aparece «Sin
+   preparar».
+3. **Preparar suelo** → esa parcela. Con el trabajo «en curso», pulsar
+   «Pausar»: el progreso de preparación deja de avanzar (esperar unos
+   segundos y comprobar que no cambia). «Reanudar»: continúa sin
+   rerrollear nada hasta «completado»; la parcela pasa a «Preparada».
+4. **Sembrar** → esa parcela, eligiendo el cultivo en el selector. Al
+   completarse, la parcela pasa a «Creciendo». Pausar el reloj
+   («Pausa») un momento y comprobar que el estado no cambia; reanudar.
+5. **Cuidar/regar** → esa parcela mientras crece, y dejar pasar el
+   reloj hasta que la parcela pase a «Cosechable» (con el cultivo real
+   `garden_vegetables` esto tarda 12 días simulados; con el de
+   verificación, unos 10 minutos simulados).
+6. **Cosechar** → esa parcela: pasa a «Cosechada» y queda un lote real
+   de alimento fresco en el borde del campo.
+7. **Trasladar** ese lote a un almacén o al punto de llegada. Guardar
+   («Pausa», esperar «Guardado»), recargar la página y comprobar que la
+   parcela sigue «Cosechada» y el lote de alimento sigue existiendo.
+8. **Carretera mutable**: seleccionar la vía obstruida garantizada y
+   «Despejar vía»: pasa a transitable a coste normal sin exigir
+   confirmación. Guardar y recargar: sigue despejada. «Retirar función
+   viaria» sobre la misma vía: exige marcar «Confirmar acción
+   irreversible»; al completarse queda como terreno despejado, sin
+   función viaria. Guardar y recargar: sigue así.
+9. **Designación de entorno mutable**: en «Zonas y designaciones», elegir
+   tipo «Construir barrera entre anclajes», introducir dos puntos y un
+   modo de cruce, y «Designar»: genera un trabajo real de construcción
+   de barrera que consume madera concreta al completarse.
 
 ## Deuda documental previa conservada
 
