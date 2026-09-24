@@ -4,6 +4,7 @@ import { applyCommandV2 } from "../apply-command-v2.js";
 import { advanceSimulationV2 } from "../advance-simulation-v2.js";
 import { buildFullNavigationIndexV2, type NavigationIndexV2 } from "../room-graph.js";
 import { makeSyntheticBuildingState, TEST_HOUSE_IDS } from "../test-fixtures.js";
+import { resolveHolderPersonId } from "../objects/storage.js";
 
 function withWaterInHallway(base: SimulationStateV2): { state: SimulationStateV2; resourceLotId: string; containerId: string } {
   const containerId = "container-test-water";
@@ -252,14 +253,37 @@ describe("motor de necesidades — autoprotección mínima (S6 §7.6)", () => {
     expect(resourceLotId).toBeDefined();
   });
 
+  it("con sed crítica, cada persona bebe de su propia botella (dentro de su mochila) y no se disputan un mismo lote", () => {
+    const base = makeSyntheticBuildingState("jobs-autoprotection-own-water");
+    const nav = buildFullNavigationIndexV2(base.world);
+    const [a, b] = base.peopleOrder as [string, string];
+    const { state: unpaused } = applyCommandV2(base, { commandId: "c1", type: "set_pause", paused: false }, nav);
+    const thirsty = (s: SimulationStateV2, id: string): SimulationStateV2 => ({ ...s, people: { ...s.people, [id]: { ...s.people[id]!, needs: s.people[id]!.needs.map((n) => (n.dimension === "hydration" ? { ...n, value: 5, band: "critical" as const } : n)) } } });
+    const critical = thirsty(thirsty(unpaused, a), b);
+    const { state: finalState } = run(critical, nav, 3);
+    const drinks = Object.values(finalState.jobs).filter((j) => j.actionKey === "drink");
+    const targetOf = (id: string) => drinks.find((j) => j.requestedPersonIds.includes(id))?.target;
+    for (const id of [a, b]) {
+      const target = targetOf(id);
+      expect(target?.kind).toBe("resource_lot");
+      const lot = finalState.resourceLots[(target as { resourceLotId: string }).resourceLotId] ?? critical.resourceLots[(target as { resourceLotId: string }).resourceLotId]!;
+      expect(resolveHolderPersonId(critical, lot.location)).toBe(id);
+    }
+    expect(drinks.every((j) => j.blockReasonKey !== "block.target_reserved")).toBe(true);
+  });
+
   it("sin solución conocida, explica el bloqueo y nunca materializa un recurso", () => {
     const base = makeSyntheticBuildingState("jobs-autoprotection-2");
     const nav = buildFullNavigationIndexV2(base.world);
     const personId = base.peopleOrder[0]!;
 
     const { state: unpaused } = applyCommandV2(base, { commandId: "c1", type: "set_pause", paused: false }, nav);
+    // Sin solución conocida de verdad: la persona no lleva agua propia (desde S7 va en una botella de su mochila, que la
+    // autoprotección sí reconoce) y ninguna estancia con agua tiene su contenido registrado.
+    const withoutOwnWater = Object.fromEntries(Object.entries(unpaused.resourceLots).filter(([, lot]) => !(lot.family === "water" && resolveHolderPersonId(unpaused, lot.location) === personId)));
     const critical: SimulationStateV2 = {
       ...unpaused,
+      resourceLots: withoutOwnWater,
       people: {
         ...unpaused.people,
         [personId]: { ...unpaused.people[personId]!, needs: unpaused.people[personId]!.needs.map((n) => (n.dimension === "hydration" ? { ...n, value: 5, band: "critical" as const } : n)) },

@@ -1,6 +1,6 @@
 import type { EntityLocation, JobTarget, SimulationStateV2, WorldPoint } from "@z-world/contracts";
 import { furnitureLocation } from "@z-world/contracts";
-import { isRoomInTerminalBuilding } from "../exploitation/fabric.js";
+import { isBuildingTerminal, isRoomInTerminalBuilding, openingsOfBuilding, roomsOfBuilding } from "../exploitation/fabric.js";
 
 /**
  * Traduce un `JobTarget` (WEB-002 §11.1, subhito S5) a la `EntityLocation`
@@ -18,6 +18,13 @@ export function resolveTargetLocation(state: SimulationStateV2, target: JobTarge
     case "building": {
       const building = state.world.buildings[target.buildingId];
       if (!building) return null;
+      // S9: un edificio en pie se trabaja (inspecciona, reconoce) desde su estancia de entrada; la posición del lugar cae
+      // dentro de la huella, que no es transitable. Solo un edificio terminal (sin estancias utilizables) se localiza en su lugar.
+      if (!isBuildingTerminal(state.world, target.buildingId)) {
+        const entry = openingsOfBuilding(state.world, target.buildingId).find((o) => o.connectsToExterior && o.connectsRoomId);
+        const roomId = entry?.connectsRoomId ?? roomsOfBuilding(state.world, target.buildingId)[0]?.id;
+        if (roomId) return { kind: "room", roomId };
+      }
       const place = state.world.places[building.placeId];
       return place ? { kind: "world_point", point: place.position } : null;
     }

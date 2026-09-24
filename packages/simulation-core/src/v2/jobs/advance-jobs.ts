@@ -153,6 +153,10 @@ function assignIdlePeople(ctx: Ctx): void {
     // `Nunca` sigue excluyendo incluso una orden directa silenciosa (§11.7).
     const directJob = jobsInOrder(ctx.state.jobs).find(
       (job) =>
+        // Solo trabajos vivos que admiten personas (por empezar o ya en curso, para que se sume su equipo): uno
+        // interrumpido, bloqueado, pausado o terminado nunca se reasigna aquí (si no, la persona quedaría enganchada a
+        // un trabajo que no avanza y ni siquiera tomaría su descanso de autoprotección).
+        (job.state === "proposed" || job.state === "available" || job.state === "in_progress") &&
         job.directOrder &&
         job.requestedPersonIds.includes(personId) &&
         !job.assignments.some((a) => a.personId === personId) &&
