@@ -181,8 +181,11 @@ test("S10: ciclo agrícola completo — preparar con interrupción, sembrar, cui
   await page.getByRole("button", { name: "×10", exact: true }).click();
 
   // Trasladar la cosecha real (fresh_food) desde el borde del campo a un destino de almacenamiento real, o al punto de
-  // llegada si no hay ninguno accesible desde aquí; en ambos casos es un traslado real del motor de logística (S8).
-  await accomplish(panel, async () => {
+  // llegada si no hay ninguno accesible desde aquí; en ambos casos es un traslado real del motor de logística (S8). A
+  // diferencia de una orden directa, un traslado interrumpido por autoprotección (S6) nunca se retoma solo (su carga
+  // ya se depositó al interrumpirlo): hay que replantearlo con una orden nueva, así que aquí se reintenta sobre
+  // «interrupted», no solo sobre `causal_failure`.
+  const chooseTransport = async () => {
     await section.locator("select").nth(0).selectOption({ label: "Transportar" });
     const harvestOption = section.locator("select").nth(1).locator("option").filter({ hasText: "Alimento fresco" }).first();
     await expect(harvestOption).toHaveCount(1, { timeout: 15_000 });
@@ -195,7 +198,16 @@ test("S10: ciclo agrícola completo — preparar con interrupción, sembrar, cui
       await destinationSelect.selectOption({ label: "Punto de llegada del grupo (exterior)" });
     }
     await section.getByLabel("Método de transporte").selectOption({ label: "A pulso" });
-  });
+  };
+  let transportDone = false;
+  for (let attempt = 0; attempt < 5 && !transportDone; attempt++) {
+    await chooseTransport();
+    const jobId = await order(panel);
+    const item = panel.locator(`li[data-job-id="${jobId}"]`);
+    await expect(item).toHaveAttribute("data-job-state", /completed|causal_failure|interrupted/, { timeout: 180_000 });
+    transportDone = (await item.getAttribute("data-job-state")) === "completed";
+  }
+  expect(transportDone).toBe(true);
 
   // Guardar y recargar: el ciclo agrícola completo persiste exactamente igual.
   await page.getByRole("button", { name: "Pausa", exact: true }).click();
