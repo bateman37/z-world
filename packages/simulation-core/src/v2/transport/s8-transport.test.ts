@@ -595,7 +595,7 @@ describe("S8 — guardar y recargar a mitad de un traslado continúa exactamente
 
 /** Añade una franja de bosque de lado a lado (x∈[-40,-25]) y una carretera firme (y=-30), y reconstruye el índice derivado. */
 function withTerrain(w: World, withRoad = true): World {
-  const forest = { id: "area-z-forest", kind: "dense_vegetation" as const, polygon: [{ x: -40, y: -60 }, { x: -25, y: -60 }, { x: -25, y: 60 }, { x: -40, y: 60 }], transitable: true, traversalCostMultiplier: 1.5, placeId: null };
+  const forest = { id: "area-z-forest", kind: "dense_vegetation" as const, polygon: [{ x: -40, y: -60 }, { x: -25, y: -60 }, { x: -25, y: 60 }, { x: -40, y: 60 }], transitable: true, traversalCostMultiplier: 1.5, placeId: null, coverage: "vegetation" as const };
   const road = { id: "line-road", kind: "road" as const, polyline: [{ x: 0, y: -45 }, { x: -58, y: -45 }], widthMeters: 6, wayState: "transitable" as const, placeId: null };
   const state = { ...w.state, world: { ...w.state.world, terrainAreas: { ...w.state.world.terrainAreas, [forest.id]: forest }, linearFeatures: withRoad ? { [road.id]: road } : {} } };
   return { ...w, state, nav: buildFullNavigationIndexV2(state.world) };

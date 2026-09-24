@@ -161,6 +161,7 @@ export function generateTerrain(prng: PrngStream, config: VillageGeneratorConfig
     transitable: true,
     traversalCostMultiplier: 1,
     placeId: null,
+    coverage: "none",
   };
 
   const forestFraction = TERRAIN_COVERAGE_RATIO.forestOrScrub.min + prng.nextFloat() * (TERRAIN_COVERAGE_RATIO.forestOrScrub.max - TERRAIN_COVERAGE_RATIO.forestOrScrub.min);
@@ -199,6 +200,7 @@ export function generateTerrain(prng: PrngStream, config: VillageGeneratorConfig
       transitable: false,
       traversalCostMultiplier: 1,
       placeId: null,
+      coverage: "none",
     });
   }
 
@@ -209,6 +211,7 @@ export function generateTerrain(prng: PrngStream, config: VillageGeneratorConfig
     transitable: true,
     traversalCostMultiplier: 1.8,
     placeId: null,
+    coverage: "vegetation",
   }));
   const fieldAreas: TerrainArea[] = fieldBlobs.map((polygon) => ({
     id: ids.next("area"),
@@ -217,6 +220,7 @@ export function generateTerrain(prng: PrngStream, config: VillageGeneratorConfig
     transitable: true,
     traversalCostMultiplier: 1,
     placeId: null,
+    coverage: "none",
   }));
 
   const arrivalPoint: WorldPoint = {

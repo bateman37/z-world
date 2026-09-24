@@ -99,7 +99,7 @@ export function materializeScenarioGuarantees(
   const nearestParcel = [...parcels].sort((a, b) => distance(centroid(a.polygon), shelter!.position) - distance(centroid(b.polygon), shelter!.position))[0];
   if (nearestParcel) {
     const plotId = ids.next("cultivation-plot");
-    cultivationPlots.push({ id: plotId, parcelId: nearestParcel.id, state: "unprepared", activeCropCycleId: null });
+    cultivationPlots.push({ id: plotId, parcelId: nearestParcel.id, state: "unprepared", activeCropCycleId: null, preparationProgress: 0, damageLevel: 0 });
     extraResourceLots.push(
       makeResourceLot({
         id: ids.next("resource-lot"),

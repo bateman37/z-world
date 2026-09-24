@@ -90,6 +90,8 @@ export const orderContextualActionCommandSchema = z.object({
   transportCargo: z.array(cargoRefSchema).max(12).optional(),
   /** Qué hacer con el medio al terminar: estacionarlo en destino o devolverlo a su origen (S8, fase 9 de SET-010 §3.7). */
   meansDisposition: z.enum(MEANS_DISPOSITIONS).optional(),
+  /** Cultivo elegido para `sow` (S10, referencia al catálogo versionado de `packages/catalogs`). Ignorado por cualquier otro método. */
+  cropId: z.string().min(1).optional(),
 });
 
 export const pauseJobCommandSchema = z.object({ ...baseCommandFields, type: z.literal("pause_job"), jobId: z.string().min(1) });
@@ -136,6 +138,13 @@ export const createAreaDesignationCommandSchema = z.object({
   designationId: z.string().min(1),
   kind: z.enum(DESIGNATION_KINDS),
   polygon: z.array(worldPointSchema).min(1),
+  /**
+   * Tratamiento del cruce con una vía existente (S10, WLD-010 §3.6),
+   * exigido solo cuando `kind === "build_barrier"` y el trazado (los dos
+   * puntos de `polygon`, extremo a extremo entre anclajes) cruza
+   * efectivamente un `LinearFeature` de tipo carretera/camino.
+   */
+  wayCrossingMode: z.enum(["full_block", "pedestrian_gap", "handcart_gate"]).optional(),
 });
 
 export const cancelDesignationCommandSchema = z.object({

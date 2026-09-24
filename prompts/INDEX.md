@@ -23,4 +23,6 @@
 
 | [WEB-002_S7-S9_objects-logistics-building-exploitation.md](WEB-002_S7-S9_objects-logistics-building-exploitation.md) | Subhitos S7+S8+S9 de `WEB-002` en una sola entrega con tres puertas internas: objetos profundos, inventarios y transformaciones (A), transporte y logística local con cinco métodos y transferencias (B), y explotación progresiva de edificios con cinco capas, tres vidas y accesos mutables (C). Registrado en `docs/decisions/DEC-0019`. |
 
+| [WEB-002_S10_agriculture-mutable-environment.md](WEB-002_S10_agriculture-mutable-environment.md) | Subhito S10 de `WEB-002` con dos puertas internas: entorno mutable inicial (limpieza de vegetación/escombros, carretera despejada frente a función retirada, barrera lineal entre anclajes y perímetro derivado de la topología física) y ciclo agrícola inicial completo (parcela libre sobre terreno físicamente válido, máquina de estados, semillas/herramientas/agua físicas, crecimiento por reloj determinista, rendimiento causal y cosecha logística). Registrado en `docs/decisions/DEC-0020`. |
+
 Ver el protocolo de prompts futuros en [README.md](README.md).

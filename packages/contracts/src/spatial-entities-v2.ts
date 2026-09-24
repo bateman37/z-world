@@ -10,6 +10,10 @@ import { AREA_TERRAIN_KINDS, LINE_TERRAIN_KINDS, type AreaTerrainKind, type Line
  * sustantivo: son datos puros con un `kind` explícito.
  */
 
+/** Cobertura removible de una zona de terreno (WLD-010 §3.2 capa 2), separada de su `kind` base (S10). */
+export const TERRAIN_COVERAGE_KINDS = ["none", "vegetation", "debris"] as const;
+export type TerrainCoverageKind = (typeof TERRAIN_COVERAGE_KINDS)[number];
+
 export interface TerrainArea {
   readonly id: string;
   readonly kind: AreaTerrainKind;
@@ -22,6 +26,15 @@ export interface TerrainArea {
    * fondo sin perfil interactivo propio.
    */
   readonly placeId: string | null;
+  /**
+   * Cobertura almacenada explícitamente por el generador o por una
+   * transformación de S10 (`clear_vegetation`/`clear_debris`). `null` en
+   * cualquier área anterior a S10: usar `effectiveTerrainCoverage()`
+   * (nunca este campo directamente) para derivar la cobertura real, que
+   * para una partida anterior asume `vegetation` sobre `dense_vegetation`
+   * y `none` en el resto (S10 nunca inventó escombros retroactivos).
+   */
+  readonly coverage: TerrainCoverageKind | null;
 }
 
 export const terrainAreaSchema = z.object({
@@ -31,7 +44,14 @@ export const terrainAreaSchema = z.object({
   transitable: z.boolean(),
   traversalCostMultiplier: z.number().positive(),
   placeId: z.string().nullable().default(null),
+  coverage: z.enum(TERRAIN_COVERAGE_KINDS).nullable().default(null),
 });
+
+/** Cobertura efectiva de una zona (S10, WLD-010 §3.2): deriva un valor conservador para áreas generadas antes de S10 en vez de asumir un campo nuevo vacío. */
+export function effectiveTerrainCoverage(area: Pick<TerrainArea, "kind" | "coverage">): TerrainCoverageKind {
+  if (area.coverage) return area.coverage;
+  return area.kind === "dense_vegetation" ? "vegetation" : "none";
+}
 
 export interface LinearFeature {
   readonly id: string;
@@ -76,12 +96,21 @@ export interface Parcel {
   readonly id: string;
   readonly polygon: readonly WorldPoint[];
   readonly cultivationPlotId: string | null;
+  /**
+   * `TerrainArea` física de la que se recortó esta parcela (S10): fuente
+   * única de aptitud, cobertura y coste de tránsito. `null` en una parcela
+   * generada antes de S10 (S1-S9 nunca la poblaban), que sigue siendo
+   * válida pero sin capacidad de despejar cobertura hasta que una nueva
+   * parcela se trace sobre terreno enlazado.
+   */
+  readonly terrainAreaId: string | null;
 }
 
 export const parcelSchema = z.object({
   id: z.string(),
   polygon: z.array(worldPointSchema).min(3),
   cultivationPlotId: z.string().nullable(),
+  terrainAreaId: z.string().nullable().default(null),
 });
 
 /** Perfiles aprobados de CAT-004 (§8.1 de WEB-002). Exactamente ocho. */
@@ -270,6 +299,9 @@ export interface BarrierSegment {
   readonly toAnchorId: string;
   readonly crossesWayId: string | null;
   readonly wayCrossingMode: "full_block" | "pedestrian_gap" | "handcart_gate" | null;
+  /** `true` cuando el trabajo de construcción terminó (S10): solo un tramo construido cierra un perímetro o afecta a la navegación. `false` para un trazado apenas planificado. */
+  readonly built: boolean;
+  readonly createdByJobId: string | null;
 }
 
 export const barrierSegmentSchema = z.object({
@@ -278,6 +310,8 @@ export const barrierSegmentSchema = z.object({
   toAnchorId: z.string(),
   crossesWayId: z.string().nullable(),
   wayCrossingMode: z.enum(["full_block", "pedestrian_gap", "handcart_gate"]).nullable(),
+  built: z.boolean().default(false),
+  createdByJobId: z.string().nullable().default(null),
 });
 
 export interface PerimeterNetwork {

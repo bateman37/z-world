@@ -28,6 +28,10 @@ export const ACTION_TARGET_KINDS = [
   "building_finish",
   "area",
   "own_need",
+  "terrain_area",
+  "linear_feature",
+  "cultivation_plot",
+  "barrier_segment",
 ] as const;
 export type ActionTargetKind = (typeof ACTION_TARGET_KINDS)[number];
 

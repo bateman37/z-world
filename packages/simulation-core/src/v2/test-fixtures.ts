@@ -29,6 +29,7 @@ export function makeSyntheticBuildingState(seed: string): SimulationStateV2 {
     transitable: true,
     traversalCostMultiplier: 1,
     placeId: null,
+    coverage: "none",
   };
 
   const footprint = [
