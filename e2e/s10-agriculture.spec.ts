@@ -158,7 +158,7 @@ test("S10: ciclo agrícola completo — preparar con interrupción, sembrar, cui
   // llegada si no hay ninguno accesible desde aquí; en ambos casos es un traslado real del motor de logística (S8).
   await accomplish(panel, async () => {
     await section.locator("select").nth(0).selectOption({ label: "Transportar" });
-    const harvestOption = section.locator("select").nth(1).locator("option").filter({ hasText: /kg/ }).first();
+    const harvestOption = section.locator("select").nth(1).locator("option").filter({ hasText: "Alimento fresco" }).first();
     await expect(harvestOption).toHaveCount(1, { timeout: 15_000 });
     await section.locator("select").nth(1).selectOption((await harvestOption.getAttribute("value"))!);
     const destinationSelect = section.getByLabel("Destino del traslado");
