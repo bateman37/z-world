@@ -8,7 +8,7 @@ import { PersonList } from "@/components/person-list";
 import { PersonSheetPanel } from "@/components/person-sheet-panel";
 import { VillageMapCanvas } from "@/components/village-map-canvas";
 import { OperationalLog } from "@/components/operational-log";
-import { WorkPanel } from "@/components/work-panel";
+import { WorkPanel, type TransportOrderParams } from "@/components/work-panel";
 
 /**
  * Laboratorio jugable del pueblo semántico V2 (S3 de WEB-002 §5.9):
@@ -86,6 +86,7 @@ export function VillageScreen({
     confirmIrreversible?: boolean;
     storageItem?: StorageItemRef;
     storageQuantity?: number;
+    transport?: TransportOrderParams;
   }) {
     if (!selectedPersonId) return;
     sendCommand({
@@ -101,6 +102,11 @@ export function VillageScreen({
       confirmIrreversible: params.confirmIrreversible,
       storageItem: params.storageItem,
       storageQuantity: params.storageQuantity,
+      transportMethod: params.transport?.method,
+      transportMeansId: params.transport?.meansId,
+      transportDestination: params.transport?.destination,
+      transportCargo: params.transport?.extraCargo ? [...params.transport.extraCargo] : undefined,
+      meansDisposition: params.transport?.meansDisposition,
     });
   }
 

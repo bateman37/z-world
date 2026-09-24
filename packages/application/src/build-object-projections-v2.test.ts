@@ -69,3 +69,41 @@ describe("proyecciones de objetos S7", () => {
     expect(sheet.possessions.some((p) => p.isMeleeOrImprovisedWeapon)).toBe(true);
   });
 });
+
+/** Proyecciones S8: opciones de traslado solo con medios y destinos conocidos, ficha logística e inventario en carga. */
+describe("proyecciones de traslado S8", () => {
+  const state = createInitialStateV2("proj-s8-seed-1");
+
+  it("ofrece Auto y los métodos manuales siempre; carretilla/carro solo si la comunidad conoce alguno", () => {
+    const hidden: SimulationStateV2 = { ...state, fog: { ...state.fog, cells: state.fog.cells.map(() => 0) } };
+    const option = project(hidden).contextualActions.find((o) => o.actionKey === "transport")!;
+    expect(option.transport!.methods.map((m) => m.method)).toEqual(["auto", "hand_carry", "personal_container", "coordinated_carry"]);
+    expect(option.transport!.means).toEqual([]);
+    const visible: SimulationStateV2 = { ...state, fog: { ...state.fog, cells: state.fog.cells.map(() => 1) } };
+    const seen = project(visible).contextualActions.find((o) => o.actionKey === "transport")!;
+    expect(seen.transport!.methods.map((m) => m.method)).toEqual(expect.arrayContaining(["wheelbarrow", "handcart"]));
+    expect(seen.transport!.means.length).toBe(Object.keys(state.transportMeans).length);
+    // Los destinos nunca incluyen contenedores que lleva una persona ni estancias sin ver.
+    expect(seen.transport!.destinations.every((d) => d.destination.kind !== "room")).toBe(true);
+    expect(seen.transport!.destinations.some((d) => d.destination.kind === "world_point")).toBe(true);
+  });
+
+  it("la ficha de un traslado muestra método, paso, carga y colocación; el inventario enlaza la carga a su medio", () => {
+    const personId = state.peopleOrder[0]!;
+    const means = Object.values(state.transportMeans)[0]!;
+    const lotId = "resource-lot-proj-s8";
+    const bundleId = "load-bundle-proj-s8";
+    const withLoad: SimulationStateV2 = {
+      ...state,
+      fog: { ...state.fog, cells: state.fog.cells.map(() => 1) },
+      resourceLots: { ...state.resourceLots, [lotId]: { id: lotId, family: "sheet_metal", quantity: 12, unit: "kilogram", location: { kind: "in_load_bundle", loadBundleId: bundleId }, condition: 0.8, reservedByJobId: null, qualityKnown: true, quality: 1, provenance: "test", decayStartedAtSimSeconds: null, conditionAtDecayStart: null } },
+      loadBundles: {
+        [bundleId]: { id: bundleId, method: means.method, carriedByPersonIds: [personId], transportMeansId: means.id, contentObjectIds: [], contentResourceLotIds: [lotId], contentFurnitureIds: [], totalWeightKg: 12, location: { kind: "mounted_on_transport", transportId: means.id }, containerId: null, totalVolumeLiters: 12, bulk: "medium", handlingTags: [], minCarriers: 1, lowestContentCondition: 0.8, state: "in_transit", jobId: null, originLocation: null, allocation: {} },
+      },
+      transportMeans: { ...state.transportMeans, [means.id]: { ...means, currentLoadBundleId: bundleId } },
+    };
+    const entry = project(withLoad).inventory.find((e) => e.id === lotId)!;
+    expect(entry.locationKind).toBe("load");
+    expect(entry.containerLabelKey).toBe(`object.human_transport.${means.method}`);
+  });
+});
