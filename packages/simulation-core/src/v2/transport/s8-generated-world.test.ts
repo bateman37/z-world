@@ -112,6 +112,14 @@ describe("S8 — caso obligatorio en el pueblo generado (v3)", () => {
     // A pulso atraviesa el acceso exterior y al menos una puerta interior más estrecha que la que exigía el carro.
     expect(crossedBySecond.length).toBeGreaterThanOrEqual(2);
     expect(crossedBySecond.slice(1).every((w) => w === "normal")).toBe(true);
+    // Regresión: el estado del trabajo conserva los mismos accesos atravesados (no se pierden al llegar) y la
+    // porteadora termina dentro de la trastienda (el checkpoint final de estancia se aplica al completar la ruta).
+    const secondAccesses = second.transport!.routeAccesses;
+    expect(secondAccesses.map((a) => a.openingId)).toEqual(events.filter((e) => e.type === "access_traversed" && e.jobId === secondJobId).map((e) => (e.type === "access_traversed" ? e.openingId : "")));
+    expect(secondAccesses.every((a) => a.crossed)).toBe(true);
+    const backStorageRoomId = state.containers[setup.backStorageContainerId]!.location;
+    const carrierId = second.transport!.carrierPersonIds[0]!;
+    expect(state.people[carrierId]!.location).toEqual(backStorageRoomId);
     expect(state.worldObjects[setup.bucketId]!.location).toEqual({ kind: "container", containerId: setup.backStorageContainerId });
     expect(Object.keys(state.reservations)).toHaveLength(0);
     expect(Object.keys(state.loadBundles)).toHaveLength(0);

@@ -123,7 +123,9 @@ export function advanceSimulationV2(state: SimulationStateV2, elapsedRealSeconds
     const position = { x: round6(rawPosition.x), y: round6(rawPosition.y) };
 
     const previousLocation = currentPerson.location;
-    const nextLocation = locationAtCheckpoint(order.locationCheckpoints, travelledDistanceMeters, position);
+    // Al completar el recorrido se aplican todos los checkpoints: el último (entrar en la estancia de destino)
+    // puede quedar una millonésima por encima del total redondeado y no debe impedir llegar dentro (S8).
+    const nextLocation = locationAtCheckpoint(order.locationCheckpoints, reachedDestination ? Infinity : travelledDistanceMeters, position);
 
     if (previousLocation.kind === "room" && (nextLocation.kind !== "room" || nextLocation.roomId !== previousLocation.roomId)) {
       const { eventId, sequences: seq1 } = nextEventId(sequences);

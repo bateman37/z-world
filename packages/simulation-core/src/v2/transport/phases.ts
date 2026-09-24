@@ -105,7 +105,9 @@ function startMoveAlong(ctx: Ctx, personId: string, jobId: string, route: Transp
   const needsPrefix = start && Math.hypot(start.x - own.x, start.y - own.y) > 1e-6;
   const waypoints = needsPrefix ? [own, ...route.path.waypoints] : [...route.path.waypoints];
   const prefix = needsPrefix && start ? Math.hypot(start.x - own.x, start.y - own.y) : 0;
-  const checkpoints = route.path.locationCheckpoints.map((c) => ({ ...c, afterDistanceMeters: c.afterDistanceMeters + prefix }));
+  // Mismo redondeo que el total (6 decimales, `jsonb`): un checkpoint final nunca queda por encima de la distancia total.
+  const totalDistanceMeters = round6(route.path.totalDistanceMeters + prefix);
+  const checkpoints = route.path.locationCheckpoints.map((c) => ({ ...c, afterDistanceMeters: Math.min(totalDistanceMeters, round6(c.afterDistanceMeters + prefix)) }));
   if (needsPrefix && checkpoints[0]) checkpoints[0] = { ...checkpoints[0], afterDistanceMeters: 0 };
   setPerson(ctx, personId, {
     ...person,
@@ -116,7 +118,7 @@ function startMoveAlong(ctx: Ctx, personId: string, jobId: string, route: Transp
         commandId: `job:${jobId}`,
         destination: waypoints[waypoints.length - 1]!,
         path: waypoints,
-        totalDistanceMeters: round6(route.path.totalDistanceMeters + prefix),
+        totalDistanceMeters,
         travelledDistanceMeters: 0,
         startedAtSimSeconds: ctx.state.clock.elapsedSimSeconds,
         locationCheckpoints: checkpoints,
@@ -475,7 +477,7 @@ export function progressTransportTraverse(ctx: Ctx, ops: EngineOps, jobId: strin
   const carriers = isWheeled(transport.method) ? [primaryId, ...carriersOf(job).filter((id) => id !== primaryId)] : carriersOf(job);
 
   // Arranque de la etapa cargada: ruta real con la anchura del método y de la carga, solo por terreno conocido.
-  if (transport.routeAccesses.length === 0 && transport.routeTravelledMeters === 0 && !isMovingForJob(primary, jobId) && !coLocatedWithPoint(ctx.state, primaryId, end.point, end.roomId)) {
+  if (transport.routeTravelledMeters === 0 && !isMovingForJob(primary, jobId) && !coLocatedWithPoint(ctx.state, primaryId, end.point, end.roomId)) {
     const summary = summarizeCargo(ctx.state, transport.cargo);
     const minOpening = summary ? requiredOpeningClass(def, summary) : def.minOpeningClass;
     const route = planRoute(ctx.state, ctx.nav, primary.public.position, end.point, { method: def, minOpeningClass: minOpening, knownTerrainOnly: true });
@@ -484,7 +486,9 @@ export function progressTransportTraverse(ctx: Ctx, ops: EngineOps, jobId: strin
       return;
     }
     for (const personId of carriers) startMoveAlong(ctx, personId, jobId, route);
-    const accesses: TransportRouteAccess[] = route.accesses.map((a) => ({ openingId: a.openingId, atMeters: a.atMeters, crossed: false }));
+    // Al replantear a mitad de camino se conservan los accesos ya atravesados (historia real de la ruta) y se añaden los nuevos.
+    const alreadyCrossed = transport.routeAccesses.filter((a) => a.crossed);
+    const accesses: TransportRouteAccess[] = [...alreadyCrossed, ...route.accesses.map((a) => ({ openingId: a.openingId, atMeters: a.atMeters, crossed: false }))];
     putTransport(ctx, jobId, { routeAccesses: accesses, routeDistanceMeters: round3(route.path.totalDistanceMeters), surfaceMeters: route.surfaceMeters, routeTravelledMeters: 0.000001 });
     const bundleId = transport.loadBundleId;
     if (bundleId && ctx.state.loadBundles[bundleId]) ctx.state = { ...ctx.state, loadBundles: { ...ctx.state.loadBundles, [bundleId]: { ...ctx.state.loadBundles[bundleId]!, state: "in_transit" } } };
@@ -541,7 +545,7 @@ export function progressTransportTraverse(ctx: Ctx, ops: EngineOps, jobId: strin
   if (!everyoneStopped) return;
   if (!coLocatedWithPoint(ctx.state, primaryId, end.point, end.roomId)) {
     // Se detuvieron antes de llegar sin obstáculo: replantear la ruta desde aquí (nunca teletransportar).
-    putTransport(ctx, jobId, { routeAccesses: [], routeTravelledMeters: 0 });
+    putTransport(ctx, jobId, { routeAccesses: accesses.filter((a) => a.crossed), routeTravelledMeters: 0 });
     return;
   }
   applyFragileWear(ctx, jobId);
