@@ -176,7 +176,9 @@ test("S10: ciclo agrícola completo — preparar con interrupción, sembrar, cui
   await page.reload();
   await expect(page.getByRole("navigation", { name: "Protagonistas" }).getByRole("button")).toHaveCount(6, { timeout: 20_000 });
   await people.filter({ hasText: fx.fittestPersonName }).click();
-  await page.getByRole("button", { name: "×1", exact: true }).click();
+  // El traslado no necesita el reloj lento (ya no se observa ningún avance a media pausa aquí): a ×10 se resuelve
+  // antes cualquier interrupción real por autoprotección (S6) que llegara a producirse, sin dejar de ser real.
+  await page.getByRole("button", { name: "×10", exact: true }).click();
 
   // Trasladar la cosecha real (fresh_food) desde el borde del campo a un destino de almacenamiento real, o al punto de
   // llegada si no hay ninguno accesible desde aquí; en ambos casos es un traslado real del motor de logística (S8).
