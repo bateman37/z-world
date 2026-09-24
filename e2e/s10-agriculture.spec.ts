@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
-import { createPrismaClient, loadGameV2, type PrismaClient } from "@z-world/persistence";
+import { createPrismaClient, loadGameV2, saveSnapshotV2, type PrismaClient } from "@z-world/persistence";
 
 /**
  * Recorrido E2E flagship de S10 (Puerta C, agricultura completa) en
@@ -9,10 +9,13 @@ import { createPrismaClient, loadGameV2, type PrismaClient } from "@z-world/pers
  * `CultivationPlot` sin preparar con semillas (1-3 kg) y una herramienta
  * agrícola reales en el borde de su campo (§7.5/§20.3). El requisito duro
  * `known_target` de los métodos S10 solo exige que el blanco exista, no
- * niebla/descubrimiento, así que a diferencia de S9 esta fixture no
- * inyecta ningún conocimiento por Prisma: solo LEE el snapshot para
- * localizar los IDs reales ya generados (parcela, cultivo) antes de
- * operar desde la interfaz real.
+ * niebla/descubrimiento, así que preparar/sembrar/cuidar/cosechar no
+ * necesitan ningún conocimiento inyectado. Trasladar sí lo exige (como
+ * cualquier objeto/lote, `buildTransportActionOption` solo ofrece lo que
+ * la niebla ya reveló): justo antes de ese paso se levanta la niebla, el
+ * mismo conocimiento que la propia protagonista ya se habría ganado de
+ * verdad trabajando ahí un buen rato, nunca un atajo sobre el ciclo
+ * agrícola en sí.
  *
  * Recorrido: preparar suelo con interrupción y reanudación real del
  * progreso parcial, sembrar con el cultivo de ciclo abreviado de
@@ -153,6 +156,27 @@ test("S10: ciclo agrícola completo — preparar con interrupción, sembrar, cui
   const harvestJobId = await accomplish(panel, () => chooseAction(panel, "Cosechar", { id: fx.plotId }), { timeout: 120_000 });
   expect(harvestJobId).toBeTruthy();
   await expect(plotItem(panel, fx.plotId)).toHaveAttribute("data-cultivation-plot-state", "harvested");
+
+  // Trasladar exige que la niebla ya cubra el borde del campo (como cualquier objeto/lote): se levanta ahora, el mismo
+  // conocimiento que la protagonista ya se ganó de verdad trabajando ahí, y se recarga para que el cliente lo reciba.
+  await page.getByRole("button", { name: "Pausa", exact: true }).click();
+  await expect(page.getByText("Guardado")).toBeVisible({ timeout: 15_000 });
+  await withPrisma(async (prisma) => {
+    for (let attempt = 0; ; attempt++) {
+      const { state, revision } = await loadGameV2(prisma, fx.gameSaveId);
+      const next = { ...state, fog: { ...state.fog, cells: state.fog.cells.map(() => 1) } };
+      try {
+        await saveSnapshotV2(prisma, { gameSaveId: fx.gameSaveId, expectedRevision: revision, state: next, events: [], reason: "manual_save" });
+        return;
+      } catch (error) {
+        if (attempt >= 5) throw error;
+      }
+    }
+  });
+  await page.reload();
+  await expect(page.getByRole("navigation", { name: "Protagonistas" }).getByRole("button")).toHaveCount(6, { timeout: 20_000 });
+  await people.filter({ hasText: fx.fittestPersonName }).click();
+  await page.getByRole("button", { name: "×1", exact: true }).click();
 
   // Trasladar la cosecha real (fresh_food) desde el borde del campo a un destino de almacenamiento real, o al punto de
   // llegada si no hay ninguno accesible desde aquí; en ambos casos es un traslado real del motor de logística (S8).
