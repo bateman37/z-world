@@ -310,7 +310,7 @@ export function WorkPanel({
         ) : (
           <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 6 }}>
             {projections.jobs.map((job) => (
-              <li key={job.id} className="z-panel" style={{ padding: 6 }} data-job-id={job.id} data-job-state={job.state}>
+              <li key={job.id} className="z-panel" style={{ padding: 6 }} data-job-id={job.id} data-job-state={job.state} data-job-action={job.actionKey}>
                 <div>
                   <strong>{copyKey(job.labelKey)}</strong> — {job.state}
                   {job.phaseKind ? ` (${job.phaseKind})` : ""}

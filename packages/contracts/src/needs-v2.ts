@@ -13,12 +13,20 @@ export interface NeedState {
   /** Valor interno persistente, escala 0 (agotado) a 100 (pleno). */
   readonly value: number;
   readonly band: NeedBand;
+  /**
+   * S9 (aditivo, opcional; ausente equivale a `false`): ya se avisó de que
+   * esta necesidad crítica no tiene solución conocida y alcanzable. Evita
+   * repetir el aviso en cada tick; se rearma al dejar de ser crítica o al
+   * crearse una intención para ella.
+   */
+  readonly noSolutionReported?: boolean;
 }
 
 export const needStateSchema = z.object({
   dimension: z.enum(NEED_DIMENSIONS),
   value: z.number().min(0).max(100),
   band: z.enum(NEED_BANDS),
+  noSolutionReported: z.boolean().optional(),
 });
 
 export function needBandFor(value: number): NeedBand {

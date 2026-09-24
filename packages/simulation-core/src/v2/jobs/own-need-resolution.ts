@@ -14,7 +14,13 @@ const CONTENDING_JOB_STATES: ReadonlySet<string> = new Set(["proposed", "availab
  * `null` y el llamador debe explicar el bloqueo, no inventar una solución
  * (§7.6).
  */
-export function resolveOwnNeedTarget(state: SimulationStateV2, personId: string, dimension: NeedDimension): JobTarget | null {
+export function resolveOwnNeedTarget(
+  state: SimulationStateV2,
+  personId: string,
+  dimension: NeedDimension,
+  /** Desde S9 los accesos cambian (tapiar, bloquear): solo cuenta un lote al que la persona tiene ruta conocida. */
+  isReachable: (lot: ResourceLot) => boolean = () => true,
+): JobTarget | null {
   const person = state.people[personId];
   if (!person) return null;
 
@@ -34,8 +40,8 @@ export function resolveOwnNeedTarget(state: SimulationStateV2, personId: string,
     // Primero lo que la persona lleva consigo (pertenencias, a cualquier profundidad: la botella dentro de su mochila); luego el
     // resto conocido, en orden estable por ID.
     const own = candidates.filter((lot) => resolveHolderPersonId(state, lot.location) === personId);
-    const best = (own.length > 0 ? own : candidates)[0]!;
-    return { kind: "resource_lot", resourceLotId: best.id };
+    const best = own[0] ?? candidates.find((lot) => isReachable(lot));
+    return best ? { kind: "resource_lot", resourceLotId: best.id } : null;
   }
 
   // Descanso: el suelo es siempre una alternativa conocida y accesible allí

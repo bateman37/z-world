@@ -2,6 +2,7 @@ import type {
   ActionMethodDefinition,
   DiscoveryFacet,
   DomainEventV2,
+  EntityLocation,
   Furniture,
   Job,
   JobTarget,
@@ -151,16 +152,20 @@ function assignIdlePeople(ctx: Ctx): void {
     // Órdenes directas: la persona solicitada tiene precedencia absoluta
     // sobre el planificador general (§11.9/§6.9 del prompt de subhitos), pero
     // `Nunca` sigue excluyendo incluso una orden directa silenciosa (§11.7).
+    const needsFirst = hasSolvableCriticalNeed(ctx, person);
     const directJob = jobsInOrder(ctx.state.jobs).find(
       (job) =>
-        // Solo trabajos vivos que admiten personas (por empezar o ya en curso, para que se sume su equipo): uno
-        // interrumpido, bloqueado, pausado o terminado nunca se reasigna aquí (si no, la persona quedaría enganchada a
-        // un trabajo que no avanza y ni siquiera tomaría su descanso de autoprotección).
-        (job.state === "proposed" || job.state === "available" || job.state === "in_progress") &&
+        // Solo trabajos vivos que admiten personas (por empezar o ya en curso, para que se sume su equipo) o una orden
+        // directa interrumpida por autoprotección que su persona puede retomar ya (S6: "vuelve al planificador"). Uno
+        // bloqueado, pausado o terminado nunca se reasigna aquí: la persona quedaría enganchada a un trabajo que no avanza.
+        (job.state === "proposed" || job.state === "available" || job.state === "in_progress" || (!needsFirst && isResumableInterruption(job))) &&
         job.directOrder &&
         job.requestedPersonIds.includes(personId) &&
         !job.assignments.some((a) => a.personId === personId) &&
         job.assignments.length < job.desiredTeamSize &&
+        // Con una necesidad crítica que puede atender, la persona solo toma la intención que la resuelve (autoprotección,
+        // §7.6); sus demás órdenes esperan a que se recupere.
+        (job.origin === "systemic_need" || !needsFirst) &&
         // La autoprotección mínima por necesidad crítica (§7.6) no es
         // autonomía discrecional: no la excluye `Nunca`.
         (job.origin === "systemic_need" || priorityAllowsWork(person.public.priorities[job.effectivePriority] ?? "never")),
@@ -193,9 +198,54 @@ function assignPersonToJob(ctx: Ctx, jobId: string, personId: string): void {
   emit(ctx, { type: "job_assignment_changed", eventId, simSeconds: ctx.state.clock.elapsedSimSeconds, causedByCommandId: null, jobId, personId, change: "added" });
   setPerson(ctx, personId, { ...person, activeJobId: jobId });
 
+  if (updatedJob.state === "interrupted") {
+    resumeInterruptedJob(ctx, updatedJob.id);
+    return;
+  }
   if (updatedJob.assignments.length >= 1 && (updatedJob.state === "proposed" || updatedJob.state === "available")) {
     startJob(ctx, updatedJob.id);
   }
+}
+
+/**
+ * Una orden directa interrumpida por autoprotección se retoma cuando su
+ * persona solicitada vuelve a estar libre y sin necesidad crítica que pueda
+ * atender (el llamador lo comprueba con `hasSolvableCriticalNeed`). No se
+ * retoman traslados (su carga ya se depositó al interrumpirlos: se
+ * replantean con una orden nueva) ni intenciones sistémicas.
+ */
+function isResumableInterruption(job: Job): boolean {
+  return job.state === "interrupted" && job.origin === "direct_order" && !job.transport && job.assignments.length === 0;
+}
+
+/**
+ * Retoma un trabajo interrumpido conservando el trabajo ya hecho
+ * (`workRemainingUnits`, variación D): vuelve a la fase de desplazamiento
+ * (la persona se fue a beber, comer o descansar) y repite desde ahí las
+ * fases siguientes, que vuelven a adquirir las reservas liberadas al
+ * interrumpir. Si una reserva ya no se puede adquirir, queda bloqueado con
+ * su motivo, como cualquier otro trabajo.
+ */
+function resumeInterruptedJob(ctx: Ctx, jobId: string): void {
+  const reserveFailure = acquireJobReservations(ctx, jobId);
+  const job = ctx.state.jobs[jobId]!;
+  if (reserveFailure) {
+    const blocked = transitionJob(ctx.state, job, "blocked", reserveFailure);
+    ctx.state = { ...ctx.state, sequences: blocked.sequences };
+    putJob(ctx, blocked.job);
+    ctx.events.push(...blocked.events);
+    return;
+  }
+  const travelIndex = job.phases.findIndex((p) => p.kind === "travel");
+  // Si la ejecución ya terminó (interrumpido al registrar el resultado), sus consecuencias ya se aplicaron: se retoma
+  // donde estaba y nunca se repite la ejecución (no se produce, consume ni cambia el mundo dos veces).
+  const executed = job.phases.some((p) => p.kind === "execute" && p.state === "done");
+  const resumeIndex = !executed && travelIndex >= 0 && travelIndex <= job.currentPhaseIndex ? travelIndex : job.currentPhaseIndex;
+  const phases = job.phases.map((p, i) => (i >= resumeIndex ? { ...p, state: "pending" as const } : p));
+  const resumed = transitionJob(ctx.state, { ...job, phases }, "in_progress", null);
+  ctx.state = { ...ctx.state, sequences: resumed.sequences };
+  putJob(ctx, markPhaseActive(resumed.job, resumeIndex));
+  ctx.events.push(...resumed.events);
 }
 
 /** Reserva lo necesario y transiciona `proposed`/`available` → `in_progress` (§6.6/§11.2). */
@@ -230,7 +280,9 @@ function startJob(ctx: Ctx, jobId: string): void {
 
   const inProgressResult = transitionJob(ctx.state, assignedResult.job, "in_progress", null);
   ctx.state = { ...ctx.state, sequences: inProgressResult.sequences };
-  putJob(ctx, markPhaseActive(inProgressResult.job, 0));
+  // Un trabajo reactivado tras perder a su persona vuelve a empezar por validar: ninguna fase anterior queda «activa».
+  const freshPhases = inProgressResult.job.phases.map((p) => (p.state === "active" ? { ...p, state: "pending" as const } : p));
+  putJob(ctx, markPhaseActive({ ...inProgressResult.job, phases: freshPhases }, 0));
   ctx.events.push(...inProgressResult.events);
 }
 
@@ -356,7 +408,9 @@ function reviveBlockedJobs(ctx: Ctx): void {
     // telemetría sin límite causal.
     const stillBlocked = current.transport
       ? transportBlockerStillApplies(ctx, current)
-      : EXPLOITATION_ACTION_KEYS.has(current.actionKey)
+      : current.blockReasonKey === "block.no_known_route"
+        ? routeBlockerStillApplies(ctx, current, executorId)
+        : EXPLOITATION_ACTION_KEYS.has(current.actionKey)
         ? s9BlockerStillApplies(ctx.state, current, executorId, s9WorkSite(ctx.state, ctx.nav, current, executorId))
         : phaseBlockerStillApplies(ctx.state, current, executorId);
     if (stillBlocked) continue;
@@ -366,6 +420,20 @@ function reviveBlockedJobs(ctx: Ctx): void {
     putJob(ctx, result.job);
     ctx.events.push(...result.events);
   }
+}
+
+/**
+ * Un bloqueo por falta de ruta sigue vigente mientras no haya ruta conocida
+ * hasta el sitio de trabajo con la navegación vigente (que se invalida de
+ * forma dirigida al cambiar un acceso, S9): así el trabajo se reanuda cuando
+ * un despeje o una apertura reabren el paso, sin reanudarse y rebloquearse
+ * en cada tick.
+ */
+function routeBlockerStillApplies(ctx: Ctx, job: Job, executorId: string): boolean {
+  const targetLocation = resolveTargetLocation(ctx.state, job.target);
+  if (!targetLocation) return false; // la fase lo resolverá (fallo causal por blanco inexistente).
+  const site = EXPLOITATION_ACTION_KEYS.has(job.actionKey) ? s9WorkSite(ctx.state, ctx.nav, job, executorId) : null;
+  return !personHasRouteTo(ctx, executorId, site ?? targetLocation);
 }
 
 /** ¿Sigue vigente la causa concreta de un bloqueo de fase? Solo cubre los motivos de S7 y de materiales; el resto se reevalúa como en S4-S6. */
@@ -1569,35 +1637,85 @@ export function isWorkingPhase(job: Job): boolean {
 
 // --- Autoprotección mínima -----------------------------------------------
 
-function worstCriticalDimension(person: PersonStateV2): NeedDimension | null {
-  const critical = person.needs.filter((n) => n.band === "critical").sort((a, b) => a.value - b.value);
-  return critical[0]?.dimension ?? null;
-}
-
 function jobAddressesDimension(job: Job, dimension: NeedDimension): boolean {
   if (dimension === "hydration") return job.actionKey === "drink";
   if (dimension === "nutrition") return job.actionKey === "eat";
   return job.actionKey === "rest";
 }
 
+function withoutNoSolutionFlag(need: PersonStateV2["needs"][number]): PersonStateV2["needs"][number] {
+  const { noSolutionReported: _reported, ...rest } = need;
+  return rest;
+}
+
+/** La necesidad crítica más grave con solución conocida y alcanzable (el descanso siempre la tiene allí donde está). */
+function firstSolvableCriticalNeed(ctx: Ctx, personId: string, critical: readonly NeedDimension[]): { dim: NeedDimension; target: JobTarget } | null {
+  for (const dim of critical) {
+    const target = resolveOwnNeedTarget(ctx.state, personId, dim, (lot) => personHasRouteTo(ctx, personId, lot.location));
+    if (target) return { dim, target };
+  }
+  return null;
+}
+
+/** ¿Tiene la persona una necesidad crítica que pueda atender ya? Solo entonces la autoprotección precede a sus órdenes. */
+function hasSolvableCriticalNeed(ctx: Ctx, person: PersonStateV2): boolean {
+  const critical = criticalDimensionsInOrder(person);
+  return critical.length > 0 && firstSolvableCriticalNeed(ctx, person.public.id, critical) !== null;
+}
+
+function criticalDimensionsInOrder(person: PersonStateV2): NeedDimension[] {
+  return person.needs.filter((n) => n.band === "critical").sort((a, b) => a.value - b.value).map((n) => n.dimension);
+}
+
 function runAutoprotection(ctx: Ctx): void {
   for (const personId of ctx.state.peopleOrder) {
-    const person = ctx.state.people[personId];
+    let person = ctx.state.people[personId];
     if (!person) continue;
-    const dimension = worstCriticalDimension(person);
+    if (person.needs.some((n) => n.noSolutionReported && n.band !== "critical")) {
+      person = { ...person, needs: person.needs.map((n) => (n.noSolutionReported && n.band !== "critical" ? withoutNoSolutionFlag(n) : n)) };
+      setPerson(ctx, personId, person);
+    }
+    const critical = criticalDimensionsInOrder(person);
+    const dimension = critical[0];
     if (!dimension) continue;
+    const resolveFor = (dim: NeedDimension) => resolveOwnNeedTarget(ctx.state, personId, dim, (lot) => personHasRouteTo(ctx, personId, lot.location));
 
     if (person.activeJobId) {
       const currentJob = ctx.state.jobs[person.activeJobId];
-      if (currentJob && jobAddressesDimension(currentJob, dimension)) continue; // ya se está resolviendo.
-      if (currentJob && (currentJob.state === "in_progress" || currentJob.state === "assigned")) {
-        interruptJobForAutoprotection(ctx, currentJob.id, personId);
+      if (currentJob && jobAddressesDimension(currentJob, dimension)) {
+        // Ya se está resolviendo, salvo que la fuente elegida haya quedado sin ruta (un acceso tapiado o bloqueado, S9): esa
+        // intención se abandona y en el próximo tick se busca otra fuente con ruta conocida (o se explica que no la hay).
+        if (currentJob.state === "blocked" && currentJob.origin === "systemic_need" && currentJob.blockReasonKey === "block.no_known_route") {
+          cancelBlockedNeedJob(ctx, currentJob.id, personId);
+        }
+        continue;
       }
-      continue; // vuelve al planificador el próximo tick, ya libre.
+      // Resuelve otra necesidad crítica (descansa mientras no hay agua a su alcance): la sigue mientras la peor no tenga
+      // solución conocida; si la tiene, se interrumpe para atender la peor.
+      if (currentJob && currentJob.origin === "systemic_need" && critical.some((dim) => jobAddressesDimension(currentJob, dim)) && !resolveFor(dimension)) continue;
+      // Sin ninguna solución conocida y alcanzable (sed crítica sin agua a su alcance), apartarla de su trabajo solo la
+      // dejaría ociosa: sigue trabajando y la necesidad queda sin resolver hasta que haya una fuente.
+      if (!firstSolvableCriticalNeed(ctx, personId, critical)) continue;
+      if (currentJob && currentJob.state === "blocked") {
+        // Un trabajo bloqueado (sin ruta, sin materiales…) no retiene a su persona frente a una necesidad crítica: se
+        // desengancha (el trabajo sigue bloqueado, sin ejecutora, y `reviveBlockedJobs` lo devuelve al planificador) y
+        // su intención de autoprotección se crea ya en este tick.
+        detachFromBlockedJobForAutoprotection(ctx, currentJob.id, personId);
+      } else {
+        if (currentJob && (currentJob.state === "in_progress" || currentJob.state === "assigned")) {
+          interruptJobForAutoprotection(ctx, currentJob.id, personId);
+        }
+        continue; // vuelve al planificador el próximo tick, ya libre.
+      }
     }
 
-    const target = resolveOwnNeedTarget(ctx.state, personId, dimension);
-    if (!target) {
+    // La peor necesidad crítica con solución conocida y alcanzable; si la peor no la tiene (sin agua a su alcance), la
+    // siguiente (el descanso en el suelo siempre es posible allí donde está).
+    const chosen = firstSolvableCriticalNeed(ctx, personId, critical);
+    const worstNeed = person.needs.find((n) => n.dimension === dimension);
+    if ((!chosen || chosen.dim !== dimension) && !worstNeed?.noSolutionReported) {
+      // Un solo aviso por episodio crítico (límite causal), no telemetría por tick.
+      setPerson(ctx, personId, { ...ctx.state.people[personId]!, needs: ctx.state.people[personId]!.needs.map((n) => (n.dimension === dimension ? { ...n, noSolutionReported: true } : n)) });
       const eventId = withNextEventId(ctx);
       emit(ctx, {
         type: "systemic_intention_created",
@@ -1609,10 +1727,15 @@ function runAutoprotection(ctx: Ctx): void {
         jobId: null,
         blockedReasonKey: `block.no_known_solution_for_${dimension}`,
       });
-      continue;
+    }
+    if (!chosen) continue;
+    const { dim: chosenDimension, target } = chosen;
+    const current = ctx.state.people[personId]!;
+    if (current.needs.some((n) => n.dimension === chosenDimension && n.noSolutionReported)) {
+      setPerson(ctx, personId, { ...current, needs: current.needs.map((n) => (n.dimension === chosenDimension ? withoutNoSolutionFlag(n) : n)) });
     }
 
-    const actionKey = dimension === "hydration" ? "drink" : dimension === "nutrition" ? "eat" : "rest";
+    const actionKey = chosenDimension === "hydration" ? "drink" : chosenDimension === "nutrition" ? "eat" : "rest";
     const def = ACTION_METHODS_BY_KEY.get(actionKey);
     if (!def) continue;
     const created = createJob(ctx.state, {
@@ -1635,11 +1758,39 @@ function runAutoprotection(ctx: Ctx): void {
       simSeconds: ctx.state.clock.elapsedSimSeconds,
       causedByCommandId: null,
       personId,
-      dimension,
+      dimension: chosenDimension,
       jobId: created.job.id,
       blockedReasonKey: null,
     });
   }
+}
+
+/** ¿Hay ruta conocida desde la persona hasta esa ubicación con la navegación vigente? (misma búsqueda que el desplazamiento). */
+function personHasRouteTo(ctx: Ctx, personId: string, location: EntityLocation): boolean {
+  const person = ctx.state.people[personId];
+  const point = locationToNavPoint(ctx.state, location);
+  if (!person || !point) return false;
+  return findPathV2(ctx.nav, ctx.state.world, resolveNavAnchor(ctx.nav, ctx.state.world, person.public.position), resolveNavAnchor(ctx.nav, ctx.state.world, point)) != null;
+}
+
+function cancelBlockedNeedJob(ctx: Ctx, jobId: string, personId: string): void {
+  detachFromBlockedJobForAutoprotection(ctx, jobId, personId);
+  const result = transitionJob(ctx.state, ctx.state.jobs[jobId]!, "cancelled", "block.no_known_route");
+  ctx.state = { ...ctx.state, sequences: result.sequences };
+  putJob(ctx, result.job);
+  ctx.events.push(...result.events);
+}
+
+function detachFromBlockedJobForAutoprotection(ctx: Ctx, jobId: string, personId: string): void {
+  const releaseResult = releaseJobReservations(ctx.state, jobId);
+  ctx.state = releaseResult.state;
+  ctx.events.push(...releaseResult.events);
+  const job = ctx.state.jobs[jobId]!;
+  putJob(ctx, { ...job, assignments: job.assignments.filter((a) => a.personId !== personId) });
+  const eventId = withNextEventId(ctx);
+  emit(ctx, { type: "job_assignment_changed", eventId, simSeconds: ctx.state.clock.elapsedSimSeconds, causedByCommandId: null, jobId, personId, change: "removed" });
+  const person = ctx.state.people[personId]!;
+  setPerson(ctx, personId, { ...person, activeJobId: null, public: { ...person.public, activeMovementOrder: null } });
 }
 
 function interruptJobForAutoprotection(ctx: Ctx, jobId: string, personId: string): void {

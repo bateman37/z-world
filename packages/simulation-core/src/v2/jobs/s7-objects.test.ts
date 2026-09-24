@@ -400,7 +400,11 @@ describe("S7 — bomba de agua (demostrador profundo CAT-005 §3.2)", () => {
     expect(producedMass).toBeLessThanOrEqual(OBJECT_CATALOG_BY_VARIANT.get("technical_installation.hand_pump")!.defaultWeightKg);
     expect(relevantViolations(finalState)).toEqual([]);
 
-    const draw = order(finalState, nav, { commandId: "draw", personId, actionKey: "draw_water", target: { kind: "world_object", worldObjectId: pumpId } });
+    // Preparación: la persona llega aquí con necesidades críticas y, desde S9, con una necesidad crítica solo toma su
+    // autoprotección; se la deja descansada para comprobar solo el bloqueo de la bomba.
+    const actor = finalState.people[personId]!;
+    const rested = { ...finalState, people: { ...finalState.people, [personId]: { ...actor, needs: actor.needs.map((n) => ({ ...n, value: 100, band: "stable" as const })) } } };
+    const draw = order(rested, nav, { commandId: "draw", personId, actionKey: "draw_water", target: { kind: "world_object", worldObjectId: pumpId } });
     const after = run(draw.state, nav, 20, 15);
     expect(after.state.jobs[draw.jobId]!.blockReasonKey).toBe("block.installation_not_functional");
   });
