@@ -856,6 +856,143 @@ export const ACCESS_MUTATING_ACTION_KEYS: ReadonlySet<string> = new Set([
 /** Litros que produce una extracción completa de `draw_water` (S7, provisional y documentado en `docs/STATUS.md`). */
 export const DRAW_WATER_LITERS_PER_JOB = 10;
 
+/**
+ * Métodos S10 (entorno mutable inicial y ciclo agrícola, `DEC-0020`, WLD-010
+ * §3.5-§3.7, SET-011 §3.2). Mismo motor D determinista que el resto del
+ * catálogo (`packages/simulation-core/src/v2/terrain/` y
+ * `.../v2/agriculture/`); `s10WorkUnits` fija la duración real según la
+ * superficie o longitud del blanco concreto, igual que S9 hace con la
+ * huella o la receta de una instalación.
+ */
+function terrainMethod(input: Pick<ActionMethodDefinition, "key" | "priority" | "targetKinds" | "characteristicIds" | "skillIds" | "profile" | "difficulty" | "hardRequirements"> & Partial<ActionMethodDefinition>): ActionMethodDefinition {
+  return {
+    version: 1,
+    labelKey: `action.${input.key}.label`,
+    descriptionKey: `action.${input.key}.description`,
+    requiredKnowledge: [],
+    revealsKnowledge: [],
+    classification: "open",
+    model: "d",
+    baseWorkUnits: 30,
+    unit: "minutes",
+    minParticipants: 1,
+    recommendedParticipants: 1,
+    maxParticipants: 3,
+    rolesAllowed: ["responsible", "primary_executor", "operational_helper"],
+    phases: ["validate", "travel", "prepare", "execute", "record_result"],
+    paceApplies: true,
+    attentionApplies: false,
+    irreversible: false,
+    ...input,
+  };
+}
+
+export const TERRAIN_ACTION_METHODS: readonly ActionMethodDefinition[] = [
+  terrainMethod({
+    key: "clear_vegetation",
+    priority: "logging",
+    targetKinds: ["terrain_area", "cultivation_plot"],
+    characteristicIds: ["strength"],
+    skillIds: [],
+    profile: "physical_70_30",
+    difficulty: 1,
+    hardRequirements: [{ kind: "known_target" }],
+  }),
+  terrainMethod({
+    key: "clear_debris",
+    priority: "logistics",
+    targetKinds: ["terrain_area", "cultivation_plot"],
+    characteristicIds: ["strength"],
+    skillIds: [],
+    profile: "physical_70_30",
+    difficulty: 1,
+    hardRequirements: [{ kind: "known_target" }],
+  }),
+  terrainMethod({
+    key: "prepare_soil",
+    priority: "agriculture_priority",
+    targetKinds: ["cultivation_plot"],
+    characteristicIds: ["strength", "endurance"],
+    skillIds: ["agriculture"],
+    profile: "physical_70_30",
+    difficulty: 2,
+    hardRequirements: [{ kind: "known_target" }],
+  }),
+  terrainMethod({
+    key: "sow",
+    priority: "agriculture_priority",
+    targetKinds: ["cultivation_plot"],
+    characteristicIds: ["dexterity"],
+    skillIds: ["agriculture"],
+    profile: "physical_70_30",
+    difficulty: 2,
+    hardRequirements: [{ kind: "known_target" }],
+    phases: ["validate", "travel", "prepare", "execute", "record_result"],
+  }),
+  terrainMethod({
+    key: "tend_crop",
+    priority: "agriculture_priority",
+    targetKinds: ["cultivation_plot"],
+    characteristicIds: ["endurance"],
+    skillIds: ["agriculture"],
+    profile: "physical_70_30",
+    difficulty: 1,
+    hardRequirements: [{ kind: "known_target" }],
+    baseWorkUnits: 20,
+  }),
+  terrainMethod({
+    key: "harvest",
+    priority: "agriculture_priority",
+    targetKinds: ["cultivation_plot"],
+    characteristicIds: ["dexterity", "endurance"],
+    skillIds: ["agriculture"],
+    profile: "physical_70_30",
+    difficulty: 1,
+    hardRequirements: [{ kind: "known_target" }],
+  }),
+  terrainMethod({
+    key: "clear_road",
+    priority: "logistics",
+    targetKinds: ["linear_feature"],
+    characteristicIds: ["strength"],
+    skillIds: [],
+    profile: "physical_70_30",
+    difficulty: 1,
+    hardRequirements: [{ kind: "known_target" }],
+    phases: ["validate", "travel", "execute", "record_result"],
+  }),
+  terrainMethod({
+    key: "remove_way_function",
+    priority: "construction_fortification",
+    targetKinds: ["linear_feature"],
+    characteristicIds: ["strength"],
+    skillIds: ["construction"],
+    profile: "physical_70_30",
+    difficulty: 2,
+    hardRequirements: [{ kind: "known_target" }, { kind: "requires_irreversible_confirmation" }],
+    irreversible: true,
+    phases: ["validate", "travel", "execute", "record_result"],
+  }),
+  terrainMethod({
+    key: "build_barrier",
+    priority: "construction_fortification",
+    targetKinds: ["barrier_segment"],
+    characteristicIds: ["strength", "dexterity"],
+    skillIds: ["carpentry", "construction"],
+    profile: "physical_70_30",
+    classification: "improvisable",
+    difficulty: 2,
+    hardRequirements: [{ kind: "known_target" }, { kind: "requires_concrete_materials" }],
+    recommendedParticipants: 2,
+  }),
+];
+
+/** Claves de los métodos S10 (entorno mutable y agricultura). */
+export const TERRAIN_ACTION_KEYS: ReadonlySet<string> = new Set(TERRAIN_ACTION_METHODS.map((m) => m.key));
+
+/** Métodos S10 cuyo blanco se reserva en exclusiva: dos trabajos nunca despejan, preparan, siembran o cosechan la misma superficie/tramo a la vez. */
+export const TERRAIN_EXCLUSIVE_ACTION_KEYS: ReadonlySet<string> = new Set(TERRAIN_ACTION_METHODS.map((m) => m.key));
+
 /** Métodos S7 cuyo blanco (y, en almacenamiento, el elemento movido) se reserva en exclusiva (S7 §7.7/§9: "reservas impiden doble uso"). */
 export const EXCLUSIVE_TARGET_ACTION_KEYS: ReadonlySet<string> = new Set([
   "collect",
@@ -869,8 +1006,10 @@ export const EXCLUSIVE_TARGET_ACTION_KEYS: ReadonlySet<string> = new Set([
   "transport",
   // S9: accesos, edificios, instalaciones, acabados y la bomba desinstalada/instalada se comprometen en exclusiva.
   ...EXPLOITATION_ACTION_METHODS.map((m) => m.key),
+  // S10: superficie de fondo, tramo de vía, parcela de cultivo y tramo de barrera se comprometen en exclusiva.
+  ...TERRAIN_ACTION_METHODS.map((m) => m.key),
 ]);
 
 export const ACTION_METHODS_BY_KEY: ReadonlyMap<string, ActionMethodDefinition> = new Map(
-  [...ACTION_METHODS, ...OBJECT_ACTION_METHODS, ...EXPLOITATION_ACTION_METHODS].map((m) => [m.key, m]),
+  [...ACTION_METHODS, ...OBJECT_ACTION_METHODS, ...EXPLOITATION_ACTION_METHODS, ...TERRAIN_ACTION_METHODS].map((m) => [m.key, m]),
 );

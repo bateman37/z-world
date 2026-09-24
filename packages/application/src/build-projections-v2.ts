@@ -263,6 +263,14 @@ const EVENT_MESSAGE_KEYS: Readonly<Record<DomainEventV2["type"], string>> = {
   building_layer_exhausted: "log.building_layer_exhausted",
   object_uninstalled: "log.object_uninstalled",
   object_installed: "log.object_installed",
+  way_state_changed: "log.way_state_changed",
+  barrier_segment_built: "log.barrier_segment_built",
+  terrain_coverage_cleared: "log.terrain_coverage_cleared",
+  cultivation_plot_state_changed: "log.cultivation_plot_state_changed",
+  crop_sown: "log.crop_sown",
+  crop_tended: "log.crop_tended",
+  crop_harvested: "log.crop_harvested",
+  crop_lost: "log.crop_lost",
 };
 
 export function toOperationalLogEntryV2(event: DomainEventV2): OperationalLogEntryProjection {

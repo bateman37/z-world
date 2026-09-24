@@ -1,5 +1,5 @@
 import { valuesById } from "./ordered.js";
-import type { SemanticWorldV2, WorldPoint } from "@z-world/contracts";
+import { effectiveTerrainCoverage, type SemanticWorldV2, type WorldPoint } from "@z-world/contracts";
 
 /**
  * Rejilla técnica de navegación exterior sobre el mundo semántico V2 (S3 de
@@ -47,6 +47,32 @@ export function surfaceKindAt(grid: WalkabilityGridV2, index: number): ExteriorS
  */
 export const RUBBLE_COST_MULTIPLIER = 2.2;
 export const CLEARED_SITE_COST_MULTIPLIER = 1.2;
+/** Coste añadido de una zona de fondo con escombros ligeros sin despejar (S10, WLD-010 §3.5): más lento que tierra despejada, muy por debajo de un obstáculo real. */
+export const DEBRIS_COVERAGE_COST_MULTIPLIER = 1.4;
+/**
+ * Coste de un tramo de carretera obstruido (S10, WLD-010 §3.7): "restringe
+ * o encarece el paso" sin eliminarlo — una aproximación conservadora
+ * documentada, ya que el modelo actual no distingue todavía obstáculos
+ * parciales de un bloqueo total. Reutiliza el código de superficie de
+ * vegetación densa (ninguna superficie dedicada existe aún para vías
+ * obstruidas): el tránsito es posible pero penalizado, nunca gratuito.
+ */
+export const OBSTRUCTED_ROAD_COST_MULTIPLIER = 2.0;
+
+/** Punto de intersección entre el segmento `a`-`b` y una polilínea, o `null` si no se cruzan (S10, cruce de barrera con vía). */
+function segmentIntersection(a: WorldPoint, b: WorldPoint, polyline: readonly WorldPoint[] | undefined): WorldPoint | null {
+  if (!polyline) return null;
+  for (let i = 1; i < polyline.length; i++) {
+    const c = polyline[i - 1]!;
+    const d = polyline[i]!;
+    const denom = (b.x - a.x) * (d.y - c.y) - (b.y - a.y) * (d.x - c.x);
+    if (Math.abs(denom) < 1e-9) continue;
+    const t = ((c.x - a.x) * (d.y - c.y) - (c.y - a.y) * (d.x - c.x)) / denom;
+    const u = ((c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x)) / denom;
+    if (t >= 0 && t <= 1 && u >= 0 && u <= 1) return { x: a.x + t * (b.x - a.x), y: a.y + t * (b.y - a.y) };
+  }
+  return null;
+}
 
 function pointInPolygon(point: WorldPoint, polygon: readonly WorldPoint[]): boolean {
   let inside = false;
@@ -157,7 +183,9 @@ function rasterizeWorld(world: SemanticWorldV2, grid: WalkabilityGridV2, region:
         if (!pointInPolygon(cellCenter, area.polygon)) continue;
         const index = row * columns + col;
         walkable[index] = area.transitable ? 1 : 0;
-        costMultiplier[index] = area.traversalCostMultiplier;
+        // S10: un fondo con escombros ligeros sin despejar cuesta más transitar, aunque su `kind` de base siga siendo transitable.
+        const debrisPenalty = effectiveTerrainCoverage(area) === "debris" ? DEBRIS_COVERAGE_COST_MULTIPLIER : 1;
+        costMultiplier[index] = area.traversalCostMultiplier * debrisPenalty;
         surface[index] = area.kind === "open_ground" ? SURFACE_CODE.open_ground : area.kind === "dense_vegetation" ? SURFACE_CODE.dense_vegetation : SURFACE_CODE.other;
       }
     }
@@ -166,7 +194,11 @@ function rasterizeWorld(world: SemanticWorldV2, grid: WalkabilityGridV2, region:
   for (const line of valuesById(world.linearFeatures)) {
     const halfWidth = Math.max(1, line.widthMeters / 2);
     const linePoints = line.polyline;
-    const isRoad = line.kind === "road" && line.wayState !== "obstructed";
+    // S10 (WLD-010 §3.7): despejar una vía conserva su ventaja de circulación normal; obstruida, restringe y encarece el
+    // paso sin cerrarlo; con la función retirada, deja de pintarse como vía y el fondo debajo manda (terreno despejado).
+    const isFunctionRemoved = line.kind === "road" && line.wayState === "function_removed";
+    const isObstructed = line.kind === "road" && line.wayState === "obstructed";
+    const isRoad = line.kind === "road" && !isFunctionRemoved;
     const isWater = line.kind === "watercourse";
     if (!isRoad && !isWater) continue;
     const range = intersectRegion(cellRangeForBounds(boundsOf(linePoints), grid, halfWidth), region);
@@ -191,9 +223,33 @@ function rasterizeWorld(world: SemanticWorldV2, grid: WalkabilityGridV2, region:
           walkable[index] = 0;
         } else {
           walkable[index] = 1;
-          costMultiplier[index] = Math.min(costMultiplier[index] ?? 1, ROAD_COST_MULTIPLIER);
+          costMultiplier[index] = Math.min(costMultiplier[index] ?? 1, isObstructed ? OBSTRUCTED_ROAD_COST_MULTIPLIER : ROAD_COST_MULTIPLIER);
           surface[index] = SURFACE_CODE.road;
         }
+      }
+    }
+  }
+
+  // S10 (WLD-010 §3.6): una barrera construida bloquea el paso a lo ancho de su trazado, salvo en el hueco de cruce que su
+  // modo elija. Un `pedestrian_gap`/`handcart_gate` deja transitable un tramo corto en torno al cruce con la vía; un
+  // `full_block` no deja hueco. La restricción por modalidad de transporte (carretilla/carro no caben por un hueco
+  // peatonal) vive en la capa logística de S8 (`transport/route.ts`), no en esta rejilla de paso a pie.
+  const BARRIER_HALF_WIDTH_METERS = 0.4;
+  const CROSSING_GAP_RADIUS_METERS = 2.5;
+  for (const segment of valuesById(world.barrierSegments)) {
+    if (!segment.built) continue;
+    const from = world.anchors[segment.fromAnchorId];
+    const to = world.anchors[segment.toAnchorId];
+    if (!from || !to) continue;
+    const crossingPoint = segment.crossesWayId ? segmentIntersection(from.position, to.position, world.linearFeatures[segment.crossesWayId]?.polyline) : null;
+    const range = intersectRegion(cellRangeForBounds(boundsOf([from.position, to.position]), grid, BARRIER_HALF_WIDTH_METERS), region);
+    if (!range) continue;
+    for (let row = range.rowStart; row <= range.rowEnd; row++) {
+      for (let col = range.colStart; col <= range.colEnd; col++) {
+        const cellCenter: WorldPoint = { x: grid.originX + (col + 0.5) * resolutionMeters, y: grid.originY + (row + 0.5) * resolutionMeters };
+        if (distanceToSegment(cellCenter, from.position, to.position) > BARRIER_HALF_WIDTH_METERS) continue;
+        if (crossingPoint && segment.wayCrossingMode !== "full_block" && Math.hypot(cellCenter.x - crossingPoint.x, cellCenter.y - crossingPoint.y) <= CROSSING_GAP_RADIUS_METERS) continue;
+        walkable[row * columns + col] = 0;
       }
     }
   }

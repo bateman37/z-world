@@ -460,6 +460,8 @@ export interface Job {
    * en el tipo y con `.default(null)` en el esquema.
    */
   readonly workTotalUnits?: number | null;
+  /** Cultivo elegido para `sow` (S10, referencia al catálogo versionado). `null` para cualquier otro método. */
+  readonly cropId: string | null;
   readonly createdAtSimSeconds: number;
   readonly updatedAtSimSeconds: number;
 }
@@ -501,6 +503,7 @@ export const jobSchema = z.object({
   storageQuantity: z.number().positive().nullable().default(null),
   transport: transportJobStateSchema.nullable().default(null),
   workTotalUnits: z.number().positive().nullable().default(null),
+  cropId: z.string().nullable().default(null),
   createdAtSimSeconds: z.number().int().nonnegative(),
   updatedAtSimSeconds: z.number().int().nonnegative(),
 });

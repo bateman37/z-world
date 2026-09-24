@@ -12,3 +12,5 @@ export * from "./object-catalog.js";
 export * from "./decay-tuning.js";
 export * from "./transport-methods.js";
 export * from "./building-exploitation.js";
+export * from "./crop-catalog.js";
+export * from "./terrain-transform-tuning.js";
