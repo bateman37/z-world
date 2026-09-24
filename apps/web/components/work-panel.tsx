@@ -376,8 +376,16 @@ export function WorkPanel({
         ) : (
           <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 4 }}>
             {projections.cultivationPlots.map((plot) => (
-              <li key={plot.id} className="z-panel" style={{ padding: 6 }} data-cultivation-plot-id={plot.id} data-cultivation-plot-state={plot.state}>
+              <li
+                key={plot.id}
+                className="z-panel"
+                style={{ padding: 6 }}
+                data-cultivation-plot-id={plot.id}
+                data-cultivation-plot-state={plot.state}
+                data-cultivation-plot-preparation={plot.preparationProgress}
+              >
                 <strong>{copyKey(`cultivation_state.${plot.state}`)}</strong>
+                {plot.preparationProgress > 0 && plot.preparationProgress < 1 && <span className="z-muted"> · preparación {Math.round(plot.preparationProgress * 100)}%</span>}
                 {plot.damageLevel > 0 && <span className="z-muted"> · daño {Math.round(plot.damageLevel * 100)}%</span>}
               </li>
             ))}

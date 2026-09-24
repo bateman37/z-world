@@ -42,16 +42,21 @@ export function generateEnvironmentPlaces(
   const fieldAreaIds = new Set(terrain.fieldAreaIds);
   const env02Count = Math.min(prng.nextInt(3, 6), terrain.fieldAreaIds.length);
   const chosenFieldIds = new Set(prng.shuffle(terrain.fieldAreaIds).slice(0, env02Count));
+  // El resto de bolsas de campo (§10.3: WLD-010 §3.5 "despejar residuos") no elegidas como ENV-02 quedan disponibles
+  // para demostrar `clear_debris` sobre una bolsa de terreno abierto real y localizada, nunca sobre el fondo entero
+  // del mapa (que también es `kind: "open_ground"` pero cubre todo el mundo y no es un objetivo demostrable).
+  const unchosenFieldIds = terrain.fieldAreaIds.filter((id) => !chosenFieldIds.has(id));
+  const debrisIds = new Set(prng.shuffle(unchosenFieldIds).slice(0, Math.min(2, unchosenFieldIds.length)));
   for (const area of terrain.terrainAreas) {
     if (!fieldAreaIds.has(area.id)) continue;
-    if (!chosenFieldIds.has(area.id)) {
-      updatedAreas.push(area);
+    if (chosenFieldIds.has(area.id)) {
+      const placeId = ids.next("place");
+      places.push({ id: placeId, profileId: "ENV-02", position: centroidOf(area.polygon), buildingId: null });
+      updatedAreas.push({ ...area, placeId });
+      parcels.push({ id: ids.next("parcel"), polygon: area.polygon, cultivationPlotId: null, terrainAreaId: area.id });
       continue;
     }
-    const placeId = ids.next("place");
-    places.push({ id: placeId, profileId: "ENV-02", position: centroidOf(area.polygon), buildingId: null });
-    updatedAreas.push({ ...area, placeId });
-    parcels.push({ id: ids.next("parcel"), polygon: area.polygon, cultivationPlotId: null, terrainAreaId: area.id });
+    updatedAreas.push(debrisIds.has(area.id) ? { ...area, coverage: "debris" } : area);
   }
 
   const forestAreaIds = new Set(terrain.forestAreaIds);
@@ -67,14 +72,10 @@ export function generateEnvironmentPlaces(
     places.push({ id: placeId, profileId: "ENV-03", position: centroidOf(area.polygon), buildingId: null });
     updatedAreas.push({ ...area, placeId });
   }
-  // El resto de áreas (fondo transitable, roca) no son Place: son terreno de fondo sin perfil jugable propio. S10:
-  // un par de bolsas de fondo transitable quedan marcadas con escombros ligeros (WLD-010 §3.5: "despejar residuos"),
-  // demostrando `clear_debris` sin depender de una demolición previa.
-  const backgroundOpenGroundIds = terrain.terrainAreas.filter((a) => !fieldAreaIds.has(a.id) && !forestAreaIds.has(a.id) && a.kind === "open_ground").map((a) => a.id);
-  const debrisIds = new Set(prng.shuffle(backgroundOpenGroundIds).slice(0, Math.min(2, backgroundOpenGroundIds.length)));
+  // El resto de áreas (fondo transitable, roca) no son Place: son terreno de fondo sin perfil jugable propio.
   for (const area of terrain.terrainAreas) {
     if (fieldAreaIds.has(area.id) || forestAreaIds.has(area.id)) continue;
-    updatedAreas.push(debrisIds.has(area.id) ? { ...area, coverage: "debris" } : area);
+    updatedAreas.push(area);
   }
 
   const waysForEnv04: LinearFeature[] = [terrain.mainRoad, ...terrain.secondaryStreets, ...terrain.ruralTracks];
