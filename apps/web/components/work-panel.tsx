@@ -26,6 +26,17 @@ export interface TransportOrderParams {
   readonly meansDisposition: MeansDisposition;
 }
 
+/** Identificador estable del blanco (atributo `data-target-id` para pruebas E2E y accesibilidad de depuración). */
+function targetIdOf(target: JobTarget): string {
+  const values = Object.entries(target).filter(([k]) => k !== "kind").map(([, v]) => String(v));
+  return values.join(":");
+}
+
+/** Clave estable de una opción de objetivo (blanco + elemento almacenado, si lo hay). */
+function targetOptionKey(t: { readonly target: JobTarget; readonly storageItem?: { readonly kind: string; readonly id: string } | null }): string {
+  return `${t.target.kind}:${targetIdOf(t.target)}|${t.storageItem ? `${t.storageItem.kind}:${t.storageItem.id}` : ""}`;
+}
+
 function cargoRefOf(target: JobTarget): CargoRef | null {
   if (target.kind === "world_object") return { kind: "world_object", id: target.worldObjectId };
   if (target.kind === "resource_lot") return { kind: "resource_lot", id: target.resourceLotId };
@@ -75,7 +86,8 @@ export function WorkPanel({
   readonly onCancelDesignation: (designationId: string) => void;
 }) {
   const [actionKey, setActionKey] = useState<string>("");
-  const [targetIndex, setTargetIndex] = useState<number>(0);
+  // El objetivo se recuerda por clave estable, no por índice: la lista cambia (p. ej. al elegir equipo en un traslado) y un índice apuntaría a otro blanco.
+  const [targetKey, setTargetKey] = useState<string | null>(null);
   const [zoneBounds, setZoneBounds] = useState({ minX: "-20", minY: "-20", maxX: "20", maxY: "20" });
   const [zonePolicy, setZonePolicy] = useState<"habitual" | "precaution" | "forbidden">("habitual");
   const [irreversibleConfirmed, setIrreversibleConfirmed] = useState(false);
@@ -100,6 +112,8 @@ export function WorkPanel({
     (t) => !t.storageItem || t.storageItem.holderPersonId === null || t.storageItem.holderPersonId === selectedPersonId || (isTransport && teamIds.includes(t.storageItem.holderPersonId)),
   );
   const transportOptions = selectedOption?.transport;
+  const keyedIndex = targetKey === null ? -1 : targets.findIndex((t) => targetOptionKey(t) === targetKey);
+  const targetIndex = keyedIndex >= 0 ? keyedIndex : 0;
   const selectedTarget = targets[targetIndex];
   const extraCandidates = isTransport && selectedTarget?.cargoGroupKey ? targets.filter((t, i) => i !== targetIndex && t.cargoGroupKey === selectedTarget.cargoGroupKey && t.blockedReasonKey === null) : [];
   const wheeledChoice = transportMethod === "wheelbarrow" || transportMethod === "handcart";
@@ -205,7 +219,7 @@ export function WorkPanel({
                 value={selectedOption?.actionKey ?? ""}
                 onChange={(e) => {
                   setActionKey(e.target.value);
-                  setTargetIndex(0);
+                  setTargetKey(null);
                 }}
               >
                 {projections.contextualActions.map((o) => (
@@ -217,9 +231,9 @@ export function WorkPanel({
             </label>
             <label style={{ display: "block", marginTop: 4 }}>
               Objetivo:{" "}
-              <select value={targetIndex} onChange={(e) => setTargetIndex(Number(e.target.value))}>
+              <select value={targetIndex} onChange={(e) => setTargetKey(targets[Number(e.target.value)] ? targetOptionKey(targets[Number(e.target.value)]!) : null)}>
                 {targets.map((t, i) => (
-                  <option key={i} value={i} disabled={t.blockedReasonKey !== null}>
+                  <option key={i} value={i} disabled={t.blockedReasonKey !== null} data-target-id={targetIdOf(t.target)}>
                     {isTransport
                       ? `${copyKey(t.labelKey)}${t.storageItem?.holderPersonId ? ` (lo lleva ${projections.personCards.find((c) => c.personId === t.storageItem!.holderPersonId)?.firstName ?? ""})` : ""}`
                       : t.storageItem
@@ -287,7 +301,7 @@ export function WorkPanel({
         ) : (
           <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 6 }}>
             {projections.jobs.map((job) => (
-              <li key={job.id} className="z-panel" style={{ padding: 6 }}>
+              <li key={job.id} className="z-panel" style={{ padding: 6 }} data-job-id={job.id} data-job-state={job.state}>
                 <div>
                   <strong>{copyKey(job.labelKey)}</strong> — {job.state}
                   {job.phaseKind ? ` (${job.phaseKind})` : ""}
@@ -397,7 +411,7 @@ function TransportControls(props: {
         Destino:{" "}
         <select aria-label="Destino del traslado" value={props.destinationIndex} onChange={(e) => props.onDestination(Number(e.target.value))}>
           {options.destinations.map((d, i) => (
-            <option key={i} value={i}>
+            <option key={i} value={i} data-destination-id={d.destination.kind === "container" ? d.destination.containerId : d.destination.kind === "room" ? d.destination.roomId : d.destination.kind === "transfer_point" ? d.destination.transferPointId : "arrival_point"}>
               {d.destination.kind === "container" ? "Contenedor: " : d.destination.kind === "room" ? "Estancia: " : ""}
               {copyKey(d.labelKey)}
             </option>
@@ -420,7 +434,7 @@ function TransportControls(props: {
           <select aria-label="Medio concreto" value={props.meansId} onChange={(e) => props.onMeans(e.target.value)}>
             <option value="">El más cercano disponible</option>
             {props.meansChoices.map((m) => (
-              <option key={m.id} value={m.id} disabled={m.blockedReasonKey !== null}>
+              <option key={m.id} value={m.id} disabled={m.blockedReasonKey !== null} data-means-id={m.id}>
                 {copyKey(m.labelKey)}
                 {m.blockedReasonKey ? ` — ${copyKey(m.blockedReasonKey)}` : ""}
               </option>
