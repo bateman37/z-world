@@ -96,11 +96,12 @@ test("S10: carretera mutable — despejar conservando función y retirar la func
 
   // Despejar conserva la función viaria (WLD-010 §3.7): no exige confirmación irreversible.
   await accomplish(panel, () => chooseAction(panel, "Despejar vía", { id: fx.roadId }));
-  expect(await wayStateOf(fx.gameSaveId, fx.roadId)).toBe("cleared");
 
-  // Persiste tras recargar antes de la segunda transformación.
+  // Persiste tras recargar antes de la segunda transformación. Se pausa y se espera «Guardado» antes de leer por
+  // Prisma: el estado en curso del cliente no llega a la base de datos hasta que se guarda.
   await page.getByRole("button", { name: "Pausa", exact: true }).click();
   await expect(page.getByText("Guardado")).toBeVisible({ timeout: 15_000 });
+  expect(await wayStateOf(fx.gameSaveId, fx.roadId)).toBe("cleared");
   await page.reload();
   await expect(page.getByRole("navigation", { name: "Protagonistas" }).getByRole("button")).toHaveCount(6, { timeout: 20_000 });
   expect(await wayStateOf(fx.gameSaveId, fx.roadId)).toBe("cleared");
@@ -109,11 +110,11 @@ test("S10: carretera mutable — despejar conservando función y retirar la func
 
   // Retirar la función viaria es irreversible en este alcance (deja terreno despejado, no una carretera reutilizable): exige confirmación informada.
   await accomplish(panel, () => chooseAction(panel, "Retirar función viaria", { id: fx.roadId }), { confirm: true });
-  expect(await wayStateOf(fx.gameSaveId, fx.roadId)).toBe("function_removed");
 
   // También persiste tras recargar.
   await page.getByRole("button", { name: "Pausa", exact: true }).click();
   await expect(page.getByText("Guardado")).toBeVisible({ timeout: 15_000 });
+  expect(await wayStateOf(fx.gameSaveId, fx.roadId)).toBe("function_removed");
   await page.reload();
   await expect(page.getByRole("navigation", { name: "Protagonistas" }).getByRole("button")).toHaveCount(6, { timeout: 20_000 });
   expect(await wayStateOf(fx.gameSaveId, fx.roadId)).toBe("function_removed");
