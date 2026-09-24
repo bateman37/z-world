@@ -18,6 +18,7 @@ import type { TransportDestination, TransportMethodChoice, TransportStep } from 
 import type { BulkClass, TransportMethod } from "./objects-v2.js";
 import type { PriorityId } from "./catalog-ids.js";
 import type { BuildingLayer, BuildingLifeStage, ConstructionEra, ExploitationStage, HabitabilityBand, LayerKnowledgeState, LayerPhysicalState } from "./building-exploitation-v2.js";
+import type { CultivationState } from "./agriculture-v2.js";
 
 /**
  * Proyecciones de solo lectura del runtime V2 (S3 de WEB-002 §5.8).
@@ -298,6 +299,16 @@ export interface BuildingExploitationProjection {
   readonly previews: readonly IrreversiblePreviewProjection[];
 }
 
+/** Estado operativo de una parcela de cultivo conocida (S10), para el panel de trabajo y para pruebas E2E que necesitan observar la fase agrícola sin depender del lienzo. */
+export interface CultivationPlotStatusProjection {
+  readonly id: string;
+  readonly parcelId: string;
+  readonly state: CultivationState;
+  readonly damageLevel: number;
+  readonly preparationProgress: number;
+  readonly activeCropCycleId: string | null;
+}
+
 /** Envoltorio de todas las proyecciones que el runtime V2 envía a React. */
 export interface WorkerProjectionsV2 {
   readonly gameSummary: GameSummaryProjection;
@@ -315,6 +326,8 @@ export interface WorkerProjectionsV2 {
   readonly designations: readonly DesignationProjection[];
   readonly contextualActions: readonly ContextualActionOptionProjection[];
   readonly inventory: readonly InventoryEntryProjection[];
+  /** Parcelas de cultivo conocidas con su estado agrícola (S10). */
+  readonly cultivationPlots: readonly CultivationPlotStatusProjection[];
   /** Edificios conocidos con su estado por capas (S9). */
   readonly buildings: readonly BuildingExploitationProjection[];
   readonly revision: number;

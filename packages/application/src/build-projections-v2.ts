@@ -1,6 +1,7 @@
 import type {
   ContextualActionOptionProjection,
   ContextualActionTargetProjection,
+  CultivationPlotStatusProjection,
   DesignationProjection,
   DiscoveryRecord,
   DomainEventV2,
@@ -479,6 +480,17 @@ function buildRoadActionOptions(state: SimulationStateV2): ContextualActionOptio
   return options;
 }
 
+function buildCultivationPlotsProjection(state: SimulationStateV2): CultivationPlotStatusProjection[] {
+  return Object.values(state.cultivationPlots).map((plot) => ({
+    id: plot.id,
+    parcelId: plot.parcelId,
+    state: plot.state,
+    damageLevel: plot.damageLevel,
+    preparationProgress: plot.preparationProgress,
+    activeCropCycleId: plot.activeCropCycleId,
+  }));
+}
+
 export function buildWorkerProjectionsV2(params: {
   readonly state: SimulationStateV2;
   readonly gameSaveId: string;
@@ -512,6 +524,7 @@ export function buildWorkerProjectionsV2(params: {
     designations: buildDesignationsProjection(state),
     contextualActions: buildContextualActionsProjection(state),
     inventory: buildInventoryProjection(state, buildObjectKnowledge(state)),
+    cultivationPlots: buildCultivationPlotsProjection(state),
     buildings: buildBuildingsProjection(state),
     revision: params.revision,
   };

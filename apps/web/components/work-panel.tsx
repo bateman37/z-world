@@ -15,7 +15,7 @@ import type {
   WorkerProjectionsV2,
 } from "@z-world/contracts";
 import { toSimulatedDayTime } from "@z-world/contracts";
-import { ACTION_METHODS_BY_KEY, copyKey } from "@z-world/catalogs";
+import { ACTION_METHODS_BY_KEY, copyKey, CROP_PROFILES } from "@z-world/catalogs";
 import type { BuildingExploitationProjection } from "@z-world/contracts";
 
 const ACTION_DESCRIPTIONS: ReadonlyMap<string, string> = new Map([...ACTION_METHODS_BY_KEY.values()].map((m) => [m.key, m.descriptionKey]));
@@ -101,6 +101,7 @@ export function WorkPanel({
   const [designationKind, setDesignationKind] = useState<"systematic_recon" | "clear_area" | "cut_vegetation" | "prepare_soil" | "harvest" | "build_barrier">("systematic_recon");
   const [barrierPoints, setBarrierPoints] = useState({ fromX: "-10", fromY: "-10", toX: "10", toY: "-10" });
   const [wayCrossingMode, setWayCrossingMode] = useState<"full_block" | "pedestrian_gap" | "handcart_gate">("pedestrian_gap");
+  const [cropId, setCropId] = useState<string>(CROP_PROFILES[0]!.id);
   const [irreversibleConfirmed, setIrreversibleConfirmed] = useState(false);
   const [partialQuantity, setPartialQuantity] = useState("");
   // Traslado (S8).
@@ -167,8 +168,7 @@ export function WorkPanel({
       confirmIrreversible: isIrreversibleAction ? irreversibleConfirmed : undefined,
       storageItem: targets[targetIndex]?.storageItem ? { kind: targets[targetIndex]!.storageItem!.kind, id: targets[targetIndex]!.storageItem!.id } : undefined,
       storageQuantity: isPartialRetrieve && Number(partialQuantity) > 0 ? Number(partialQuantity) : undefined,
-      // S10: único cultivo jugable del catálogo por ahora (`garden_vegetables`); sin selector hasta que haya más de uno.
-      cropId: selectedOption.actionKey === "sow" ? "garden_vegetables" : undefined,
+      cropId: selectedOption.actionKey === "sow" ? cropId : undefined,
     });
     setPartialQuantity("");
     setIrreversibleConfirmed(false);
@@ -281,6 +281,18 @@ export function WorkPanel({
                 ))}
               </select>
             </label>
+            {selectedOption?.actionKey === "sow" && (
+              <label style={{ display: "block", marginTop: 4 }}>
+                Cultivo:{" "}
+                <select value={cropId} onChange={(e) => setCropId(e.target.value)}>
+                  {CROP_PROFILES.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {copyKey(c.labelKey)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             {isPartialRetrieve && (
               <label style={{ display: "block", marginTop: 4 }}>
                 Cantidad (vacío = todo): <input aria-label="Cantidad a retirar" value={partialQuantity} onChange={(e) => setPartialQuantity(e.target.value)} style={{ width: 56 }} />
@@ -351,6 +363,22 @@ export function WorkPanel({
                   {job.state === "paused" && <button onClick={() => onResumeJob(job.id)}>Reanudar</button>}
                   {job.state !== "completed" && job.state !== "cancelled" && job.state !== "causal_failure" && <button onClick={() => onCancelJob(job.id)}>Cancelar</button>}
                 </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section aria-label="Parcelas de cultivo">
+        <h3>Parcelas de cultivo</h3>
+        {projections.cultivationPlots.length === 0 ? (
+          <p className="z-muted">Sin parcelas conocidas.</p>
+        ) : (
+          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+            {projections.cultivationPlots.map((plot) => (
+              <li key={plot.id} className="z-panel" style={{ padding: 6 }} data-cultivation-plot-id={plot.id} data-cultivation-plot-state={plot.state}>
+                <strong>{copyKey(`cultivation_state.${plot.state}`)}</strong>
+                {plot.damageLevel > 0 && <span className="z-muted"> · daño {Math.round(plot.damageLevel * 100)}%</span>}
               </li>
             ))}
           </ul>

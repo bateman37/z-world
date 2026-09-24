@@ -671,6 +671,8 @@ export const COPY_KEYS: Readonly<Record<string, string>> = {
   "log.crop_tended": "Se cuidó un cultivo.",
   "log.crop_harvested": "Se cosechó un cultivo.",
   "log.crop_lost": "Un cultivo se perdió por abandono.",
+  "crop.garden_vegetables.label": "Hortalizas de huerto",
+  "crop.test_fast_vegetables.label": "Hortaliza de ciclo abreviado (verificación)",
 
   // Necesidades (etiquetas y bandas cualitativas).
   "need.hydration": "Hidratación",
