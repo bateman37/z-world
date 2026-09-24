@@ -575,7 +575,9 @@ function progressJob(ctx: Ctx, jobId: string): void {
     case "validate": {
       const hardCheck = checkHardRequirements(def, ctx.state, executorId, job.target);
       if (!hardCheck.ok) {
-        blockJob(ctx, jobId, hardCheck.reasonKey ?? "block.requirement_failed");
+        // S9: sobre un edificio demolido o desmantelado no hay nada que esperar (irreversible): el trabajo falla causalmente.
+        if (hardCheck.reasonKey === "block.building_demolished" || hardCheck.reasonKey === "block.building_dismantled") failJobCausally(ctx, jobId, hardCheck.reasonKey);
+        else blockJob(ctx, jobId, hardCheck.reasonKey ?? "block.requirement_failed");
         return;
       }
       const storageReason = storageValidationReason(ctx.state, job) ?? (isS9 ? s9ValidationReason(ctx.state, job) : null);

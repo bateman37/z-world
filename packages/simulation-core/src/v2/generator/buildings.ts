@@ -571,7 +571,7 @@ export function generateBuildingContents(
         widthClass: "normal",
         installedClosureId: closureId,
       });
-      installedClosures.push({ id: closureId, openingId, kind: "door", state: prng.pick(["open", "closed", "closed"] as const), condition: 0.4 + prng.nextFloat() * 0.5 });
+      installedClosures.push({ id: closureId, openingId, kind: "door", state: prng.pick(["open", "closed", "closed"] as const), condition: 0.4 + prng.nextFloat() * 0.5, lockedByCommunity: false, lockBroken: false, reinforced: false });
     }
 
     for (let i = 0; i < roomInstances.length; i++) {
@@ -598,6 +598,10 @@ export function generateBuildingContents(
         kind: roomInstances[i] === "wide_gate" ? "gate" : "door",
         state: i === exteriorFrontRoomIndex ? "closed" : prng.pick(["open", "closed", "locked"] as const),
         condition: 0.4 + prng.nextFloat() * 0.5,
+        // S9 (v4): forma completa de un cierre (un cierre encontrado bloqueado no lo echó la comunidad).
+        lockedByCommunity: false,
+        lockBroken: false,
+        reinforced: false,
       });
       entryRoomIds.push(roomIdByIndex[i]!);
     }
