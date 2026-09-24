@@ -199,6 +199,34 @@ describe("S8 — carga física real", () => {
     const rb = run(b.state, nav, 5);
     expect(rb.state.jobs[b.jobId]!.blockReasonKey).toBe("block.load_too_bulky_for_method");
   });
+
+  it("hereda del contenido las etiquetas de manipulación (líquido, frágil, vertical), no las geométricas, y decide con ellas", () => {
+    const { state, nav, p1 } = world();
+    let s = putMeans(state, meansAt("means-barrow", "wheelbarrow", { x: -1, y: 1 }));
+    const boxContainer: Container = { id: "container-box", location: { kind: "on_object", objectId: "obj-box" }, capacityUnits: 4, contentIds: ["obj-lantern", "obj-axe"], hostFurnitureId: null, hostWorldObjectId: "obj-box", acceptedHandlingTags: null };
+    s = putObject(s, { ...makeWorldObject({ id: "obj-box", variant: "storage_furniture.storage_box", location: { kind: "world_point", point: { x: -8, y: 1 } }, condition: 0.8, quality: 0.5, functionalState: "functional" }), containerId: boxContainer.id });
+    s = putObject(s, makeWorldObject({ id: "obj-lantern", variant: "light_source.lantern", location: { kind: "container", containerId: boxContainer.id }, condition: 0.9, quality: 0.5, functionalState: "functional" }));
+    s = putObject(s, makeWorldObject({ id: "obj-axe", variant: "improvised_tool_or_weapon.wood_axe", location: { kind: "container", containerId: boxContainer.id }, condition: 0.9, quality: 0.5, functionalState: "functional" }));
+    s = { ...s, containers: { ...s.containers, [boxContainer.id]: boxContainer } };
+    s = putObject(s, makeWorldObject({ id: "obj-bucket", variant: "work_container.bucket", location: { kind: "world_point", point: { x: -8, y: -1 } }, condition: 0.9, quality: 0.5, functionalState: "functional" }));
+    s = putLot(s, lot("lot-water", "water", 8, { kind: "on_object", objectId: "obj-bucket" }));
+
+    const box = summarizeCargo(s, [{ kind: "world_object", id: "obj-box" }])!;
+    expect(box.handlingTags).toEqual(expect.arrayContaining(["fragile", "keep_upright"]));
+    expect(box.handlingTags).not.toContain("long"); // el hacha va dentro: la caja absorbe su geometría
+    expect(summarizeCargo(s, [{ kind: "world_object", id: "obj-bucket" }])!.handlingTags).toContain("liquid");
+    expect(summarizeCargo(s, [{ kind: "world_object", id: "obj-bucket" }])!.totalWeightKg).toBeGreaterThan(8);
+
+    // La carretilla no admite cargas que deban ir verticales: por la etiqueta heredada del farol, no por la caja.
+    const order = orderTransport(s, nav, { personId: p1, target: { kind: "world_object", worldObjectId: "obj-box" }, transportMethod: "wheelbarrow", transportMeansId: "means-barrow", transportDestination: { kind: "world_point", point: { x: -20, y: 0 } } });
+    const r = run(order.state, nav, 5);
+    expect(r.state.jobs[order.jobId]!.blockReasonKey).toBe("block.handling_incompatible_with_method");
+    // Vacía de lo frágil, la misma caja sí va en carretilla.
+    const emptied: SimulationStateV2 = { ...s, worldObjects: Object.fromEntries(Object.entries(s.worldObjects).filter(([id]) => id !== "obj-lantern")), containers: { ...s.containers, [boxContainer.id]: { ...boxContainer, contentIds: ["obj-axe"] } } };
+    const ok = orderTransport(emptied, nav, { personId: p1, target: { kind: "world_object", worldObjectId: "obj-box" }, transportMethod: "wheelbarrow", transportMeansId: "means-barrow", transportDestination: { kind: "world_point", point: { x: -20, y: 0 } } });
+    const rok = run(ok.state, nav, 20000, STEP, (st) => done(ok.jobId)(st));
+    expect(rok.state.jobs[ok.jobId]!.state).toBe("completed");
+  });
 });
 
 describe("S8 — a pulso, extremo a extremo por accesos reales", () => {

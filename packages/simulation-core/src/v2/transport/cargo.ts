@@ -66,6 +66,69 @@ function lotTags(family: string): readonly HandlingTag[] {
   return RESOURCE_HANDLING_TAGS[family] ?? [];
 }
 
+/**
+ * Etiquetas de manipulación que el contenido transmite a quien lo contiene
+ * (SET-010 §3.5): un cubo con agua se lleva como líquido, una mochila con un
+ * farol dentro es frágil y hay que mantenerla vertical. Las etiquetas
+ * geométricas (`long`, `bulky`) no se heredan: las absorbe el propio
+ * recipiente, cuyo bulto ya cuenta.
+ */
+const INHERITED_HANDLING_TAGS: ReadonlySet<HandlingTag> = new Set<HandlingTag>(["liquid", "fragile", "contaminating", "keep_upright"]);
+
+function inheritable(tags: readonly HandlingTag[]): HandlingTag[] {
+  return tags.filter((t) => INHERITED_HANDLING_TAGS.has(t));
+}
+
+function containerContentTags(state: SimulationStateV2, containerId: string | null, depth = 0): HandlingTag[] {
+  if (!containerId || depth > 8) return [];
+  const container = state.containers[containerId];
+  if (!container) return [];
+  const tags: HandlingTag[] = [];
+  for (const contentId of container.contentIds) {
+    const obj = state.worldObjects[contentId];
+    if (obj) tags.push(...inheritable(obj.handlingTags), ...objectContentTags(state, obj.id, depth + 1));
+    else {
+      const lot = state.resourceLots[contentId];
+      if (lot) tags.push(...inheritable(lotTags(lot.family)));
+    }
+  }
+  return tags;
+}
+
+function objectContentTags(state: SimulationStateV2, objectId: string, depth = 0): HandlingTag[] {
+  const obj = state.worldObjects[objectId];
+  if (!obj) return [];
+  const tags = containerContentTags(state, obj.containerId, depth);
+  for (const lot of valuesById(state.resourceLots)) {
+    if (lot.location.kind === "on_object" && lot.location.objectId === objectId) tags.push(...inheritable(lotTags(lot.family)));
+  }
+  return tags;
+}
+
+function uniqueSorted(tags: readonly HandlingTag[]): HandlingTag[] {
+  return [...new Set(tags)].sort();
+}
+
+/** Objetos frágiles de la carga, incluidos los que van dentro de un recipiente (para la conservación en ruta). */
+export function fragileCargoObjectIds(state: SimulationStateV2, cargo: readonly CargoRef[]): string[] {
+  const out: string[] = [];
+  const visitContainer = (containerId: string | null, depth: number): void => {
+    if (!containerId || depth > 8) return;
+    for (const id of state.containers[containerId]?.contentIds ?? []) visitObject(id, depth + 1);
+  };
+  const visitObject = (id: string, depth: number): void => {
+    const obj = state.worldObjects[id];
+    if (!obj) return;
+    if (obj.handlingTags.includes("fragile")) out.push(obj.id);
+    visitContainer(obj.containerId, depth);
+  };
+  for (const ref of cargo) {
+    if (ref.kind === "world_object") visitObject(ref.id, 0);
+    else if (ref.kind === "furniture") visitContainer(state.furniture[ref.id]?.containerId ?? null, 0);
+  }
+  return [...new Set(out)].sort();
+}
+
 function bulkForLot(quantity: number, unit: "liter" | "kilogram" | "unit"): BulkClass {
   const liters = quantity * RESOURCE_VOLUME_PER_UNIT[unit];
   if (liters <= 5) return "small";
@@ -78,7 +141,7 @@ export function describeCargoItem(state: SimulationStateV2, ref: CargoRef): Carg
   if (ref.kind === "world_object") {
     const obj = state.worldObjects[ref.id];
     if (!obj) return null;
-    return { ref, weightKg: round3(objectWeightKg(state, obj.id)), volumeLiters: obj.volumeLiters, bulk: obj.bulk, tags: obj.handlingTags };
+    return { ref, weightKg: round3(objectWeightKg(state, obj.id)), volumeLiters: obj.volumeLiters, bulk: obj.bulk, tags: uniqueSorted([...obj.handlingTags, ...objectContentTags(state, obj.id)]) };
   }
   if (ref.kind === "resource_lot") {
     const lot = state.resourceLots[ref.id];
@@ -93,7 +156,7 @@ export function describeCargoItem(state: SimulationStateV2, ref: CargoRef): Carg
     weightKg: round3(furniture.weightKg + containerContentWeightKg(state, furniture.containerId)),
     volumeLiters: entry?.defaultVolumeLiters ?? 400,
     bulk: furniture.bulk,
-    tags: furniture.handlingTags,
+    tags: uniqueSorted([...furniture.handlingTags, ...containerContentTags(state, furniture.containerId)]),
   };
 }
 

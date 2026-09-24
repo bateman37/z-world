@@ -34,7 +34,7 @@ import { isOpeningPassable } from "../room-graph.js";
 import { surfaceKindAt, worldToCellV2 } from "../navigation-v2.js";
 import { moveItem, pruneEmptyLoadBundle, removeFromLoadBundle, resolveHolderPersonId, storageBlockReason } from "../objects/storage.js";
 import { applyUseWear } from "../objects/wear.js";
-import { cargoLocation, summarizeCargo } from "./cargo.js";
+import { cargoLocation, fragileCargoObjectIds, summarizeCargo } from "./cargo.js";
 import { transportCapacityOf, teamWorkFactor } from "./capacity.js";
 import { cargoOriginPoint, destinationNavPoint, planTransport, requiredOpeningClass, transportTeam } from "./plan.js";
 import { planRoute, type TransportRoute } from "./route.js";
@@ -562,10 +562,10 @@ function applyFragileWear(ctx: Ctx, jobId: string): void {
   const rough = transport.surfaceMeters.open_ground + transport.surfaceMeters.dense_vegetation;
   if (rough <= 0) return;
   const loss = (rough / 10) * FRAGILE_WHEELED_ROUGH_LOSS_PER_10M * (job.attention === "careful" ? 0.5 : 1);
-  for (const ref of transport.cargo) {
-    if (ref.kind !== "world_object") continue;
-    const obj = ctx.state.worldObjects[ref.id];
-    if (!obj || !obj.handlingTags.includes("fragile")) continue;
+  // Incluye lo frágil que va dentro de un recipiente de la carga (etiqueta heredada del contenido).
+  for (const id of fragileCargoObjectIds(ctx.state, transport.cargo)) {
+    const obj = ctx.state.worldObjects[id];
+    if (!obj) continue;
     ctx.state = { ...ctx.state, worldObjects: { ...ctx.state.worldObjects, [obj.id]: { ...obj, condition: round6(Math.max(0, obj.condition - loss)) } } };
   }
 }
