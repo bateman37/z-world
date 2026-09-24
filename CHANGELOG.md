@@ -4,6 +4,37 @@ Registra entregas documentales y de diseño de Z-World. No atribuye código ni
 funcionalidad implementada salvo que se indique explícitamente como
 `implemented` en la documentación afectada.
 
+## WEB-002 (subhito S8, Puerta B) — Transporte y logística local
+
+En `feat/web-002-s7-s9-objects-logistics-exploitation`, sin PR todavía
+(S9 no ha empezado; `DEC-0019` se creará al completar S7+S8+S9). Los quince
+puntos de cierre de S8 quedan implementados y probados, con limitaciones
+explícitas (detalle en `docs/STATUS.md` §«S8 — Puerta B»). Resumen:
+
+- Los cinco métodos activos de SET-010 §3.2 (a pulso, recipiente personal,
+  porte coordinado, carretilla, carro de mano) en el catálogo versionado
+  `transport-methods.ts` (`s8-v1`) y un único motor de transporte;
+  carretilla y carro solo difieren en datos.
+- Carga física real (peso con contenido, volumen, bulto, mínimo de personas
+  y etiquetas de manipulación heredadas del contenido), medios localizados,
+  selector `Auto`/método impuesto con motivo de inviabilidad y cooperación
+  con topes 100/60/35/20 limitada por bulto y accesos.
+- Nueve fases logísticas reales dentro de `advance-jobs.ts`, con reservas de
+  carga, medio y porteadoras; rutas por anchura de accesos, superficie,
+  niebla y zonas; puntos de transferencia con el caso obligatorio carro →
+  acceso → porte manual → puerta estrecha → contenedor.
+- Cancelar, interrumpir o bloquear deja carga y medio en su posición
+  causal; fatiga del porte sobre las necesidades reales y ruido registrado
+  por tramos de ruta; desgaste por uso del medio.
+- Generador `web-002-semantic-v3` (carro ante el supermercado y carretilla
+  junto al refugio, sin alterar el trazado).
+- Interfaz: controles de traslado y ficha logística en el panel de trabajos;
+  el objetivo elegido se recuerda por clave estable.
+- Correcciones: llegada dentro de la estancia de destino cuando el
+  checkpoint final quedaba por encima del total redondeado, y accesos
+  cruzados conservados al replantear una ruta.
+- Pruebas: 267 unitarias, 27 de integración PostgreSQL y 10 E2E en verde.
+
 ## WEB-002 (subhito S7, Puerta A) — Objetos profundos, inventarios y transformaciones
 
 En `feat/web-002-s7-s9-objects-logistics-exploitation`, sin PR todavía

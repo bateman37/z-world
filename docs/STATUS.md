@@ -32,7 +32,9 @@ causales, entregados juntos por decisión expresa de Dennis,
 están completados técnicamente. S7 (Puerta A de la entrega S7-S9: objetos
 profundos, inventarios, recursos y transformaciones) tiene cerrada su
 lista de deuda auditada, con limitaciones explícitas (ver «S7 — Puerta A»
-al final); S8 y S9 no han empezado, y quedan S8 a S11 sin fecha.
+al final). S8 (Puerta B: transporte y logística local) está cerrado con
+limitaciones explícitas (ver «S8 — Puerta B» al final); S9 no ha empezado,
+y quedan S9 a S11 sin fecha.
 
 El prototipo histórico Godot queda preservado íntegro, sin más desarrollo
 activo. Su historial de entregas de código:
@@ -1698,11 +1700,10 @@ a la nueva línea de código.
 Rama `feat/web-002-s7-s9-objects-logistics-exploitation`, partiendo de
 `main` en `3b6a581` (S4-S6). Sin PR todavía, por instrucción expresa del
 prompt de subhitos S7-S9 («No abras PR parciales ni solicites permiso
-entre A, B y C salvo bloqueo real»). S8 (Puerta B) y S9 (Puerta C) **no
-han empezado**: ningún contrato, generador ni comportamiento de
-transporte multi-método, cargas, puntos de transferencia, capas de
-edificio o accesos mutables existe todavía. `DEC-0019` se creará solo
-cuando S7+S8+S9 estén completos.
+entre A, B y C salvo bloqueo real»). En el momento de cerrar la Puerta A,
+S8 y S9 no habían empezado; S8 se cerró después (ver «S8 — Puerta B»), y
+S9 (Puerta C: capas de edificio, accesos mutables) sigue sin empezar.
+`DEC-0019` se creará solo cuando S7+S8+S9 estén completos.
 
 ### Qué hay y cómo funciona
 
@@ -1912,6 +1913,210 @@ Semilla estable `probe-seed-92` (llegada en (13, 36); vivienda RES-10 a
    agua» (bloqueado) y, con piezas mecánicas I y chapa en la mano o al pie
    de la bomba, repararla y extraer agua: llena el cubo o la botella.
 8. Guardar, recargar y comprobar que todo lo anterior persiste igual.
+
+## S8 — Puerta B (transporte y logística local): cerrado con limitaciones explícitas
+
+Misma rama `feat/web-002-s7-s9-objects-logistics-exploitation`, sin PR
+todavía. Canon: [SET-010](40-settlement/SET-010_local-hauling-and-transport.md)
+(métodos, carga, ruta, fases, transferencia, selector, cooperación),
+[WLD-011 §3.7](20-world/WLD-011_openings-access-and-connectivity.md#37-compatibilidad-de-accesos-y-transporte)
+(anchura de accesos) y la arquitectura de trabajos/reservas de
+[DEC-0018](decisions/DEC-0018_resolution-engine-planned-work-and-causal-needs.md),
+que se reutiliza sin tuberías paralelas. S9 (Puerta C) no ha empezado y
+`DEC-0019` no se ha creado.
+
+### Qué hay y cómo funciona
+
+Los quince puntos de la lista de cierre de S8 están implementados y
+probados (detalle de validaciones más abajo):
+
+1. **Cinco métodos activos con comportamiento real** — a pulso, recipiente
+   personal, porte coordinado, carretilla y carro de mano — en el catálogo
+   versionado `packages/catalogs/src/transport-methods.ts` (`s8-v1`):
+   capacidad, volumen máximo, bulto, etiquetas prohibidas, operadores,
+   anchura mínima de acceso, comportamiento por superficie (velocidad,
+   ruido, esfuerzo), tiempos de preparación/carga/descarga y topes de
+   cooperación. Ningún método del horizonte de SET-010 §3.3 está activo.
+   Carretilla y carro comparten **un único motor**
+   (`packages/simulation-core/src/v2/transport/`) y solo difieren en datos.
+2. **Carga física real** (`transport/cargo.ts`): peso con contenido
+   (recursivo, incluidos líquidos dentro de un recipiente), volumen, bulto
+   (que sube con el volumen total de una carga compuesta), mínimo duro de
+   personas y etiquetas de manipulación **heredadas del contenido**
+   (`liquid`, `fragile`, `contaminating`, `keep_upright`; `long` y `bulky`
+   no, porque las absorbe el recipiente). Peso y bulto bloquean de forma
+   independiente (`block.load_too_heavy_for_method` /
+   `block.load_too_bulky_for_method`); una etiqueta incompatible bloquea
+   con `block.handling_incompatible_with_method`.
+3. **Medios localizados**: una carretilla o carro está en un lugar concreto;
+   la operadora va a por él, lo recupera (`transport_means_retrieved`) y lo
+   empuja hasta la carga. `Auto` solo valora medios conocidos, funcionales,
+   libres y alcanzables; imponer uno oculto, averiado, reservado o cargado
+   explica el motivo. El generador `web-002-semantic-v3` coloca un carro de
+   mano ante el supermercado COM-02 más cercano y una carretilla junto al
+   refugio (stream PRNG derivado: el trazado de v2 no cambia).
+4. **Cooperación real**: topes de contribución 100/60/35/20 % (principal y
+   tres ayudantes ordenados por aporte), útil limitado por bulto y por la
+   anchura de los accesos de la ruta (dos porteadores exigen acceso ancho,
+   WLD-011); quien no cabe deja el trabajo, sin bonificación genérica. El
+   porte coordinado espera a tener a todo su equipo libre a la vez. Cierra
+   además la deuda de S4-S6: las ayudantes acuden al lugar de trabajo y la
+   cooperación también acelera el modelo D.
+5. **Reservas** de carga, medio (`transport_means`) y cada porteadora
+   (`person`), exclusivas, con el mismo sistema de S7; un segundo traslado
+   de la misma carga o del mismo medio queda bloqueado y se reanuda al
+   liberarse.
+6. **Fases logísticas reales** dentro de `jobs/advance-jobs.ts`
+   (`progressTransportJob`, sin caer en el `default`): planificar →
+   reservar → recuperar el medio → ir al origen → cargar → recorrer la ruta
+   y atravesar accesos → descargar → almacenar/entregar/transferir →
+   estacionar/devolver/abandonar el medio. Paso visible en
+   `TransportJobState.step`.
+7. **Rutas compatibles** (`transport/route.ts` sobre el pathfinding de
+   S3): anchura de cada acceso frente a la del método y la carga,
+   superficie (el carro no cruza bosque denso; la carretilla sí), solo
+   terreno conocido, zonas prohibidas (ni destino ni ruta), y obstáculos
+   descubiertos durante el recorrido (`transport_route_blocked`, carga
+   depositada donde está y trabajo a replantear).
+8. **Selector `Auto`/método impuesto** en el panel de trabajos
+   (`apps/web/components/work-panel.tsx`), distinto de prioridad, equipo,
+   ritmo y atención: carga compuesta del mismo lugar, destino, método,
+   medio concreto, equipo de hasta tres ayudantes, ritmo, atención y destino
+   del medio al terminar; la ficha del trabajo muestra método, paso,
+   porteadoras, carga, colocación, accesos atravesados, ruido y enlaces
+   entre etapas.
+9. **Carga, descarga y destino**: la carga se monta en el medio o la llevan
+   las porteadoras; en un contenedor de destino se guarda con las mismas
+   reglas y ayudantes de S7 (`storageBlockReason`, `moveItem`, fusión de
+   lotes, `object_stored`), sin sobrecargar nunca; el medio queda
+   estacionado en destino o vuelve a su origen, con desgaste por uso real
+   (`applyUseWear` de S7).
+10. **Puntos de transferencia** (`TransferPoint`): si el medio no cabe por
+    los accesos, se detiene ante el acceso ancho por el que sí cabe,
+    descarga físicamente allí y una **nueva etapa a pulso con reserva
+    propia** sigue por las puertas más estrechas. El caso obligatorio
+    carro → acceso del supermercado → descarga → porte manual → puertas
+    interiores → contenedor de la trastienda funciona sobre el pueblo
+    generado, con prueba unitaria, de integración y E2E dedicadas.
+11. **Cancelar, interrumpir o bloquear** (`settleTransportOnStop`): nada
+    vuelve a su origen. A pulso cada porteadora sigue sosteniendo lo suyo;
+    en porte coordinado la carga se deposita donde está; en recipiente
+    personal sigue dentro; en carretilla/carro la carga sigue montada y el
+    medio queda abandonado donde lo dejó su operadora. Reservas liberadas;
+    bloquear o perder una porteadora replantea desde las posiciones reales.
+12. **Fatiga y ruido**: el esfuerzo del método, la superficie, la carga
+    relativa a la capacidad y el ritmo se aplican a las necesidades reales
+    durante el movimiento (más para 20 kg a pulso que en carretilla); el
+    ruido se acumula por metro y se registra por tramos a lo largo de toda
+    la ruta (`transport_noise_emitted`), no solo al final. Lo frágil en un
+    medio con ruedas sobre terreno irregular pierde condición (la mitad con
+    atención cuidadosa), también dentro de un recipiente.
+13. **Persistencia aditiva**: `Job.transport`, `LoadBundle` ampliado,
+    `TransferPoint` con clase y acceso, ubicación `in_load_bundle`, todo con
+    `.default()` seguro; snapshots S1-S7 cargan sin cambios.
+14. **Integración PostgreSQL real**
+    (`packages/persistence/src/s8-transport.integration.test.ts`).
+15. **E2E en Chromium real** (`e2e/s8-transport.spec.ts`).
+
+Correcciones de esta sesión destapadas por los E2E: (a) al completar un
+recorrido no se aplicaba el checkpoint final de estancia cuando quedaba una
+millonésima por encima del total redondeado, así que la porteadora
+terminaba «fuera» de la estancia a la que había llegado y la ruta se
+replanteaba perdiendo los accesos ya cruzados; (b) en el panel, el objetivo
+elegido se guardaba por índice y, al marcar ayudantes en un traslado, pasaba
+a apuntar a otro objeto (el hacha de la ayudante en vez del cubo); (c) la
+carga no heredaba las etiquetas de su contenido.
+
+### Limitaciones explícitas (no se arrastran en silencio)
+
+- **Dependientes de S9 (Puerta C)**: «instalar» como destino de un traslado
+  (hoy se entrega en contenedor, estancia, punto de transferencia o punto
+  exterior), accesos mutables (abrir brechas, retirar puertas) y capas de
+  edificio. Un mueble no se puede guardar dentro de un contenedor
+  (`block.container_incompatible`), sí dejar en una estancia o punto.
+- **Terreno sin generar**: pendiente, escaleras, escalones, barro, grava,
+  escombros y agua están declarados en el catálogo pero el generador no
+  los produce; hoy se ejercitan carretera, terreno abierto, vegetación
+  densa e interior.
+- **Ruido sin consumidor**: se registra y se muestra, pero todavía no hay
+  amenazas que reaccionen a él (sistema de amenazas posterior a S9).
+- **Una transferencia por traslado**: el plan por etapas cubre un cambio
+  de medio a pulso ante un acceso; no encadena varias transferencias ni
+  cadenas humanas.
+- **Cifras provisionales** (capacidades, velocidades, ruido, fatiga, pesos
+  de `Auto`): SET-010 §7 las deja abiertas.
+- **Ubicación durante un recorrido interior**: el pathfinding híbrido de S3
+  solo marca la entrada al exterior y a la estancia final; las estancias
+  intermedias no se reflejan en `location` mientras se camina (los accesos
+  sí se registran uno a uno en el traslado).
+- **Eventos del navegador**: el Worker guarda snapshots sin eventos de
+  dominio (arquitectura previa a S8); por eso los E2E comprueban las fases
+  en el registro operativo visible y en el snapshot, y la integración
+  PostgreSQL comprueba los eventos persistidos directamente.
+- **Fixture de conocimiento en los E2E**: tras generar el pueblo desde la
+  interfaz se inyecta en el snapshot solo lo que daría la exploración
+  (niebla levantada, estancias del supermercado vistas y trastienda
+  registrada); ninguna persona ni objeto se mueve: todo lo hace el núcleo
+  real en el Worker real. El porte coordinado, el recipiente personal y
+  los obstáculos en ruta se prueban en unitarias, no en E2E.
+- **Aceptación manual**: no ejecutada. El guion está abajo.
+
+### Validaciones de la Puerta B (esta sesión)
+
+Ejecutado y en verde al cerrar:
+
+- `npm run typecheck` (todos los paquetes y `apps/web`) y `npm run lint`:
+  sin errores ni avisos.
+- `npx vitest run`: **267 pruebas unitarias en verde** (237 de S1-S7 sin
+  regresión y 30 nuevas: 28 en `transport/s8-transport.test.ts` y
+  `transport/s8-generated-world.test.ts` —catálogo, cooperación, carga y
+  herencia de etiquetas, a pulso, carretilla, medios ocultos o averiados,
+  transferencia, porte coordinado, recipiente personal, cancelación,
+  obstáculo en ruta, reservas, fatiga y ruido, guardar/recargar,
+  superficies, `Auto`, zonas prohibidas, cooperación en D, pérdida de una
+  porteadora, ritmo/atención y el caso obligatorio sobre el pueblo
+  generado— y 2 de proyecciones).
+- `npm run test:integration` (PostgreSQL 16 real, `zworld_test`): **27 en
+  verde** (23 previas + 4 en `s8-transport.integration.test.ts`: guardar a
+  mitad de ruta con el carro cargado y continuar exactamente igual tras
+  recargar hasta la transferencia y el porte final, con los eventos de S8
+  persistidos; cancelar a mitad y recargar; snapshot con forma anterior a
+  S8; trabajo S7 sin `transport`).
+- `npm run build` de `apps/web` correcto.
+- `npx playwright test` (Chromium real, `next start` real, PostgreSQL
+  real): **10 E2E en verde en dos ejecuciones consecutivas** (6 previos y
+  4 nuevos en `e2e/s8-transport.spec.ts`: a pulso; carretilla impuesta con
+  recuperación, carga, descarga, desgaste y estacionamiento; caso
+  obligatorio con transferencia y porte a pulso hasta la trastienda;
+  cancelación a mitad de ruta con posición causal verificada también tras
+  recargar).
+
+### Guion de aceptación manual para Dennis (S8)
+
+Semilla estable `probe-seed-92` (llegada en (13, 36); cubo al pie de la
+bomba comunal en (−26, 89); carro de mano ante el acceso de clientes del
+supermercado en (132,5, 12,5); carretilla junto al refugio en
+(−217,5, 52,5)):
+
+1. Crear la partida, seleccionar a la segunda protagonista y acercarse a la
+   bomba hasta ver el cubo. «Transportar» → «Cubo» → método «A pulso» →
+   destino «Punto de llegada»: la ficha muestra cada paso y el cubo acaba
+   junto a la llegada.
+2. Con la carretilla ya vista, repetir con método «Carretilla» y ese medio:
+   la operadora va a por ella, la trae, carga, recorre (se oye más), descarga
+   y la deja estacionada en destino.
+3. Explorar el supermercado y «Registrar» la trastienda. Ordenar
+   «Transportar» el cubo con «Carro de mano», marcar a una segunda persona
+   en «Equipo» y elegir el contenedor de la trastienda: el carro se detiene
+   ante el acceso de carga, descarga en un punto de transferencia, y una
+   nueva etapa «A pulso» lo lleva por las puertas interiores hasta el
+   contenedor.
+4. Repetir el paso 3 a ×1 y pulsar «Cancelar» mientras la ficha dice
+   «Recorriendo la ruta»: el cubo sigue en la carga del carro y el carro
+   queda donde estaba, no vuelve a su origen. Guardar, recargar y comprobarlo.
+5. Probar «Auto» con el cubo (elige a pulso) y con algo pesado cerca de un
+   medio (elige carretilla o carro), y ver el motivo al imponer un método
+   inviable.
 
 ## Deuda documental previa conservada
 
