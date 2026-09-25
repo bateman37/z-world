@@ -53,6 +53,8 @@ export const loadStateMessageSchemaV2 = z.object({
   gameSaveId: z.string(),
   revision: z.number().int().nonnegative(),
   state: simulationStateV2Schema,
+  /** Eventos de dominio persistidos recientes (S11 §6.4), para reconstruir el registro operativo al cargar en vez de arrancar vacío. */
+  recentEvents: z.array(domainEventV2Schema).optional(),
 });
 
 export const commandMessageSchemaV2 = z.object({
@@ -178,7 +180,7 @@ export const fromWorkerMessageSchemaV2 = z.discriminatedUnion("type", [
 ]);
 
 export type ToWorkerMessageV2 =
-  | { readonly type: "load_state"; readonly protocolVersion: 3; readonly gameSaveId: string; readonly revision: number; readonly state: SimulationStateV2 }
+  | { readonly type: "load_state"; readonly protocolVersion: 3; readonly gameSaveId: string; readonly revision: number; readonly state: SimulationStateV2; readonly recentEvents?: readonly DomainEventV2[] }
   | { readonly type: "command"; readonly protocolVersion: 3; readonly command: SimulationCommand }
   | { readonly type: "request_snapshot"; readonly protocolVersion: 3 }
   | { readonly type: "retry_save"; readonly protocolVersion: 3 }

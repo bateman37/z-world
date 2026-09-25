@@ -448,3 +448,102 @@ describe("WorkerSessionV2 (protocolo Worker V3 — canales estructural/tick, S11
     expect(afterWorldChange.some((m) => m.type === "structural_projections")).toBe(true);
   });
 });
+
+describe("WorkerSessionV2 — registro operativo persistente y reconstruible (S11 §6)", () => {
+  it("carga sin recentEvents arranca con el registro vacío (comportamiento anterior conservado)", () => {
+    const state = createInitialStateV2("worker-v2-seed-log-empty");
+    const { merger } = loadedSession(state, "game-v2-log-empty");
+    expect(merger.merged.operationalLog).toEqual([]);
+  });
+
+  it("reconstruye el registro reciente desde eventos persistidos pasados en load_state, sin duplicarlos ni repetir el reductor", () => {
+    const state = createInitialStateV2("worker-v2-seed-log-reconstruct");
+    const session = new WorkerSessionV2();
+    const merger = new ProjectionMerger();
+    const recentEvents = [
+      { type: "game_created" as const, eventId: "evt-hist-0", simSeconds: 0, causedByCommandId: null, seed: state.seed },
+      { type: "speed_or_pause_changed" as const, eventId: "evt-hist-1", simSeconds: 10, causedByCommandId: "hist-cmd-1", speed: 1 as const },
+    ];
+    merger.apply(
+      session.handleMessage({
+        type: "load_state",
+        protocolVersion: WORKER_PROTOCOL_VERSION_V2,
+        gameSaveId: "game-v2-log-reconstruct",
+        revision: 3,
+        state,
+        recentEvents,
+      }),
+    );
+    const log = merger.merged.operationalLog;
+    expect(log).toHaveLength(2);
+    expect(log[0]!.eventId).toBe("evt-hist-0");
+    expect(log[1]!.eventId).toBe("evt-hist-1");
+  });
+
+  it("cada entrada del registro lleva un nivel de atención (registro/aviso/importante/crítico)", () => {
+    const state = createInitialStateV2("worker-v2-seed-log-level");
+    const { session, merger } = loadedSession(state, "game-v2-log-level");
+    merger.apply(
+      session.handleMessage({
+        type: "command",
+        protocolVersion: WORKER_PROTOCOL_VERSION_V2,
+        command: { commandId: "cmd-speed", type: "set_speed", speed: 1 },
+      }),
+    );
+    const entry = merger.merged.operationalLog.find((e) => e.messageKey === "log.speed_or_pause_changed");
+    expect(entry?.level).toBe("log");
+    expect(entry?.count).toBe(1);
+  });
+
+  it("agrupa repeticiones de la misma causa sobre la misma entidad dentro de la ventana simulada, con contador, en vez de una entrada por cada una", () => {
+    const state = createInitialStateV2("worker-v2-seed-log-group");
+    const session = new WorkerSessionV2();
+    const merger = new ProjectionMerger();
+    // Dos "movement_blocked" seguidos de la misma persona, muy cerca en tiempo simulado.
+    const personId = state.peopleOrder[0]!;
+    const recentEvents = [
+      { type: "movement_blocked" as const, eventId: "evt-block-1", simSeconds: 100, causedByCommandId: null, personId, code: "no_known_route" as const },
+      { type: "movement_blocked" as const, eventId: "evt-block-2", simSeconds: 105, causedByCommandId: null, personId, code: "no_known_route" as const },
+      { type: "movement_blocked" as const, eventId: "evt-block-3", simSeconds: 110, causedByCommandId: null, personId, code: "no_known_route" as const },
+    ];
+    merger.apply(
+      session.handleMessage({
+        type: "load_state",
+        protocolVersion: WORKER_PROTOCOL_VERSION_V2,
+        gameSaveId: "game-v2-log-group",
+        revision: 0,
+        state,
+        recentEvents,
+      }),
+    );
+    const blockedEntries = merger.merged.operationalLog.filter((e) => e.messageKey === "log.movement_blocked");
+    expect(blockedEntries).toHaveLength(1);
+    expect(blockedEntries[0]!.count).toBe(3);
+    expect(blockedEntries[0]!.level).toBe("notice");
+    expect(blockedEntries[0]!.simSeconds).toBe(110); // conserva el instante del más reciente.
+  });
+
+  it("no agrupa la misma causa sobre entidades distintas (cada persona conserva su propia entrada)", () => {
+    const state = createInitialStateV2("worker-v2-seed-log-nogroup");
+    const session = new WorkerSessionV2();
+    const merger = new ProjectionMerger();
+    const [personA, personB] = state.peopleOrder;
+    const recentEvents = [
+      { type: "movement_blocked" as const, eventId: "evt-a", simSeconds: 100, causedByCommandId: null, personId: personA!, code: "no_known_route" as const },
+      { type: "movement_blocked" as const, eventId: "evt-b", simSeconds: 101, causedByCommandId: null, personId: personB!, code: "no_known_route" as const },
+    ];
+    merger.apply(
+      session.handleMessage({
+        type: "load_state",
+        protocolVersion: WORKER_PROTOCOL_VERSION_V2,
+        gameSaveId: "game-v2-log-nogroup",
+        revision: 0,
+        state,
+        recentEvents,
+      }),
+    );
+    const blockedEntries = merger.merged.operationalLog.filter((e) => e.messageKey === "log.movement_blocked");
+    expect(blockedEntries).toHaveLength(2);
+    expect(blockedEntries.every((e) => e.count === 1)).toBe(true);
+  });
+});

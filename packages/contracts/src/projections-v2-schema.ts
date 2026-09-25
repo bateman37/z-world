@@ -3,6 +3,7 @@ import { worldPointSchema } from "./geometry.js";
 import { VISIBILITY_STATES, type VisibilityState } from "./fog.js";
 import { gameSpeedSchema } from "./clock.js";
 import { operationalStateSchema, personPublicFactsSchema } from "./person.js";
+import { OPERATIONAL_LOG_LEVELS } from "./projections.js";
 import { PRIORITY_IDS } from "./catalog-ids.js";
 import { AREA_TERRAIN_KINDS, LINE_TERRAIN_KINDS } from "./world.js";
 import { NEED_BANDS, NEED_DIMENSIONS } from "./needs-v2.js";
@@ -84,6 +85,8 @@ const operationalLogEntryProjectionSchema = z.object({
   simSeconds: z.number().int().nonnegative(),
   messageKey: z.string(),
   params: z.record(z.string(), z.string()),
+  level: z.enum(OPERATIONAL_LOG_LEVELS),
+  count: z.number().int().positive(),
 });
 
 /**

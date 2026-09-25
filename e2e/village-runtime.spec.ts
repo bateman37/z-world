@@ -96,6 +96,12 @@ test("runtime V2 (S3): reloj, movimiento, cancelación, niebla, descubrimiento y
   expect(page.url()).toBe(villageUrl);
   await expect(page.getByText(/Día 1 · 17:30/)).not.toBeVisible();
 
+  // 16 (S11 §6.4): el registro operativo se reconstruye desde eventos
+  // persistidos al recargar — no arranca vacío ni depende de memoria de
+  // React. La entrada de "entró en una estancia" que disparó este último
+  // guardado sigue visible tras la recarga.
+  await expect(page.getByRole("region", { name: "Registro operacional" }).getByText(/Entró en una estancia/).first()).toBeVisible({ timeout: 15_000 });
+
   // Ninguna entidad no descubierta se filtra como texto identificable en
   // la interfaz (el mapa es Canvas puro; los perfiles de CAT-004 solo
   // aparecían como texto en el antiguo visor de solo lectura de S2). Desde

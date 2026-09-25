@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { FromWorkerMessageV2, SimulationCommand, SimulationStateV2, StructuralProjectionsV2, TickProjectionsV2, WorkerProjectionsV2 } from "@z-world/contracts";
+import type { DomainEventV2, FromWorkerMessageV2, SimulationCommand, SimulationStateV2, StructuralProjectionsV2, TickProjectionsV2, WorkerProjectionsV2 } from "@z-world/contracts";
 import { WORKER_PROTOCOL_VERSION_V2, parseFromWorkerMessageV2 } from "@z-world/contracts";
 import { saveSnapshotV2Action } from "@/app/actions/games";
 
@@ -41,7 +41,12 @@ function mergeProjections(structural: StructuralProjectionsV2, tick: TickProject
  * pide una resincronización completa en vez de aplicar un estado a
  * medias.
  */
-export function useSimulationWorkerV2(gameSaveId: string, initialState: SimulationStateV2, initialRevision: number): UseSimulationWorkerV2Result {
+export function useSimulationWorkerV2(
+  gameSaveId: string,
+  initialState: SimulationStateV2,
+  initialRevision: number,
+  initialRecentEvents?: readonly DomainEventV2[],
+): UseSimulationWorkerV2Result {
   const workerRef = useRef<Worker | null>(null);
   const [projections, setProjections] = useState<WorkerProjectionsV2 | null>(null);
   const [workerFatalError, setWorkerFatalError] = useState<string | null>(null);
@@ -111,6 +116,7 @@ export function useSimulationWorkerV2(gameSaveId: string, initialState: Simulati
       gameSaveId,
       revision: initialRevision,
       state: initialState,
+      recentEvents: initialRecentEvents,
     });
 
     // Tab suspendida y retomada (S11 §5.5): al volver a estar visible, se

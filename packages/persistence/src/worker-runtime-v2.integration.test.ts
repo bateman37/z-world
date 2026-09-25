@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { advanceSimulationV2, applyCommandV2, buildFullNavigationIndexV2, createInitialStateV2 } from "@z-world/simulation-core";
 import { createPrismaClient, type PrismaClient } from "./client.js";
-import { createGameV2, loadGameV2, RevisionConflictError, saveSnapshotV2 } from "./repository.js";
+import { createGameV2, listRecentDomainEventsV2, loadGameV2, RevisionConflictError, saveSnapshotV2 } from "./repository.js";
 
 const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/zworld_test";
 
@@ -197,5 +197,61 @@ describe("persistencia del runtime V2 (S3, PostgreSQL real)", () => {
     const sequences = persisted.map((e) => e.sequence);
     expect(sequences).toEqual([...sequences].sort((a, b) => a - b)); // monotónico
     expect(new Set(sequences).size).toBe(sequences.length); // sin duplicados
+  });
+
+  it("listRecentDomainEventsV2 devuelve los eventos persistidos en orden de secuencia ascendente, sin duplicarlos entre varios guardados", async () => {
+    const initial = createInitialStateV2("persist-runtime-v2-seed-log");
+    const nav = buildFullNavigationIndexV2(initial.world);
+    const created = await createGameV2(prisma, { state: initial, initialEvents: [] });
+
+    const pausedStep = applyCommandV2(initial, { commandId: "cmd-a", type: "set_pause", paused: false }, nav);
+    const firstStep = applyCommandV2(pausedStep.state, { commandId: "cmd-b", type: "set_speed", speed: 2 }, nav);
+    const firstSaved = await saveSnapshotV2(prisma, {
+      gameSaveId: created.gameSaveId,
+      expectedRevision: 0,
+      state: firstStep.state,
+      events: firstStep.events,
+      reason: "manual_save",
+      attemptId: crypto.randomUUID(),
+    });
+
+    const personId = initial.peopleOrder[0]!;
+    const priorityId = Object.keys(initial.people[personId]!.public.priorities)[0]!;
+    const secondStep = applyCommandV2(firstStep.state, { commandId: "cmd-c", type: "update_priority", personId, priorityId, value: 4 }, nav);
+    await saveSnapshotV2(prisma, {
+      gameSaveId: created.gameSaveId,
+      expectedRevision: firstSaved.revision,
+      state: secondStep.state,
+      events: secondStep.events,
+      reason: "priority_changed",
+      attemptId: crypto.randomUUID(),
+    });
+
+    const recent = await listRecentDomainEventsV2(prisma, created.gameSaveId);
+    const expectedIds = [...firstStep.events, ...secondStep.events].map((e) => e.eventId);
+    expect(recent.map((e) => e.eventId)).toEqual(expectedIds);
+
+    const simSecondsSeries = recent.map((e) => e.simSeconds);
+    expect(simSecondsSeries).toEqual([...simSecondsSeries].sort((a, b) => a - b));
+  });
+
+  it("listRecentDomainEventsV2 respeta el límite de filas leídas sin traer toda la tabla en una partida larga", async () => {
+    const initial = createInitialStateV2("persist-runtime-v2-seed-log-limit");
+    const nav = buildFullNavigationIndexV2(initial.world);
+    const created = await createGameV2(prisma, { state: initial, initialEvents: [] });
+
+    let current = initial;
+    let revision = created.revision;
+    for (let i = 0; i < 5; i++) {
+      const step = applyCommandV2(current, { commandId: `cmd-loop-${i}`, type: "set_speed", speed: (i % 2 === 0 ? 2 : 1) as 1 | 2 }, nav);
+      const saved = await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: revision, state: step.state, events: step.events, reason: "manual_save", attemptId: crypto.randomUUID() });
+      current = step.state;
+      revision = saved.revision;
+    }
+
+    const limited = await listRecentDomainEventsV2(prisma, created.gameSaveId, 2);
+    expect(limited.length).toBeLessThanOrEqual(2);
+    const all = await listRecentDomainEventsV2(prisma, created.gameSaveId, 1000);
+    expect(limited.map((e) => e.eventId)).toEqual(all.slice(-limited.length).map((e) => e.eventId));
   });
 });

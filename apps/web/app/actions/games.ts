@@ -9,6 +9,7 @@ import {
   listGames,
   loadGame,
   loadGameV2,
+  listRecentDomainEventsV2,
   promoteV1ToV2,
   RevisionConflictError,
   saveSnapshot,
@@ -73,8 +74,9 @@ export async function createGameV2Action(seed: string, name?: string): Promise<C
   return { gameSaveId, revision, state };
 }
 
-export async function loadGameV2Action(gameSaveId: string): Promise<{ state: SimulationStateV2; revision: number }> {
-  return loadGameV2(prisma, gameSaveId);
+export async function loadGameV2Action(gameSaveId: string): Promise<{ state: SimulationStateV2; revision: number; recentEvents: readonly DomainEventV2[] }> {
+  const [{ state, revision }, recentEvents] = await Promise.all([loadGameV2(prisma, gameSaveId), listRecentDomainEventsV2(prisma, gameSaveId)]);
+  return { state, revision, recentEvents };
 }
 
 export async function listGamesAction(): Promise<readonly GameSaveSummary[]> {

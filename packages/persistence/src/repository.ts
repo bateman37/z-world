@@ -434,3 +434,21 @@ export async function listDomainEventSequence(prisma: PrismaClient, gameSaveId: 
   });
   return rows.map((r) => r.sequence);
 }
+
+/**
+ * Últimos eventos de dominio persistidos de una partida V2, en orden
+ * ascendente de secuencia (S11 §6.4): reconstruye el registro operativo
+ * reciente al cargar, en vez de arrancar vacío. `limit` acota cuántas filas
+ * se leen de base (no cuántas entradas de registro quedan visibles — eso lo
+ * decide la agrupación del propio Worker), para no traer toda la tabla en
+ * partidas largas.
+ */
+export async function listRecentDomainEventsV2(prisma: PrismaClient, gameSaveId: string, limit = 200): Promise<readonly DomainEventV2[]> {
+  const rows = await prisma.domainEventRecord.findMany({
+    where: { gameSaveId },
+    orderBy: { sequence: "desc" },
+    take: limit,
+    select: { payload: true },
+  });
+  return rows.reverse().map((r) => r.payload as unknown as DomainEventV2);
+}

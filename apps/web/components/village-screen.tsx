@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { AttentionMode, JobTarget, PaceMode, PriorityValue, SimulationStateV2, StorageItemRef, WorldPoint } from "@z-world/contracts";
+import type { AttentionMode, DomainEventV2, JobTarget, PaceMode, PriorityValue, SimulationStateV2, StorageItemRef, WorldPoint } from "@z-world/contracts";
 import { useSimulationWorkerV2, nextCommandIdV2 } from "@/lib/use-simulation-worker-v2";
 import { TopBar } from "@/components/top-bar";
 import { PersonList } from "@/components/person-list";
@@ -24,15 +24,18 @@ export function VillageScreen({
   gameSaveId,
   initialState,
   initialRevision,
+  initialRecentEvents,
 }: {
   readonly gameSaveId: string;
   readonly initialState: SimulationStateV2;
   readonly initialRevision: number;
+  readonly initialRecentEvents?: readonly DomainEventV2[];
 }) {
   const { projections, workerFatalError, sendCommand, requestManualSave, retrySave } = useSimulationWorkerV2(
     gameSaveId,
     initialState,
     initialRevision,
+    initialRecentEvents,
   );
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(initialState.peopleOrder[0] ?? null);
   const [centerRequestId, setCenterRequestId] = useState(0);
@@ -209,7 +212,13 @@ export function VillageScreen({
           onCancelDesignation={(designationId) => sendCommand({ commandId: nextCommandIdV2(), type: "cancel_designation", designationId })}
         />
       </div>
-      <OperationalLog entries={projections.operationalLog} />
+      <OperationalLog
+        entries={projections.operationalLog}
+        onCenterPerson={(personId) => {
+          setSelectedPersonId(personId);
+          setCenterRequestId((n) => n + 1);
+        }}
+      />
     </div>
   );
 }

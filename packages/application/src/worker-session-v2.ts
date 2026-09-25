@@ -187,6 +187,13 @@ export class WorkerSessionV2 {
         this.structuralSequence = 0;
         this.lastSentWorld = null;
         this.lastStructuralSentNowMs = null;
+        // S11 §6.4: reconstruye el registro operativo reciente desde
+        // eventos ya persistidos, en vez de arrancar vacío tras recargar.
+        // Reutiliza la misma agrupación que el registro en vivo — la
+        // historia reconstruida colapsa repeticiones exactamente igual.
+        if (message.recentEvents && message.recentEvents.length > 0) {
+          this.appendToLog(message.recentEvents);
+        }
         return this.projectionMessages(undefined, true);
 
       case "command":
@@ -385,9 +392,34 @@ export class WorkerSessionV2 {
     return null;
   }
 
+  /**
+   * Ventana de agrupación del registro operativo (S11 §6.2): repeticiones
+   * de la misma causa sobre la misma entidad dentro de esta ventana de
+   * tiempo simulado se colapsan en una sola entrada con contador, en vez
+   * de convertir cada tick interno en ruido visible.
+   */
+  private static readonly LOG_GROUPING_WINDOW_SIM_SECONDS = 300;
+
+  private primaryEntityKeyOf(params: Readonly<Record<string, string>>): string | null {
+    return params.personId ?? params.entityId ?? params.roomId ?? null;
+  }
+
   private appendToLog(events: readonly DomainEventV2[]): void {
     for (const event of events) {
-      this.operationalLog.push(toOperationalLogEntryV2(event));
+      const entry = toOperationalLogEntryV2(event);
+      const last = this.operationalLog[this.operationalLog.length - 1];
+      const entryKey = this.primaryEntityKeyOf(entry.params);
+      if (
+        last &&
+        last.messageKey === entry.messageKey &&
+        entryKey !== null &&
+        this.primaryEntityKeyOf(last.params) === entryKey &&
+        entry.simSeconds - last.simSeconds <= WorkerSessionV2.LOG_GROUPING_WINDOW_SIM_SECONDS
+      ) {
+        this.operationalLog[this.operationalLog.length - 1] = { ...last, simSeconds: entry.simSeconds, count: last.count + 1 };
+      } else {
+        this.operationalLog.push(entry);
+      }
     }
     if (this.operationalLog.length > OPERATIONAL_LOG_MAX_ENTRIES) {
       this.operationalLog = this.operationalLog.slice(-OPERATIONAL_LOG_MAX_ENTRIES);

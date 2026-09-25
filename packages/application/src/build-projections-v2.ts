@@ -12,6 +12,7 @@ import type {
   MapEntitiesProjectionV2,
   MovementProjection,
   OperationalLogEntryProjection,
+  OperationalLogLevel,
   PersonCardProjection,
   PersonNeedProjection,
   PersonSheetProjection,
@@ -296,6 +297,33 @@ const EVENT_MESSAGE_KEYS: Readonly<Record<DomainEventV2["type"], string>> = {
   crop_lost: "log.crop_lost",
 };
 
+/**
+ * Política de atención del registro operativo (S11 §6.2): registro < aviso
+ * < importante < crítico. Sin amenazas ni salud compleja en el recorte de
+ * S11, no hay ningún evento hoy clasificado como crítico — el nivel existe
+ * para cuando lo haya, no se fuerza dramatismo. "Aviso" marca una
+ * interrupción o bloqueo real que detiene un progreso en curso; "importante"
+ * marca una consecuencia irreversible o una pérdida material real. Todo lo
+ * demás (progreso normal, cambios de estado esperables) es "registro".
+ */
+const OPERATIONAL_LOG_LEVEL_BY_EVENT_TYPE: Readonly<Partial<Record<DomainEventV2["type"], OperationalLogLevel>>> = {
+  movement_blocked: "notice",
+  work_interrupted: "notice",
+  transport_route_blocked: "notice",
+  building_layer_exhausted: "notice",
+  object_broke_down: "notice",
+  move_order_rejected: "notice",
+  building_demolished: "important",
+  structure_dismantled: "important",
+  installation_dismantled: "important",
+  finish_recovered: "important",
+  crop_lost: "important",
+};
+
+function levelForEventTypeV2(type: DomainEventV2["type"]): OperationalLogLevel {
+  return OPERATIONAL_LOG_LEVEL_BY_EVENT_TYPE[type] ?? "log";
+}
+
 export function toOperationalLogEntryV2(event: DomainEventV2): OperationalLogEntryProjection {
   const params: Record<string, string> = {};
   if ("personId" in event) params.personId = event.personId;
@@ -312,6 +340,8 @@ export function toOperationalLogEntryV2(event: DomainEventV2): OperationalLogEnt
     simSeconds: event.simSeconds,
     messageKey: EVENT_MESSAGE_KEYS[event.type],
     params,
+    level: levelForEventTypeV2(event.type),
+    count: 1,
   };
 }
 
