@@ -17,6 +17,8 @@ import type {
   PersonSheetProjection,
   SaveStatus,
   SimulationStateV2,
+  StructuralProjectionsV2,
+  TickProjectionsV2,
   VisibilityState,
   VisiblePlaceProjection,
   WorkerProjectionsV2,
@@ -489,6 +491,43 @@ function buildCultivationPlotsProjection(state: SimulationStateV2): CultivationP
     preparationProgress: plot.preparationProgress,
     activeCropCycleId: plot.activeCropCycleId,
   }));
+}
+
+/**
+ * Parte `WorkerProjectionsV2` en los dos canales de cadencia del
+ * protocolo V3 (S11 §5.2). Opera sobre el objeto ya construido por
+ * `buildWorkerProjectionsV2` en vez de reimplementar los sub-builders:
+ * una única fuente de verdad garantiza que `structural` + `tick` suman
+ * exactamente lo mismo que la proyección completa, sin duplicar ni
+ * perder ningún campo.
+ */
+export function splitWorkerProjectionsV2(full: WorkerProjectionsV2): { readonly structural: StructuralProjectionsV2; readonly tick: TickProjectionsV2 } {
+  const { people, ...mapEntitiesStatic } = full.mapEntities;
+  return {
+    structural: {
+      gameSummary: full.gameSummary,
+      fog: full.fog,
+      buildings: full.buildings,
+      mapEntitiesStatic,
+    },
+    tick: {
+      clock: full.clock,
+      saveStatus: full.saveStatus,
+      personCards: full.personCards,
+      personSheets: full.personSheets,
+      mapPeople: people,
+      movements: full.movements,
+      operationalLog: full.operationalLog,
+      needsByPerson: full.needsByPerson,
+      jobs: full.jobs,
+      zones: full.zones,
+      designations: full.designations,
+      contextualActions: full.contextualActions,
+      inventory: full.inventory,
+      cultivationPlots: full.cultivationPlots,
+      revision: full.revision,
+    },
+  };
 }
 
 export function buildWorkerProjectionsV2(params: {

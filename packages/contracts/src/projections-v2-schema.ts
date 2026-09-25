@@ -169,6 +169,8 @@ const visibleOpeningProjectionSchema = z.object({
   passable: z.boolean().optional(),
 });
 
+const mapPeopleSchema = z.array(z.object({ personId: z.string(), position: worldPointSchema, indoors: z.boolean(), roomId: z.string().nullable() }));
+
 const mapEntitiesProjectionV2Schema = z.object({
   areas: z.array(visibleTerrainAreaProjectionSchema),
   lines: z.array(visibleLinearFeatureProjectionSchema),
@@ -176,10 +178,12 @@ const mapEntitiesProjectionV2Schema = z.object({
   buildings: z.array(visibleBuildingProjectionSchema),
   rooms: z.array(visibleRoomProjectionSchema),
   openings: z.array(visibleOpeningProjectionSchema),
-  people: z.array(z.object({ personId: z.string(), position: worldPointSchema, indoors: z.boolean(), roomId: z.string().nullable() })),
+  people: mapPeopleSchema,
   cultivationPlots: z.array(visibleCultivationPlotProjectionSchema),
   barrierSegments: z.array(visibleBarrierSegmentProjectionSchema),
 });
+
+const mapEntitiesStaticSchema = mapEntitiesProjectionV2Schema.omit({ people: true });
 
 const personNeedProjectionSchema = z.object({
   dimension: z.enum(NEED_DIMENSIONS),
@@ -361,5 +365,38 @@ export const workerProjectionsV2Schema = z.object({
   inventory: z.array(inventoryEntryProjectionSchema),
   cultivationPlots: z.array(cultivationPlotStatusProjectionSchema),
   buildings: z.array(buildingExploitationProjectionSchema),
+  revision: z.number().int().nonnegative(),
+});
+
+/**
+ * Canal "estructural" del protocolo V3 (S11 §5.2): geometría del mundo,
+ * niebla y edificios — cambia raramente, se valida completo solo cuando
+ * realmente se envía (no en cada tick). Las fichas de persona NO viven
+ * aquí: una prioridad editada por quien juega debe llegar en el siguiente
+ * tick, no esperar a la próxima cadencia estructural.
+ */
+export const structuralProjectionsV2Schema = z.object({
+  gameSummary: gameSummaryProjectionSchema,
+  fog: fogMaskProjectionSchema,
+  buildings: z.array(buildingExploitationProjectionSchema),
+  mapEntitiesStatic: mapEntitiesStaticSchema,
+});
+
+/** Canal "tick" del protocolo V3 (S11 §5.2): todo lo que puede cambiar en cada avance/comando, barato de validar y enviar. */
+export const tickProjectionsV2Schema = z.object({
+  clock: clockProjectionSchema,
+  saveStatus: saveStatusProjectionSchema,
+  personCards: z.array(personCardProjectionSchema),
+  personSheets: z.record(z.string(), personSheetProjectionSchema),
+  mapPeople: mapPeopleSchema,
+  movements: z.array(movementProjectionSchema),
+  operationalLog: z.array(operationalLogEntryProjectionSchema),
+  needsByPerson: z.record(z.string(), z.array(personNeedProjectionSchema)),
+  jobs: z.array(jobProjectionSchema),
+  zones: z.array(zoneProjectionSchema),
+  designations: z.array(designationProjectionSchema),
+  contextualActions: z.array(contextualActionOptionProjectionSchema),
+  inventory: z.array(inventoryEntryProjectionSchema),
+  cultivationPlots: z.array(cultivationPlotStatusProjectionSchema),
   revision: z.number().int().nonnegative(),
 });

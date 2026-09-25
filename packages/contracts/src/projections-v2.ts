@@ -332,3 +332,43 @@ export interface WorkerProjectionsV2 {
   readonly buildings: readonly BuildingExploitationProjection[];
   readonly revision: number;
 }
+
+/**
+ * Partición del protocolo del Worker en dos canales de cadencia distinta
+ * (S11 §5.2): `StructuralProjectionsV2` cambia raramente (geometría del
+ * mundo, niebla, edificios) y se reenvía solo cuando algo estructural
+ * cambió de verdad o al resincronizar — nunca en cada tick. Las fichas de
+ * persona viajan en `TickProjectionsV2`, no aquí: una prioridad editada
+ * por quien juega debe reflejarse de inmediato, no esperar a la próxima
+ * cadencia estructural. `TickProjectionsV2` es barata y sí se reenvía en
+ * cada tick/comando (reloj, movimiento, trabajos, registro, fichas...).
+ * Ambas son subconjuntos exactos de los mismos campos de
+ * `WorkerProjectionsV2` (nunca duplican su definición de tipos) para que
+ * React pueda recomponer el mismo objeto `WorkerProjectionsV2` que ya
+ * consumen todos los componentes existentes, sin que la partición de red
+ * sea visible más allá del hook.
+ */
+export type StructuralProjectionsV2 = Pick<WorkerProjectionsV2, "gameSummary" | "fog" | "buildings"> & {
+  /** `MapEntitiesProjectionV2` sin `people`: la posición de las personas es la única parte de la geometría que cambia en cada tick. */
+  readonly mapEntitiesStatic: Omit<MapEntitiesProjectionV2, "people">;
+};
+
+export type TickProjectionsV2 = Pick<
+  WorkerProjectionsV2,
+  | "clock"
+  | "saveStatus"
+  | "personCards"
+  | "personSheets"
+  | "movements"
+  | "operationalLog"
+  | "needsByPerson"
+  | "jobs"
+  | "zones"
+  | "designations"
+  | "contextualActions"
+  | "inventory"
+  | "cultivationPlots"
+  | "revision"
+> & {
+  readonly mapPeople: MapEntitiesProjectionV2["people"];
+};
