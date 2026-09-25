@@ -227,6 +227,10 @@ export function VillageScreen({
           onPauseJob={(jobId) => sendCommand({ commandId: nextCommandIdV2(), type: "pause_job", jobId })}
           onResumeJob={(jobId) => sendCommand({ commandId: nextCommandIdV2(), type: "resume_job", jobId })}
           onCancelJob={(jobId) => sendCommand({ commandId: nextCommandIdV2(), type: "cancel_job", jobId })}
+          onReassignJob={(jobId, addPersonId, removePersonId) =>
+            sendCommand({ commandId: nextCommandIdV2(), type: "reassign_job", jobId, addPersonId, removePersonId })
+          }
+          onSetJobModes={(jobId, pace, attention) => sendCommand({ commandId: nextCommandIdV2(), type: "set_job_modes", jobId, pace, attention })}
           onDrawZone={(polygon, policy) => sendCommand({ commandId: nextCommandIdV2(), type: "draw_zone", zoneId: nextCommandIdV2(), polygon: [...polygon], policy })}
           onDeleteZone={(zoneId) => sendCommand({ commandId: nextCommandIdV2(), type: "delete_zone", zoneId })}
           onCreateAreaDesignation={(polygon, kind, wayCrossingMode) =>

@@ -61,6 +61,8 @@ export function WorkPanel({
   onPauseJob,
   onResumeJob,
   onCancelJob,
+  onReassignJob,
+  onSetJobModes,
   onDrawZone,
   onDeleteZone,
   onCreateAreaDesignation,
@@ -84,6 +86,8 @@ export function WorkPanel({
   readonly onPauseJob: (jobId: string) => void;
   readonly onResumeJob: (jobId: string) => void;
   readonly onCancelJob: (jobId: string) => void;
+  readonly onReassignJob: (jobId: string, addPersonId: string | null, removePersonId: string | null) => void;
+  readonly onSetJobModes: (jobId: string, pace?: PaceMode, attention?: AttentionMode) => void;
   readonly onDrawZone: (polygon: readonly { x: number; y: number }[], policy: "habitual" | "precaution" | "forbidden") => void;
   readonly onDeleteZone: (zoneId: string) => void;
   readonly onCreateAreaDesignation: (
@@ -351,19 +355,16 @@ export function WorkPanel({
         ) : (
           <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 6 }}>
             {projections.jobs.map((job) => (
-              <li key={job.id} className="z-panel" style={{ padding: 6 }} data-job-id={job.id} data-job-state={job.state} data-job-action={job.actionKey}>
-                <div>
-                  <strong>{copyKey(job.labelKey)}</strong> — {job.state}
-                  {job.phaseKind ? ` (${job.phaseKind})` : ""}
-                </div>
-                {job.transport ? <TransportJobDetails job={job} personNames={Object.fromEntries(projections.personCards.map((c) => [c.personId, c.firstName]))} /> : <div className="z-muted">Progreso: {Math.round(job.progressRatio * 100)}%</div>}
-                {job.blockReasonKey && <div style={{ color: "var(--z-danger)" }}>{copyKey(job.blockReasonKey)}</div>}
-                <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
-                  {job.state === "in_progress" && <button onClick={() => onPauseJob(job.id)}>Pausar</button>}
-                  {job.state === "paused" && <button onClick={() => onResumeJob(job.id)}>Reanudar</button>}
-                  {job.state !== "completed" && job.state !== "cancelled" && job.state !== "causal_failure" && <button onClick={() => onCancelJob(job.id)}>Cancelar</button>}
-                </div>
-              </li>
+              <JobRow
+                key={job.id}
+                job={job}
+                personCards={projections.personCards}
+                onPauseJob={onPauseJob}
+                onResumeJob={onResumeJob}
+                onCancelJob={onCancelJob}
+                onReassignJob={onReassignJob}
+                onSetJobModes={onSetJobModes}
+              />
             ))}
           </ul>
         )}
@@ -494,6 +495,104 @@ export function WorkPanel({
         </ul>
       </section>
     </aside>
+  );
+}
+
+/**
+ * Fila de un trabajo con sus controles operativos completos (S11 §7.4):
+ * pausar/reanudar/cancelar (ya existían), reasignar responsable/ayudantes
+ * (`reassign_job`, motor ya lo soporta desde S5) y cambiar ritmo/atención
+ * en marcha (`set_job_modes`). Ninguno de los dos últimos tenía UI hasta
+ * ahora aunque el comando ya existía en el núcleo.
+ */
+function JobRow({
+  job,
+  personCards,
+  onPauseJob,
+  onResumeJob,
+  onCancelJob,
+  onReassignJob,
+  onSetJobModes,
+}: {
+  readonly job: JobProjection;
+  readonly personCards: WorkerProjectionsV2["personCards"];
+  readonly onPauseJob: (jobId: string) => void;
+  readonly onResumeJob: (jobId: string) => void;
+  readonly onCancelJob: (jobId: string) => void;
+  readonly onReassignJob: (jobId: string, addPersonId: string | null, removePersonId: string | null) => void;
+  readonly onSetJobModes: (jobId: string, pace?: PaceMode, attention?: AttentionMode) => void;
+}) {
+  const [addPersonId, setAddPersonId] = useState("");
+  const [pace, setPace] = useState<PaceMode>("normal");
+  const [attention, setAttention] = useState<AttentionMode>("standard");
+  const isTerminal = job.state === "completed" || job.state === "cancelled" || job.state === "causal_failure";
+  const available = personCards.filter((c) => !job.assignedPersonIds.includes(c.personId));
+  const personNames = Object.fromEntries(personCards.map((c) => [c.personId, c.firstName]));
+
+  return (
+    <li className="z-panel" style={{ padding: 6 }} data-job-id={job.id} data-job-state={job.state} data-job-action={job.actionKey}>
+      <div>
+        <strong>{copyKey(job.labelKey)}</strong> — {job.state}
+        {job.phaseKind ? ` (${job.phaseKind})` : ""}
+      </div>
+      {job.transport ? <TransportJobDetails job={job} personNames={personNames} /> : <div className="z-muted">Progreso: {Math.round(job.progressRatio * 100)}%</div>}
+      {job.blockReasonKey && <div style={{ color: "var(--z-danger)" }}>{copyKey(job.blockReasonKey)}</div>}
+      <div className="z-muted" style={{ fontSize: 12, marginTop: 2 }}>
+        Asignadas: {job.assignedPersonIds.length === 0 ? "nadie" : job.assignedPersonIds.map((id) => personNames[id] ?? id).join(", ")}
+      </div>
+      {!isTerminal && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center", marginTop: 4 }}>
+          {job.assignedPersonIds.map((id) => (
+            <button key={id} style={{ fontSize: 12 }} onClick={() => onReassignJob(job.id, null, id)} aria-label={`Quitar a ${personNames[id] ?? id} de este trabajo`}>
+              {personNames[id] ?? id} ×
+            </button>
+          ))}
+          {available.length > 0 && (
+            <>
+              <select aria-label="Añadir persona al trabajo" value={addPersonId} onChange={(e) => setAddPersonId(e.target.value)} style={{ fontSize: 12 }}>
+                <option value="">Añadir…</option>
+                {available.map((c) => (
+                  <option key={c.personId} value={c.personId}>
+                    {c.firstName}
+                  </option>
+                ))}
+              </select>
+              <button
+                style={{ fontSize: 12 }}
+                disabled={!addPersonId}
+                onClick={() => {
+                  onReassignJob(job.id, addPersonId, null);
+                  setAddPersonId("");
+                }}
+              >
+                Añadir
+              </button>
+            </>
+          )}
+        </div>
+      )}
+      {!isTerminal && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center", marginTop: 4 }}>
+          <select aria-label={`Ritmo de ${copyKey(job.labelKey)}`} value={pace} onChange={(e) => setPace(e.target.value as PaceMode)} style={{ fontSize: 12 }}>
+            <option value="relaxed">Tranquilo</option>
+            <option value="normal">Normal</option>
+            <option value="fast">Rápido</option>
+          </select>
+          <select aria-label={`Atención de ${copyKey(job.labelKey)}`} value={attention} onChange={(e) => setAttention(e.target.value as AttentionMode)} style={{ fontSize: 12 }}>
+            <option value="standard">Estándar</option>
+            <option value="careful">Cuidadosa</option>
+          </select>
+          <button style={{ fontSize: 12 }} onClick={() => onSetJobModes(job.id, pace, attention)}>
+            Aplicar modo
+          </button>
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
+        {job.state === "in_progress" && <button onClick={() => onPauseJob(job.id)}>Pausar</button>}
+        {job.state === "paused" && <button onClick={() => onResumeJob(job.id)}>Reanudar</button>}
+        {!isTerminal && <button onClick={() => onCancelJob(job.id)}>Cancelar</button>}
+      </div>
+    </li>
   );
 }
 
