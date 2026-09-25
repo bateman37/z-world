@@ -180,53 +180,60 @@ export async function saveSnapshot(
   });
 }
 
-/**
- * Persiste el resultado de una migración V1→V2 (S1 de WEB-002, esqueleto)
- * como un snapshot adicional, sin tocar el snapshot vigente ni la
- * revisión de la partida: el snapshot V1 original nunca se destruye ni
- * se sobrescribe, porque todavía es la única forma que el Worker sabe
- * cargar (§25.1). Idempotente: si ya existe un snapshot con el mismo
- * `reason` para esta partida, no crea uno nuevo.
- */
-export async function saveMigratedV2Snapshot(
-  prisma: PrismaClient,
-  params: {
-    readonly gameSaveId: string;
-    readonly state: { readonly schemaVersion: number; readonly clock: { readonly elapsedSimSeconds: number } };
-    readonly reason: string;
-  },
-): Promise<{ readonly snapshotId: string; readonly created: boolean }> {
-  return prisma.$transaction(async (tx) => {
-    const existing = await tx.simulationSnapshot.findFirst({
-      where: { gameSaveId: params.gameSaveId, reason: params.reason },
-    });
-    if (existing) {
-      return { snapshotId: existing.id, created: false };
-    }
+/** `reason` fijo del snapshot que promociona una partida V1 a V2 (S11 §4.6). */
+export const MIGRATION_SNAPSHOT_REASON = "migrated_v1_to_v2" as const;
 
+/**
+ * Promociona transaccionalmente una partida V1 a V2 (S11 §4.6): a
+ * diferencia del esqueleto de S1 (que solo guardaba un snapshot V2
+ * adicional sin hacerlo jugable), esta es la migración real de producto —
+ * tras esta llamada, `GameSave.schemaVersion` pasa a 2, el snapshot V2
+ * queda como vigente (`currentSnapshotId`) y `/village/[id]` la carga
+ * directamente.
+ *
+ * El snapshot V1 anterior nunca se toca ni se borra: sigue siendo una fila
+ * más en `simulation_snapshots`, respaldo histórico consultable pero ya no
+ * vigente. Idempotente por el propio `schemaVersion` de la partida: si ya
+ * es `>= 2` (ya migrada, en este intento o en uno anterior), no reinserta
+ * ni reescribe nada y devuelve la revisión vigente tal cual.
+ */
+export async function promoteV1ToV2(
+  prisma: PrismaClient,
+  params: { readonly gameSaveId: string; readonly state: SimulationStateV2 },
+): Promise<{ readonly revision: number; readonly alreadyMigrated: boolean }> {
+  return prisma.$transaction(async (tx) => {
     const current = await tx.gameSave.findUnique({ where: { id: params.gameSaveId } });
     if (!current) {
       throw new CorruptOrIncompatibleSnapshotError(params.gameSaveId, "la partida no existe.");
     }
 
-    const highestRevision = await tx.simulationSnapshot.aggregate({
-      where: { gameSaveId: params.gameSaveId },
-      _max: { revision: true },
-    });
-    const nextRevision = (highestRevision._max.revision ?? current.revision) + 1;
+    if (current.schemaVersion >= params.state.schemaVersion) {
+      return { revision: current.revision, alreadyMigrated: true };
+    }
 
+    const nextRevision = current.revision + 1;
     const snapshot = await tx.simulationSnapshot.create({
       data: {
         gameSaveId: params.gameSaveId,
         revision: nextRevision,
         schemaVersion: params.state.schemaVersion,
-        reason: params.reason,
+        reason: MIGRATION_SNAPSHOT_REASON,
         state: params.state as unknown as object,
         simSeconds: params.state.clock.elapsedSimSeconds,
       },
     });
 
-    return { snapshotId: snapshot.id, created: true };
+    await tx.gameSave.update({
+      where: { id: params.gameSaveId },
+      data: {
+        schemaVersion: params.state.schemaVersion,
+        revision: nextRevision,
+        currentSnapshotId: snapshot.id,
+        lastUsedAt: new Date(),
+      },
+    });
+
+    return { revision: nextRevision, alreadyMigrated: false };
   });
 }
 

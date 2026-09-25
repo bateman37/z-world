@@ -1,6 +1,7 @@
 "use server";
 
-import { createInitialState, createInitialStateV2 } from "@z-world/simulation-core";
+import { createInitialState, createInitialStateV2, migrateV1ToV2 } from "@z-world/simulation-core";
+import { parseSimulationStateV2 } from "@z-world/contracts";
 import type { DomainEvent, DomainEventV2, SimulationStateV1, SimulationStateV2 } from "@z-world/contracts";
 import {
   createGame,
@@ -8,6 +9,7 @@ import {
   listGames,
   loadGame,
   loadGameV2,
+  promoteV1ToV2,
   RevisionConflictError,
   saveSnapshot,
   saveSnapshotV2,
@@ -109,6 +111,50 @@ export async function saveSnapshotAction(params: {
     }
     throw error;
   }
+}
+
+export interface MigrationPreview {
+  readonly degradations: readonly string[];
+}
+
+/**
+ * Vista previa de la migración V1→V2, sin persistir nada (S11 §4.6.2): la
+ * home la usa para explicar qué se conserva y qué degradaciones conocidas
+ * existen antes de que la persona confirme. `migrateV1ToV2` es pura, así
+ * que ejecutarla aquí no tiene efecto sobre la partida ni sobre el
+ * generador de IDs/PRNG persistido.
+ */
+export async function previewMigrationV1ToV2Action(gameSaveId: string): Promise<MigrationPreview> {
+  const { state: v1 } = await loadGame(prisma, gameSaveId);
+  const { degradations } = migrateV1ToV2(v1);
+  return { degradations };
+}
+
+export interface MigrationResultAction {
+  readonly gameSaveId: string;
+  readonly revision: number;
+  readonly alreadyMigrated: boolean;
+  readonly degradations: readonly string[];
+}
+
+/**
+ * Ejecuta y promociona la migración V1→V2 (S11 §4.6): valida el snapshot V2
+ * resultante (Zod + invariantes) antes de escribir nada, para que un fallo
+ * de validación deje la partida abriendo tal cual como V1, nunca a medias.
+ * Idempotente: repetir sobre una partida ya migrada no crea una segunda
+ * migración (`promoteV1ToV2` lo resuelve por `schemaVersion`).
+ */
+export async function migrateGameToV2Action(gameSaveId: string): Promise<MigrationResultAction> {
+  const { state: v1 } = await loadGame(prisma, gameSaveId);
+  const { state: v2, degradations } = migrateV1ToV2(v1);
+
+  const validated = parseSimulationStateV2(v2);
+  if (!validated.success || !validated.data) {
+    throw new Error(`La migración produjo un estado V2 inválido, no se promociona: ${validated.error ?? "forma desconocida."}`);
+  }
+
+  const { revision, alreadyMigrated } = await promoteV1ToV2(prisma, { gameSaveId, state: validated.data });
+  return { gameSaveId, revision, alreadyMigrated, degradations };
 }
 
 /**
