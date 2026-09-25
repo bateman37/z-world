@@ -41,8 +41,15 @@ S10 (entorno mutable y agricultura) está cerrado con limitaciones
 explícitas (ver «S10 — entorno mutable y agricultura» al final) y
 registrado en
 [DEC-0020](decisions/DEC-0020_mutable-environment-and-agriculture.md).
-Ninguna de las ramas S7-S10 se ha fusionado aún contra `main`. Queda S11
-sin fecha.
+S11 (cierre final de integración: protocolo estructural/tick,
+persistencia con `attemptId` idempotente, registro operativo
+reconstruible, selección universal y ficha contextual del Canvas,
+herramientas gráficas de dibujo, recorrido cruzado de barrera/perímetro
+y harness de rendimiento) está técnicamente completado, con limitaciones
+explícitas (ver «S11 — cierre final de integración» al final) y
+registrado en
+[DEC-0021](decisions/DEC-0021_final-integration-closure.md). Ninguna de
+las ramas S7-S11 se ha fusionado aún contra `main`.
 
 El prototipo histórico Godot queda preservado íntegro, sin más desarrollo
 activo. Su historial de entregas de código:
@@ -2556,6 +2563,259 @@ para el resto. Todo se hace en `/village/[id]`:
    tipo «Construir barrera entre anclajes», introducir dos puntos y un
    modo de cruce, y «Designar»: genera un trabajo real de construcción
    de barrera que consume madera concreta al completarse.
+
+## S11 — cierre final de integración: cerrado con limitaciones explícitas
+
+Rama `feat/web-002-s11-final-integration-closure`, sin fusionar contra
+`main`. A diferencia de S1-S10, S11 no tuvo un prompt de subhito propio
+archivado en el repositorio: la instrucción de cierre llegó directamente
+de Dennis en dos sesiones consecutivas de trabajo. La decisión de la
+entrega es
+[DEC-0021](decisions/DEC-0021_final-integration-closure.md), dividida en
+seis bloques cerrados en orden ("Puertas" A-F).
+
+### Qué hay y cómo funciona
+
+**Puerta A — persistencia final y migración.**
+
+1. Buffer real de eventos pendientes de persistir (`pendingEvents`): el
+   lote que viaja en cada guardado es exactamente lo producido desde el
+   último guardado confirmado, nunca un `events: []` fijo.
+2. Guardado idempotente por `attemptId` estable (migración Prisma
+   `s11_snapshot_attempt_id`): un reintento del mismo lote ya
+   confirmado no reinserta nada; una escritura distinta con revisión
+   obsoleta se sigue rechazando.
+3. `revision_conflict` congela la sesión de verdad (comandos y ticks
+   dejan de mutar el mundo) con una pantalla bloqueante que solo ofrece
+   recargar o salir; `save_error` conserva el lote exacto para que
+   «Reintentar» lo reenvíe sin generar uno nuevo.
+4. Autosave debounced (30 s reales) para cambios sin límite material
+   propio (deterioro, cultivo).
+5. La migración V1→V2 se puede iniciar directamente desde la pantalla
+   de inicio.
+
+**Puerta B — protocolo Worker V3.**
+
+6. Dos canales de cadencia distinta con un `sequence` monótono
+   compartido: `structural_projections` (geometría, niebla, edificios;
+   como máximo cada 1000 ms reales o al forzarse) y `tick_projections`
+   (reloj, movimiento, trabajos, registro, fichas de persona; cada
+   tick/comando). Cada `tick_projections` referencia el último paquete
+   estructural real (`structuralSequence`); un hueco, un duplicado o
+   una base obsoleta detectados en el cliente disparan
+   `request_resync`, igual que volver a la pestaña tras un tiempo fuera
+   de foco.
+7. Validación Zod real de ambas direcciones del protocolo; un mensaje
+   que no valida nunca llega a mutar React.
+8. Fronteras de conocimiento ampliadas y cerradas (objeto suelto sin
+   registrar, objeto en contenedor, objeto exterior tras niebla
+   oculta, barrido de subcadenas prohibidas en las tres proyecciones).
+
+**Puerta C — observabilidad.**
+
+9. Registro operativo reconstruido desde eventos persistidos al cargar
+   o recargar (nunca arranca vacío ni depende de memoria de React), con
+   nivel de atención (`log`/`notice`/`important`/`critical`) por tipo de
+   evento y agrupación de causas repetidas sobre la misma entidad
+   (contador `×N` en vez de ruido idéntico).
+10. Filtros por nivel, botón «Centrar» por entrada que recentra el
+    Canvas en la persona relacionada, y un panel de diagnóstico técnico
+    colapsado (versión de protocolo/esquema, revisión, estado de
+    guardado, reloj) que nunca expone calibre ni semillas internas.
+
+**Puerta D — Canvas e interfaz.**
+
+11. Selección universal del Canvas: persona, abertura, lugar, tramo de
+    barrera, estancia, parcela de cultivo y edificio, con prioridad de
+    impacto por especificidad y un único patrón de ficha contextual
+    extensible (`ContextualSheet`) en vez de un componente por clase de
+    entidad — solo lo conocido, solo las acciones cuyo blanco real
+    coincide con la selección, reutilizando el filtrado que ya hace el
+    Worker.
+12. Objetos/contenedores/lotes de recurso quedan fuera de esa selección
+    a propósito (nunca han tenido posición en la proyección del mapa):
+    siguen siendo accionables desde el inventario. Auditado
+    explícitamente el resto del mandato (trabajos, zonas, puntos de
+    transferencia, inventario/almacenamiento, recursos reservados,
+    objetos en tránsito): único hueco real encontrado y cerrado,
+    recursos reservados (`reservedByJobId`) ahora visibles en el
+    inventario como «reservado para «trabajo»».
+13. El Canvas es el flujo **primario** para dibujar zonas, designaciones
+    de área y tramos de barrera (clic por vértice, previsualización en
+    vivo, cierre explícito, cancelación con Escape/clic derecho, sin
+    estado a medio crear); los formularios de coordenadas siguen como
+    apoyo técnico secundario, plegados bajo «Avanzado».
+14. Cada trabajo expone reasignar (añadir/quitar personas) y ritmo/
+    atención en marcha, comandos del motor que ya existían desde S5
+    pero no tenían ningún control en la interfaz.
+
+**Puerta E — cierre transversal.**
+
+15. `e2e/s10-barrier-perimeter-cross-flow.spec.ts`: recorrido cruzado
+    real de las catorce etapas del mandato (dibujar → validar geometría
+    → comprobar materiales → crear trabajo → reasignar → reservar/
+    consumir recursos → ejecutar → materializar → persistir/recargar →
+    registrar → mantener idempotencia), usando en cada paso el sistema
+    real correspondiente.
+16. Harness de rendimiento (`s11-performance-harness.test.ts`),
+    resultados reales medidos una sola vez sobre un pueblo semántico
+    completo cargado con trabajos/zonas/designación y dos horas
+    simuladas de bucle causal real, niebla totalmente descubierta:
+
+    | Métrica | avg | p95 | max |
+    |---|---|---|---|
+    | Construir proyecciones (completa + partir en canales) | 9,8 ms | 11,3 ms | 11,3 ms |
+    | Validar `structural_projections` (Zod) | 4,9 ms | 8,0 ms | 8,0 ms |
+    | Validar `tick_projections` (Zod) | 2,7 ms | 6,5 ms | 6,5 ms |
+    | Aplicar un comando (`order_direct_move`) | 2,6 ms | 13,8 ms | 13,8 ms |
+    | Avanzar un tick de simulación (30 s simulados) | 3,5 ms | 4,8 ms | 10,7 ms |
+
+    Escenario: semilla `s11-perf-harness-seed-1`, 6 personas, 52
+    trabajos, 2 zonas, 1 designación, 178 objetos, 238 lotes de
+    recurso, 498 muebles, 230 contenedores, 62 lugares, 69 edificios,
+    322 estancias, 330 aberturas, 184 anclajes, 7200 s simulados
+    avanzados, 10 comandos aplicados antes de esa ventana. Tamaño:
+    estado interno completo ≈ 2,08 MB serializado; canal estructural
+    ≈ 2,89 MB; canal tick ≈ 80 KB. El canal estructural resultó **más
+    grande que el propio estado interno** en este escenario (niebla
+    totalmente descubierta): observación real documentada como deuda
+    de optimización de payload (ver límites, abajo), no un fallo — ese
+    canal solo se reenvía completo al forzarse o cada 1000 ms reales,
+    nunca en cada tick. Los umbrales usados en el propio archivo (p95 <
+    200 ms de proyección/aplicación, < 100 ms de validación) son un
+    umbral de humo para detectar una regresión de uno o dos órdenes de
+    magnitud, no una garantía de producción; con más de diez veces el
+    margen libre en cada métrica medida.
+
+### Limitaciones explícitas (no se arrastran en silencio)
+
+- **Selección de tramo de barrera sin frontera de conocimiento propia**:
+  a diferencia de las parcelas de cultivo, un `barrierSegment` se
+  proyecta sin comprobar niebla — visible en cuanto existe, no solo
+  cuando la niebla lo alcanza. Detectado durante la Puerta E; no
+  corregido por no formar parte de su mandato explícito.
+- **Payload del canal estructural**: puede llegar a ser mayor que el
+  propio estado interno en una partida muy explorada (ver harness,
+  arriba). Oportunidad de optimización (no repetir geometría estática
+  que no cambió) documentada, no resuelta en S11.
+- **Sin edición continua de un polígono ya dibujado**: las herramientas
+  de dibujo crean geometría nueva vértice a vértice; editar una ya
+  existente pasa por borrar y rehacer, o por el formulario avanzado.
+- **Reasignación de trabajo sin filtro de idoneidad en la interfaz**: el
+  selector ofrece a cualquier persona conocida; el motor sigue
+  validando y bloqueando causalmente si no encaja, pero la lista no se
+  filtra de antemano.
+- **Harness de un solo escenario y un solo momento**: sin serie
+  histórica ni comparación entre commits — una fotografía de esta
+  entrega.
+- **Caso completo de cierre de lazo de perímetro y cruce peatonal/carro
+  con portón**: sigue cubierto solo por `terrain-agriculture.test.ts`
+  (unitaria), no por un recorrido en navegador (matiz heredado de
+  DEC-0020, ver ahí).
+- **Deuda heredada de S7-S10** (DEC-0019, DEC-0020): perímetro sin
+  paredes de edificio como arista implícita, reconstrucción completa de
+  navegación, catálogo de cultivos mínimo, sin estaciones ni clima,
+  entre otras — S11 no las reabre ni las resuelve.
+- **Aceptación manual**: no ejecutada. El guion está abajo.
+
+### Validaciones del cierre de la rama S11 (esta sesión)
+
+Ejecutado y en verde al cerrar, sobre el árbol final de la rama:
+
+- `npm run typecheck` (todos los paquetes y `apps/web`) y `npm run lint`
+  (paquetes y web): sin errores ni avisos.
+- Unitarias dirigidas a los módulos tocados por S11 (protocolo V3,
+  proyecciones, frontera de conocimiento, registro operativo,
+  `reservedByJobId`, harness de rendimiento): en verde: ver
+  `packages/application/src/{worker-session-v2,build-object-projections-v2,
+  s11-performance-harness}.test.ts`,
+  `packages/application/src/knowledge-boundary-v2.test.ts`.
+- `npm run build` (incluido `apps/web`) correcto.
+- E2E dirigidas (Chromium real, `next start` + PostgreSQL real, sin
+  repetir la batería histórica completa): `village-runtime.spec.ts`
+  (selección universal + ficha contextual), `work-panel.spec.ts`
+  (herramientas de dibujo: trazar/cerrar/borrar una zona, cancelar un
+  dibujo a medias), `e2e/s10-barrier-perimeter-cross-flow.spec.ts`
+  (recorrido cruzado completo nuevo): en verde.
+- Harness de rendimiento ejecutado una sola vez (resultados arriba).
+
+### Guion de aceptación manual para Dennis (S11)
+
+Semilla estable `probe-seed-92` para los pasos 5-11 (misma vivienda
+usada por el resto de guiones de este documento); cualquier semilla
+sirve para los pasos 1-4 y 12-15. Todo en `/village/[id]`.
+
+**Persistencia y conflicto (Puerta A)**
+
+1. Crear una partida, dar una orden cualquiera y esperar «Guardado».
+   Abrir la misma partida en una segunda pestaña, dar una orden ahí, y
+   comprobar que la primera pestaña muestra la pantalla de conflicto de
+   revisión (nunca sobrescribe en silencio) con solo dos salidas:
+   recargar o salir.
+2. Recargar esa primera pestaña: el estado más reciente aparece
+   completo, sin duplicar ni perder la orden de la segunda pestaña.
+3. Desde la pantalla de inicio, migrar una partida V1 existente (si hay
+   alguna) o comprobar que la opción está disponible ahí mismo, sin
+   salir a otro flujo separado.
+
+**Protocolo y resincronización (Puerta B)**
+
+4. Cambiar de pestaña (u ocultar la ventana) durante unos segundos con
+   el reloj corriendo, y volver: el mapa y el reloj deben reflejar el
+   tiempo transcurrido sin quedar desincronizados ni congelados.
+
+**Observabilidad (Puerta C)**
+
+5. En «Sucesos recientes», comprobar que hay entradas con distintos
+   niveles visuales y que los filtros por nivel funcionan.
+6. Provocar el mismo tipo de suceso varias veces seguidas sobre la
+   misma entidad (p. ej. varios rechazos de movimiento) y comprobar que
+   se agrupan con un contador `×N` en vez de listarse una por una.
+7. Pulsar «Centrar» en una entrada relacionada con una persona: el
+   Canvas se recentra en ella.
+8. Abrir «Diagnóstico técnico»: debe mostrar versión de protocolo,
+   revisión vigente y estado de guardado, y nada de calibre, semillas
+   internas de episodio ni márgenes.
+
+**Selección universal y ficha contextual (Puerta D)**
+
+9. Hacer clic en el Canvas sobre una persona, un edificio conocido, una
+   estancia ya registrada y una abertura: cada una debe seleccionarse y
+   mostrar información y acciones propias de su tipo (la persona en su
+   ficha habitual; el resto en la nueva «Ficha de selección»).
+10. Seleccionar una entidad y luego hacer clic en un punto vacío del
+    mapa: la ficha se cierra. Seleccionar de nuevo y pulsar su botón
+    «Cerrar ficha»: mismo resultado.
+
+**Herramientas de dibujo (Puerta D)**
+
+11. En el panel de trabajo, elegir política de zona y pulsar «Dibujar
+    zona en el mapa»: hacer 3 clics en el Canvas y confirmar con
+    «Cerrar forma» (o un clic cerca del primer punto). La zona debe
+    aparecer en la lista. Repetir y pulsar Escape a medio dibujar: no
+    debe quedar ninguna zona nueva.
+12. Elegir «Construir barrera entre anclajes» y «Dibujar tramo en el
+    mapa»: dos clics cerca de dos esquinas reales de un edificio
+    conocido deben generar un trabajo de construcción de barrera.
+
+**Trabajos (Puerta D)**
+
+13. Sobre cualquier trabajo activo, usar «Añadir…»/«Añadir» para
+    asignarle una persona, y el botón «×» junto a su nombre para
+    quitarla. Cambiar su ritmo/atención con «Aplicar modo».
+14. Localizar un objeto o lote reservado por un trabajo en curso en el
+    inventario: debe mostrar «reservado para «nombre del trabajo»».
+
+**Recorrido cruzado completo de barrera/perímetro (Puerta E)**
+
+15. Repetir el paso 12 hasta completarlo de verdad: reunir la madera
+    necesaria (registrar la vivienda, retirar madera de sus
+    contenedores hasta acumular lo suficiente, o dejar que el
+    planificador asigne a alguien con material a mano), esperar a que
+    el trabajo se complete a velocidad ×10, y comprobar que el tramo
+    aparece «Construido» al volver a seleccionarlo. Guardar, recargar y
+    comprobar que sigue construido y que el aviso de finalización sigue
+    en el registro operacional.
 
 ## Deuda documental previa conservada
 

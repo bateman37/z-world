@@ -345,12 +345,16 @@ está construida, discontinuo si no) en el Canvas existente.
   rendimiento y los tiempos exactos quedan abiertos (`SET-011 §7`).
 - Sin estaciones ni clima: el ciclo de 12 días de `garden_vegetables`
   no depende de fecha ni temporada.
-- La E2E de barrera/perímetro (crossing peatonal/carro, cerrar un lazo,
-  reabrir vía gate/brecha) no se automatizó en Chromium por límite de
-  tiempo de esta entrega: su lógica sí está cubierta por pruebas
-  unitarias reales (`terrain-agriculture.test.ts`), pero el recorrido
-  jugable completo de esa parte concreta no está probado en navegador.
-  Queda como trabajo pendiente explícito, no como "cerrado".
+- ~~La E2E de barrera/perímetro... no se automatizó en Chromium~~ —
+  **cerrado en S11**: `e2e/s10-barrier-perimeter-cross-flow.spec.ts`
+  recorre en navegador real el trazado en el Canvas, la validación de
+  geometría, la reserva y consumo de materiales, la ejecución y la
+  materialización de un tramo real; ver
+  [DEC-0021](DEC-0021_final-integration-closure.md) §5. El caso
+  concreto de cerrar un lazo completo de perímetro y el cruce
+  peatonal/carro con portón siguen cubiertos solo por
+  `terrain-agriculture.test.ts` (unitaria), no por un recorrido en
+  navegador — matiz que se mantiene como límite consciente.
 
 ## Pruebas
 

@@ -4,6 +4,55 @@ Registra entregas documentales y de diseño de Z-World. No atribuye código ni
 funcionalidad implementada salvo que se indique explícitamente como
 `implemented` en la documentación afectada.
 
+## WEB-002 (subhito S11) — Cierre final de integración
+
+En `feat/web-002-s11-final-integration-closure`, sin fusionar contra
+`main`. Cerrado con limitaciones explícitas (detalle en `docs/STATUS.md`
+§«S11 — cierre final de integración»), y se crea
+[DEC-0021](docs/decisions/DEC-0021_final-integration-closure.md).
+Resumen (seis bloques, "Puertas A-F"):
+
+- **Persistencia final (Puerta A)**: buffer real de eventos pendientes,
+  guardado idempotente por `attemptId` (migración Prisma
+  `s11_snapshot_attempt_id`), congelación real de la sesión ante
+  conflicto de revisión, reintento explícito de un guardado fallido sin
+  duplicar el lote, autosave debounced, migración V1→V2 iniciable desde
+  la pantalla de inicio.
+- **Protocolo Worker V3 (Puerta B)**: mensaje único `"projections"`
+  sustituido por dos canales (`structural_projections`/
+  `tick_projections`) con secuencia compartida, referencia estructural
+  por mensaje de tick y resincronización explícita
+  (`request_resync`) ante hueco/duplicado/base obsoleta o al recuperar
+  el foco de la pestaña; validación Zod real de ambas direcciones;
+  fronteras de conocimiento ampliadas.
+- **Observabilidad (Puerta C)**: registro operativo reconstruido desde
+  eventos persistidos (nunca arranca vacío), niveles de atención y
+  agrupación de causas repetidas con contador, panel de diagnóstico
+  técnico.
+- **Canvas e interfaz (Puerta D)**: selección universal del Canvas
+  (persona/abertura/lugar/tramo de barrera/estancia/parcela/edificio)
+  con una ficha contextual común y extensible; herramientas gráficas de
+  dibujo como flujo **primario** para zonas/designaciones/barreras
+  (los formularios numéricos quedan como apoyo técnico secundario);
+  reasignación y ritmo/atención de trabajos expuestos en cada fila;
+  recursos reservados por un trabajo visibles en el inventario.
+- **Cierre transversal (Puerta E)**: recorrido E2E cruzado completo de
+  barrera/perímetro (`e2e/s10-barrier-perimeter-cross-flow.spec.ts`)
+  usando los sistemas reales de principio a fin; harness de rendimiento
+  (`s11-performance-harness.test.ts`) con resultados reales medidos una
+  sola vez sobre un pueblo semántico cargado (ver tabla en
+  `docs/STATUS.md`).
+- Pruebas: unitarias/integración/E2E dirigidas a los módulos tocados por
+  S11 en verde (sin repetir la batería histórica completa), typecheck y
+  lint en verde, harness de rendimiento ejecutado una vez; guion manual
+  en `docs/STATUS.md` (aceptación manual pendiente).
+- Límites conscientes explícitos: selección de tramo de barrera sin
+  frontera de conocimiento propia (visible sin comprobar niebla); canal
+  estructural que puede pesar más que el propio estado interno en una
+  partida muy explorada; sin edición continua de un polígono ya
+  dibujado; reasignación de trabajo sin filtro de idoneidad en la
+  interfaz; harness de un solo escenario sin serie histórica.
+
 ## WEB-002 (subhito S10) — Entorno mutable y agricultura
 
 En `feat/web-002-s10-agriculture-mutable-environment`, sin fusionar contra
