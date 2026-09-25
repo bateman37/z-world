@@ -9,6 +9,7 @@ import type {
   VisibilityState,
   WorldPoint,
 } from "@z-world/contracts";
+import type { SelectionTarget } from "@/lib/selection";
 
 /**
  * Mapa Canvas 2D jugable del runtime V2 (S3 §5.9): pan/zoom, selección y
@@ -93,7 +94,8 @@ export function VillageMapCanvas({
   movements,
   personCards,
   selectedPersonId,
-  onSelectPerson,
+  selectedTarget,
+  onSelectTarget,
   onOrderMove,
   centerOnPersonRequestId,
 }: {
@@ -101,8 +103,10 @@ export function VillageMapCanvas({
   readonly fog: FogMaskProjection;
   readonly movements: readonly MovementProjection[];
   readonly personCards: readonly PersonCardProjection[];
+  /** Persona activa a efectos de "Moverse aquí" (puede diferir de `selectedTarget`, que es cualquier entidad del mapa). */
   readonly selectedPersonId: string | null;
-  readonly onSelectPerson: (personId: string | null) => void;
+  readonly selectedTarget: SelectionTarget | null;
+  readonly onSelectTarget: (target: SelectionTarget | null) => void;
   readonly onOrderMove: (personId: string, destination: WorldPoint) => void;
   readonly centerOnPersonRequestId: number;
 }) {
@@ -180,6 +184,7 @@ export function VillageMapCanvas({
 
     // S10: parcelas de cultivo, siempre visibles como terreno de fondo (SET-011 §3.1); nunca revela cultivo/rendimiento aquí.
     for (const plot of mapEntities.cultivationPlots) {
+      const isSelected = selectedTarget?.kind === "cultivation_plot" && selectedTarget.id === plot.id;
       ctx.beginPath();
       plot.polygon.forEach((point, index) => {
         const s = toScreen(point);
@@ -189,8 +194,8 @@ export function VillageMapCanvas({
       ctx.closePath();
       ctx.fillStyle = CULTIVATION_STATE_COLORS[plot.state] ?? "rgba(150, 120, 70, 0.4)";
       ctx.fill();
-      ctx.strokeStyle = "rgba(210, 180, 60, 0.6)";
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = isSelected ? "#7fb3ff" : "rgba(210, 180, 60, 0.6)";
+      ctx.lineWidth = isSelected ? 3 : 1;
       ctx.stroke();
     }
 
@@ -213,11 +218,12 @@ export function VillageMapCanvas({
     for (const segment of mapEntities.barrierSegments) {
       const from = toScreen(segment.from);
       const to = toScreen(segment.to);
+      const isSelected = selectedTarget?.kind === "barrier_segment" && selectedTarget.id === segment.id;
       ctx.beginPath();
       ctx.moveTo(from.x, from.y);
       ctx.lineTo(to.x, to.y);
-      ctx.strokeStyle = segment.built ? "#c9a45c" : "rgba(201, 164, 92, 0.5)";
-      ctx.lineWidth = segment.built ? 3 : 2;
+      ctx.strokeStyle = isSelected ? "#7fb3ff" : segment.built ? "#c9a45c" : "rgba(201, 164, 92, 0.5)";
+      ctx.lineWidth = isSelected ? 4 : segment.built ? 3 : 2;
       ctx.setLineDash(segment.built ? [] : [5, 4]);
       ctx.stroke();
       ctx.setLineDash([]);
@@ -231,6 +237,7 @@ export function VillageMapCanvas({
     }
 
     for (const building of mapEntities.buildings) {
+      const isSelected = selectedTarget?.kind === "building" && selectedTarget.id === building.id;
       ctx.beginPath();
       building.footprint.forEach((point, index) => {
         const s = toScreen(point);
@@ -241,14 +248,15 @@ export function VillageMapCanvas({
       // S9: un edificio demolido se dibuja como escombros; uno desmantelado, como solar despejado.
       ctx.fillStyle = building.terminal === "demolished" ? "#4a4541" : building.terminal === "dismantled" ? "#3a3d33" : "#5a4a2f";
       ctx.fill();
-      ctx.strokeStyle = building.terminal ? "rgba(160, 150, 140, 0.6)" : "#c9a45c";
-      ctx.lineWidth = building.terminal ? 1 : 2;
+      ctx.strokeStyle = isSelected ? "#7fb3ff" : building.terminal ? "rgba(160, 150, 140, 0.6)" : "#c9a45c";
+      ctx.lineWidth = isSelected ? 3 : building.terminal ? 1 : 2;
       if (building.terminal) ctx.setLineDash([4, 3]);
       ctx.stroke();
       ctx.setLineDash([]);
     }
 
     for (const room of mapEntities.rooms) {
+      const isSelected = selectedTarget?.kind === "room" && selectedTarget.id === room.id;
       ctx.beginPath();
       room.polygon.forEach((point, index) => {
         const s = toScreen(point);
@@ -256,26 +264,33 @@ export function VillageMapCanvas({
         else ctx.lineTo(s.x, s.y);
       });
       ctx.closePath();
-      ctx.strokeStyle = "rgba(201, 164, 92, 0.7)";
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = isSelected ? "#7fb3ff" : "rgba(201, 164, 92, 0.7)";
+      ctx.lineWidth = isSelected ? 2 : 1;
       ctx.stroke();
     }
 
     for (const place of mapEntities.places) {
+      const isSelected = selectedTarget?.kind === "place" && selectedTarget.id === place.id;
       const s = toScreen(place.position);
       ctx.beginPath();
-      ctx.arc(s.x, s.y, place.knowledge === "observed" ? 5 : 3, 0, Math.PI * 2);
-      ctx.fillStyle = place.knowledge === "observed" ? "#c9a45c" : "rgba(201, 164, 92, 0.4)";
+      ctx.arc(s.x, s.y, isSelected ? 7 : place.knowledge === "observed" ? 5 : 3, 0, Math.PI * 2);
+      ctx.fillStyle = isSelected ? "#7fb3ff" : place.knowledge === "observed" ? "#c9a45c" : "rgba(201, 164, 92, 0.4)";
       ctx.fill();
     }
 
     for (const opening of mapEntities.openings) {
+      const isSelected = selectedTarget?.kind === "opening" && selectedTarget.id === opening.id;
       const s = toScreen(opening.position);
       ctx.beginPath();
-      ctx.arc(s.x, s.y, 3, 0, Math.PI * 2);
+      ctx.arc(s.x, s.y, isSelected ? 6 : 3, 0, Math.PI * 2);
       // S9: un acceso bloqueado, barricado o tapiado se ve en rojo (no transitable).
-      ctx.fillStyle = opening.passable === false ? "#e0605a" : "#7fb3ff";
+      ctx.fillStyle = isSelected ? "#7fb3ff" : opening.passable === false ? "#e0605a" : "#7fb3ff";
       ctx.fill();
+      if (isSelected) {
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "#e7ebee";
+        ctx.stroke();
+      }
     }
 
     for (const movement of movements) {
@@ -322,7 +337,7 @@ export function VillageMapCanvas({
       ctx.lineWidth = 2;
       ctx.stroke();
     }
-  }, [mapEntities, fog, movements, personCards, selectedPersonId, camera, viewport, contextAction]);
+  }, [mapEntities, fog, movements, personCards, selectedPersonId, selectedTarget, camera, viewport, contextAction]);
 
   useEffect(() => {
     draw();
@@ -358,8 +373,7 @@ export function VillageMapCanvas({
     if (event.button === 0) {
       const rect = event.currentTarget.getBoundingClientRect();
       const clickWorld = screenToWorld(event.clientX - rect.left, event.clientY - rect.top, camera, viewport.width, viewport.height);
-      const nearest = findNearestPerson(mapEntities.people, clickWorld, camera.pixelsPerMeter);
-      onSelectPerson(nearest);
+      onSelectTarget(findTargetAt(mapEntities, clickWorld, camera.pixelsPerMeter));
     }
   }
 
@@ -425,22 +439,80 @@ export function VillageMapCanvas({
   );
 }
 
-function findNearestPerson(
-  people: MapEntitiesProjectionV2["people"],
-  worldPoint: WorldPoint,
-  pixelsPerMeter: number,
-): string | null {
-  const maxDistanceMeters = 12 / pixelsPerMeter;
-  let closestId: string | null = null;
-  let closestDistance = Infinity;
-  for (const person of people) {
-    const distance = Math.hypot(person.position.x - worldPoint.x, person.position.y - worldPoint.y);
-    if (distance < closestDistance) {
-      closestDistance = distance;
-      closestId = person.personId;
-    }
+function pointInPolygon(point: WorldPoint, polygon: readonly WorldPoint[]): boolean {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const pi = polygon[i]!;
+    const pj = polygon[j]!;
+    const intersects = pi.y > point.y !== pj.y > point.y && point.x < ((pj.x - pi.x) * (point.y - pi.y)) / (pj.y - pi.y) + pi.x;
+    if (intersects) inside = !inside;
   }
-  return closestDistance <= maxDistanceMeters ? closestId : null;
+  return inside;
+}
+
+function distanceToSegment(point: WorldPoint, a: WorldPoint, b: WorldPoint): number {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const lengthSquared = dx * dx + dy * dy;
+  if (lengthSquared === 0) return Math.hypot(point.x - a.x, point.y - a.y);
+  const t = Math.max(0, Math.min(1, ((point.x - a.x) * dx + (point.y - a.y) * dy) / lengthSquared));
+  const closest = { x: a.x + t * dx, y: a.y + t * dy };
+  return Math.hypot(point.x - closest.x, point.y - closest.y);
+}
+
+/**
+ * Selección universal del mapa (S11 §7.3): resuelve el punto clicado a la
+ * entidad conocida más pertinente, con prioridad de impacto por
+ * especificidad — un marcador puntual (persona, abertura, lugar) gana
+ * sobre una línea (barrera) y esta sobre un polígono grande (parcela,
+ * estancia, edificio), para que un solar entero no tape siempre lo que
+ * hay encima. Nunca decide reglas de juego, solo cuál ficha abrir.
+ */
+function findTargetAt(mapEntities: MapEntitiesProjectionV2, worldPoint: WorldPoint, pixelsPerMeter: number): SelectionTarget | null {
+  const pointRadiusMeters = 10 / pixelsPerMeter;
+
+  let closestPerson: { id: string; distance: number } | null = null;
+  for (const person of mapEntities.people) {
+    const distance = Math.hypot(person.position.x - worldPoint.x, person.position.y - worldPoint.y);
+    if (distance <= pointRadiusMeters && (!closestPerson || distance < closestPerson.distance)) closestPerson = { id: person.personId, distance };
+  }
+  if (closestPerson) return { kind: "person", id: closestPerson.id };
+
+  let closestOpening: { id: string; distance: number } | null = null;
+  for (const opening of mapEntities.openings) {
+    const distance = Math.hypot(opening.position.x - worldPoint.x, opening.position.y - worldPoint.y);
+    if (distance <= pointRadiusMeters && (!closestOpening || distance < closestOpening.distance)) closestOpening = { id: opening.id, distance };
+  }
+  if (closestOpening) return { kind: "opening", id: closestOpening.id };
+
+  let closestPlace: { id: string; distance: number } | null = null;
+  for (const place of mapEntities.places) {
+    const distance = Math.hypot(place.position.x - worldPoint.x, place.position.y - worldPoint.y);
+    if (distance <= pointRadiusMeters && (!closestPlace || distance < closestPlace.distance)) closestPlace = { id: place.id, distance };
+  }
+  if (closestPlace) return { kind: "place", id: closestPlace.id };
+
+  const barrierMaxDistanceMeters = 6 / pixelsPerMeter;
+  let closestBarrier: { id: string; distance: number } | null = null;
+  for (const segment of mapEntities.barrierSegments) {
+    const distance = distanceToSegment(worldPoint, segment.from, segment.to);
+    if (distance <= barrierMaxDistanceMeters && (!closestBarrier || distance < closestBarrier.distance)) closestBarrier = { id: segment.id, distance };
+  }
+  if (closestBarrier) return { kind: "barrier_segment", id: closestBarrier.id };
+
+  for (const room of mapEntities.rooms) {
+    if (pointInPolygon(worldPoint, room.polygon)) return { kind: "room", id: room.id };
+  }
+
+  for (const plot of mapEntities.cultivationPlots) {
+    if (pointInPolygon(worldPoint, plot.polygon)) return { kind: "cultivation_plot", id: plot.id };
+  }
+
+  for (const building of mapEntities.buildings) {
+    if (pointInPolygon(worldPoint, building.footprint)) return { kind: "building", id: building.id };
+  }
+
+  return null;
 }
 
 function drawFog(ctx: CanvasRenderingContext2D, fog: FogMaskProjection, camera: Camera, viewport: { width: number; height: number }): void {

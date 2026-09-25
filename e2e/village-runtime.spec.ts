@@ -84,6 +84,46 @@ test("runtime V2 (S3): reloj, movimiento, cancelación, niebla, descubrimiento y
   await page.getByRole("button", { name: "Moverse aquí" }).click();
   await expect(page.getByText(/Entró en una estancia/).first()).toBeVisible({ timeout: 15_000 });
 
+  // 14b (S11 §7.3): selección universal del Canvas — con el reloj en pausa
+  // (para que la posición no siga cambiando bajo el cursor), un clic
+  // izquierdo sobre una entidad ya conocida (aquí, el acceso de la
+  // vivienda en la que se acaba de entrar) abre la ficha contextual común,
+  // no la de persona. Se hace zoom manteniendo fijo el centro de cámara
+  // (la rueda se dispara justo sobre el centro del lienzo, que no se
+  // mueve al hacer zoom) para poder apuntar a un punto suficientemente
+  // lejos de la persona real (su radio de selección competiría si no).
+  // Coordenadas de la abertura reales de esta semilla verificada, en el
+  // borde de la estancia por la que se acaba de entrar.
+  await page.getByRole("button", { name: "Pausa", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Pausa", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.mouse.move(box.x + centerX, box.y + centerY);
+  for (let i = 0; i < 6; i++) {
+    await page.mouse.wheel(0, -100);
+  }
+  const zoomedPixelsPerMeter = pixelsPerMeter * Math.pow(1.15, 6);
+  const openingWorldX = 2.081219;
+  const openingWorldY = 21.13433;
+  await canvas.click({
+    position: {
+      x: centerX + (openingWorldX - 13) * zoomedPixelsPerMeter,
+      y: centerY + (openingWorldY - 36) * zoomedPixelsPerMeter,
+    },
+  });
+  const sheet = page.getByRole("complementary", { name: "Ficha de selección" });
+  await expect(sheet).toBeVisible({ timeout: 10_000 });
+  await expect(sheet).toHaveAttribute("data-selection-kind", "opening");
+  await expect(sheet.getByText("Abertura")).toBeVisible();
+  await sheet.getByRole("button", { name: "Cerrar ficha" }).click();
+  await expect(sheet).not.toBeVisible();
+
+  // Vuelve al nivel de zoom por defecto para no afectar las coordenadas
+  // de pasos posteriores de este mismo recorrido.
+  await page.mouse.move(box.x + centerX, box.y + centerY);
+  for (let i = 0; i < 6; i++) {
+    await page.mouse.wheel(0, 100);
+  }
+  await page.getByRole("button", { name: "×2" }).click();
+
   // 15: guardar, recargar y conservar el avance (el reloj ya no marca la
   // hora de llegada exacta: el tiempo simulado avanzó de verdad). Entrar
   // en la estancia ya disparó un guardado automático (`room_entered` es un

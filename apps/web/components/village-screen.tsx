@@ -10,6 +10,8 @@ import { VillageMapCanvas } from "@/components/village-map-canvas";
 import { OperationalLog } from "@/components/operational-log";
 import { DiagnosticPanel } from "@/components/diagnostic-panel";
 import { WorkPanel, type TransportOrderParams } from "@/components/work-panel";
+import { ContextualSheet } from "@/components/contextual-sheet";
+import type { SelectionTarget } from "@/lib/selection";
 
 /**
  * Laboratorio jugable del pueblo semántico V2 (S3 de WEB-002 §5.9):
@@ -39,7 +41,17 @@ export function VillageScreen({
     initialRecentEvents,
   );
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(initialState.peopleOrder[0] ?? null);
+  const [selectedTarget, setSelectedTarget] = useState<SelectionTarget | null>(null);
   const [centerRequestId, setCenterRequestId] = useState(0);
+
+  function handleSelectTarget(next: SelectionTarget | null) {
+    setSelectedTarget(next);
+    // Seleccionar una persona en el Canvas también la convierte en la
+    // persona actuante (misma persona que en la lista lateral); seleccionar
+    // cualquier otra clase de entidad no toca a la persona actuante, para
+    // poder elegir blanco y actor por separado (§7.3).
+    if (next?.kind === "person") setSelectedPersonId(next.id);
+  }
 
   if (workerFatalError) {
     return (
@@ -186,7 +198,8 @@ export function VillageScreen({
           movements={projections.movements}
           personCards={projections.personCards}
           selectedPersonId={selectedPersonId}
-          onSelectPerson={setSelectedPersonId}
+          selectedTarget={selectedTarget}
+          onSelectTarget={handleSelectTarget}
           onOrderMove={handleOrderMove}
           centerOnPersonRequestId={centerRequestId}
         />
@@ -197,6 +210,15 @@ export function VillageScreen({
             </div>
           )}
           <PersonSheetPanel sheet={selectedSheet} onUpdatePriority={handleUpdatePriority} />
+          {selectedTarget && selectedTarget.kind !== "person" && (
+            <ContextualSheet
+              target={selectedTarget}
+              projections={projections}
+              selectedPersonId={selectedPersonId}
+              onOrderContextualAction={handleOrderContextualAction}
+              onClose={() => setSelectedTarget(null)}
+            />
+          )}
         </div>
         <WorkPanel
           projections={projections}
