@@ -351,12 +351,21 @@ export async function saveSnapshotV2(
       throw new CorruptOrIncompatibleSnapshotError(params.gameSaveId, "la partida no existe.");
     }
 
-    const alreadyCommitted = await tx.simulationSnapshot.findFirst({
-      where: { gameSaveId: params.gameSaveId, attemptId: params.attemptId },
-      select: { revision: true },
-    });
-    if (alreadyCommitted) {
-      return { revision: alreadyCommitted.revision };
+    // Guarda explícita: un `attemptId` vacío/falso NUNCA participa en la
+    // comprobación de idempotencia. Con Prisma, `where: { attemptId: undefined }`
+    // omite ese filtro por completo en vez de exigir el campo — sin esta
+    // guarda, una llamada que (por error) no aporte `attemptId` emparejaría
+    // el primer snapshot que encuentre para la partida (p. ej. el de
+    // creación) y devolvería esa revisión sin escribir nada, perdiendo en
+    // silencio el guardado real.
+    if (params.attemptId) {
+      const alreadyCommitted = await tx.simulationSnapshot.findFirst({
+        where: { gameSaveId: params.gameSaveId, attemptId: params.attemptId },
+        select: { revision: true },
+      });
+      if (alreadyCommitted) {
+        return { revision: alreadyCommitted.revision };
+      }
     }
 
     if (current.revision !== params.expectedRevision) {

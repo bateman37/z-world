@@ -88,7 +88,7 @@ async function createVillageWithKnowledge(page: Page): Promise<Fixture> {
         discoveries: [...state.discoveries, ...rooms.map((r) => ({ entityId: r.id, facet: "rooms" as const, state: "observed" as const })), { entityId: backStorage.id, facet: "content" as const, state: "inspected" as const }],
       };
       try {
-        await saveSnapshotV2(prisma, { gameSaveId, expectedRevision: revision, state: next, events: [], reason: "manual_save" });
+        await saveSnapshotV2(prisma, { gameSaveId, expectedRevision: revision, state: next, events: [], reason: "manual_save", attemptId: crypto.randomUUID() });
       } catch (error) {
         if (attempt >= 5) throw error;
         continue;

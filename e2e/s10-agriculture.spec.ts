@@ -166,7 +166,7 @@ test("S10: ciclo agrícola completo — preparar con interrupción, sembrar, cui
       const { state, revision } = await loadGameV2(prisma, fx.gameSaveId);
       const next = { ...state, fog: { ...state.fog, cells: state.fog.cells.map(() => 1) } };
       try {
-        await saveSnapshotV2(prisma, { gameSaveId: fx.gameSaveId, expectedRevision: revision, state: next, events: [], reason: "manual_save" });
+        await saveSnapshotV2(prisma, { gameSaveId: fx.gameSaveId, expectedRevision: revision, state: next, events: [], reason: "manual_save", attemptId: crypto.randomUUID() });
         return;
       } catch (error) {
         if (attempt >= 5) throw error;

@@ -127,6 +127,27 @@ describe("persistencia del runtime V2 (S3, PostgreSQL real)", () => {
     expect(reloaded.state).toEqual(next);
   });
 
+  it("una `attemptId` vacía nunca dispara el atajo de idempotencia (no empareja por error el snapshot de creación ni ningún otro)", async () => {
+    // Regresión: Prisma omite un filtro `where` cuyo valor es `undefined`,
+    // así que una llamada sin `attemptId` real emparejaría el primer
+    // snapshot de la partida (el de `createGameV2`, sin attemptId) y
+    // devolvería su revisión sin escribir nada — perdiendo en silencio el
+    // guardado real. Cubre tanto `attemptId: ""` como el caso real que lo
+    // disparó: una llamada que directamente no aporta el campo (`as any`
+    // para simular un caller que aún no fue actualizado).
+    const initial = createInitialStateV2("persist-runtime-v2-seed-empty-attempt");
+    const nav = buildFullNavigationIndexV2(initial.world);
+    const created = await createGameV2(prisma, { state: initial, initialEvents: [] });
+
+    const { state: next } = applyCommandV2(initial, { commandId: "cmd-empty-attempt", type: "set_pause", paused: false }, nav);
+    const saved = await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: 0, state: next, events: [], reason: "manual_save", attemptId: "" });
+    expect(saved.revision).toBe(1); // nunca "0" (que sería el snapshot de creación emparejado por error).
+
+    const reloaded = await loadGameV2(prisma, created.gameSaveId);
+    expect(reloaded.revision).toBe(1);
+    expect(reloaded.state.clock).toEqual(next.clock);
+  });
+
   it("una escritura distinta (otra attemptId) sobre una revisión ya obsoleta sigue rechazándose, aunque la anterior fuera idempotente", async () => {
     const initial = createInitialStateV2("persist-runtime-v2-seed-idem-2");
     const nav = buildFullNavigationIndexV2(initial.world);

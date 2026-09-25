@@ -167,7 +167,7 @@ test("S7: contenedores reales, registro, reparación, desmontaje confirmado, rec
         containers: { ...state.containers, [pack.id]: { ...pack, contentIds: [...pack.contentIds, lot.id] } },
       };
       try {
-        await saveSnapshotV2(prisma, { gameSaveId, expectedRevision: revision, state: next, events: [], reason: "manual_save" });
+        await saveSnapshotV2(prisma, { gameSaveId, expectedRevision: revision, state: next, events: [], reason: "manual_save", attemptId: crypto.randomUUID() });
         break;
       } catch (error) {
         if (attempt >= 5) throw error;
