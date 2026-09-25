@@ -8,6 +8,7 @@ import { PersonList } from "@/components/person-list";
 import { PersonSheetPanel } from "@/components/person-sheet-panel";
 import { VillageMapCanvas } from "@/components/village-map-canvas";
 import { OperationalLog } from "@/components/operational-log";
+import { DiagnosticPanel } from "@/components/diagnostic-panel";
 import { WorkPanel, type TransportOrderParams } from "@/components/work-panel";
 
 /**
@@ -219,6 +220,7 @@ export function VillageScreen({
           setCenterRequestId((n) => n + 1);
         }}
       />
+      <DiagnosticPanel gameSummary={projections.gameSummary} clock={projections.clock} saveStatus={projections.saveStatus} revision={projections.revision} />
     </div>
   );
 }
