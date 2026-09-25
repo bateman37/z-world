@@ -26,4 +26,5 @@ export * from "./building-exploitation-v2.js";
 export * from "./state-v2.js";
 export * from "./events-v2.js";
 export * from "./projections-v2.js";
+export * from "./projections-v2-schema.js";
 export * from "./worker-protocol-v2.js";

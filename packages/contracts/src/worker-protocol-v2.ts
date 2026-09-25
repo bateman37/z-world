@@ -3,6 +3,7 @@ import { simulationCommandSchema, type SimulationCommand } from "./commands.js";
 import { simulationStateV2Schema, type SimulationStateV2 } from "./state-v2.js";
 import { domainEventV2Schema, type DomainEventV2 } from "./events-v2.js";
 import type { WorkerProjectionsV2 } from "./projections-v2.js";
+import { workerProjectionsV2Schema } from "./projections-v2-schema.js";
 
 /**
  * Protocolo tipado y versionado del runtime V2 (S3 de WEB-002 §5.1). Es una
@@ -98,7 +99,7 @@ export const toWorkerMessageSchemaV2 = z.discriminatedUnion("type", [
 export const projectionsMessageSchemaV2 = z.object({
   type: z.literal("projections"),
   protocolVersion: z.literal(WORKER_PROTOCOL_VERSION_V2),
-  projections: z.unknown(),
+  projections: workerProjectionsV2Schema,
 });
 
 export const snapshotReadyMessageSchemaV2 = z.object({
@@ -164,4 +165,17 @@ export function parseToWorkerMessageV2(raw: unknown): ParseResultV2<ToWorkerMess
   const result = toWorkerMessageSchemaV2.safeParse(raw);
   if (!result.success) return { success: false, error: result.error.message };
   return { success: true, data: result.data as unknown as ToWorkerMessageV2 };
+}
+
+/**
+ * Valida en runtime un mensaje que llega del Worker a React (S11 §5.1): un
+ * payload que no cumple el esquema (versión de proyección incompatible,
+ * `postMessage` corrupto, bug de serialización) nunca se trata como
+ * proyección válida — React debe detenerse o pedir resincronización, no
+ * representar un estado a medias.
+ */
+export function parseFromWorkerMessageV2(raw: unknown): ParseResultV2<FromWorkerMessageV2> {
+  const result = fromWorkerMessageSchemaV2.safeParse(raw);
+  if (!result.success) return { success: false, error: result.error.message };
+  return { success: true, data: result.data as unknown as FromWorkerMessageV2 };
 }

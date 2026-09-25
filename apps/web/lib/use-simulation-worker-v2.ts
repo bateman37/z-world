@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FromWorkerMessageV2, SimulationCommand, SimulationStateV2, WorkerProjectionsV2 } from "@z-world/contracts";
-import { WORKER_PROTOCOL_VERSION_V2 } from "@z-world/contracts";
+import { WORKER_PROTOCOL_VERSION_V2, parseFromWorkerMessageV2 } from "@z-world/contracts";
 import { saveSnapshotV2Action } from "@/app/actions/games";
 
 export interface UseSimulationWorkerV2Result {
@@ -34,8 +34,17 @@ export function useSimulationWorkerV2(gameSaveId: string, initialState: Simulati
     const worker = new Worker(new URL("../workers/simulation-v2.worker.ts", import.meta.url));
     workerRef.current = worker;
 
-    worker.onmessage = (event: MessageEvent<FromWorkerMessageV2>) => {
-      const message = event.data;
+    worker.onmessage = (event: MessageEvent<unknown>) => {
+      // S11 §5.1: un payload que no cumpla el protocolo (versión
+      // incompatible, `postMessage` corrupto, bug de serialización) nunca
+      // se trata como mensaje válido — React se detiene con un error
+      // tipado en vez de representar un estado a medias.
+      const parsed = parseFromWorkerMessageV2(event.data);
+      if (!parsed.success || !parsed.data) {
+        setWorkerFatalError("worker_error.invalid_payload");
+        return;
+      }
+      const message = parsed.data;
       if (message.type === "projections") {
         setProjections(message.projections);
       } else if (message.type === "worker_error") {
