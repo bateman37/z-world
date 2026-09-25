@@ -15,8 +15,8 @@ export const dynamic = "force-dynamic";
  */
 export default async function VillagePage({ params }: { readonly params: { readonly gameSaveId: string } }) {
   try {
-    const { state, revision } = await loadGameV2Action(params.gameSaveId);
-    return <VillageScreen gameSaveId={params.gameSaveId} initialState={state} initialRevision={revision} />;
+    const { state, revision, recentEvents } = await loadGameV2Action(params.gameSaveId);
+    return <VillageScreen gameSaveId={params.gameSaveId} initialState={state} initialRevision={revision} initialRecentEvents={recentEvents} />;
   } catch (error) {
     const message = error instanceof Error ? error.message : "No se pudo cargar el pueblo por un error desconocido.";
     return (

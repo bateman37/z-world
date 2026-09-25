@@ -18,12 +18,15 @@ export function TopBar({
   seed,
   onSetSpeed,
   onManualSave,
+  onRetrySave,
 }: {
   readonly clock: ClockProjection;
   readonly saveStatus: SaveStatusProjection;
   readonly seed: string;
   readonly onSetSpeed: (speed: GameSpeed) => void;
   readonly onManualSave: () => void;
+  /** V1 (WEB-001) no tiene reintento explícito de lote; V2 sí (S11 §4.5). */
+  readonly onRetrySave?: () => void;
 }) {
   return (
     <header
@@ -67,7 +70,14 @@ export function TopBar({
       >
         {SAVE_STATUS_LABEL[saveStatus.status]}
       </span>
-      <button onClick={onManualSave}>Guardar</button>
+      {saveStatus.status === "save_error" && onRetrySave ? (
+        <button onClick={onRetrySave} style={{ borderColor: "var(--z-danger)" }}>
+          Reintentar guardado
+        </button>
+      ) : null}
+      <button onClick={onManualSave} disabled={saveStatus.status === "revision_conflict"}>
+        Guardar
+      </button>
     </header>
   );
 }

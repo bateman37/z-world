@@ -61,6 +61,11 @@ export function WorkPanel({
   onPauseJob,
   onResumeJob,
   onCancelJob,
+  onReassignJob,
+  onSetJobModes,
+  drawToolActive,
+  onStartDrawZone,
+  onStartDrawDesignation,
   onDrawZone,
   onDeleteZone,
   onCreateAreaDesignation,
@@ -84,6 +89,15 @@ export function WorkPanel({
   readonly onPauseJob: (jobId: string) => void;
   readonly onResumeJob: (jobId: string) => void;
   readonly onCancelJob: (jobId: string) => void;
+  readonly onReassignJob: (jobId: string, addPersonId: string | null, removePersonId: string | null) => void;
+  readonly onSetJobModes: (jobId: string, pace?: PaceMode, attention?: AttentionMode) => void;
+  /** Si ya hay una herramienta de dibujo activa en el Canvas (S11 §7.3): evita iniciar dos dibujos a la vez. */
+  readonly drawToolActive: boolean;
+  readonly onStartDrawZone: (policy: "habitual" | "precaution" | "forbidden") => void;
+  readonly onStartDrawDesignation: (
+    kind: "systematic_recon" | "clear_area" | "cut_vegetation" | "prepare_soil" | "harvest" | "build_barrier",
+    wayCrossingMode?: "full_block" | "pedestrian_gap" | "handcart_gate",
+  ) => void;
   readonly onDrawZone: (polygon: readonly { x: number; y: number }[], policy: "habitual" | "precaution" | "forbidden") => void;
   readonly onDeleteZone: (zoneId: string) => void;
   readonly onCreateAreaDesignation: (
@@ -340,7 +354,11 @@ export function WorkPanel({
         )}
       </section>
 
-      <InventorySection entries={projections.inventory} personNames={Object.fromEntries(projections.personCards.map((c) => [c.personId, c.firstName]))} />
+      <InventorySection
+        entries={projections.inventory}
+        personNames={Object.fromEntries(projections.personCards.map((c) => [c.personId, c.firstName]))}
+        jobLabels={Object.fromEntries(projections.jobs.map((j) => [j.id, j.labelKey]))}
+      />
 
       <BuildingsSection buildings={projections.buildings} />
 
@@ -351,19 +369,16 @@ export function WorkPanel({
         ) : (
           <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 6 }}>
             {projections.jobs.map((job) => (
-              <li key={job.id} className="z-panel" style={{ padding: 6 }} data-job-id={job.id} data-job-state={job.state} data-job-action={job.actionKey}>
-                <div>
-                  <strong>{copyKey(job.labelKey)}</strong> — {job.state}
-                  {job.phaseKind ? ` (${job.phaseKind})` : ""}
-                </div>
-                {job.transport ? <TransportJobDetails job={job} personNames={Object.fromEntries(projections.personCards.map((c) => [c.personId, c.firstName]))} /> : <div className="z-muted">Progreso: {Math.round(job.progressRatio * 100)}%</div>}
-                {job.blockReasonKey && <div style={{ color: "var(--z-danger)" }}>{copyKey(job.blockReasonKey)}</div>}
-                <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
-                  {job.state === "in_progress" && <button onClick={() => onPauseJob(job.id)}>Pausar</button>}
-                  {job.state === "paused" && <button onClick={() => onResumeJob(job.id)}>Reanudar</button>}
-                  {job.state !== "completed" && job.state !== "cancelled" && job.state !== "causal_failure" && <button onClick={() => onCancelJob(job.id)}>Cancelar</button>}
-                </div>
-              </li>
+              <JobRow
+                key={job.id}
+                job={job}
+                personCards={projections.personCards}
+                onPauseJob={onPauseJob}
+                onResumeJob={onResumeJob}
+                onCancelJob={onCancelJob}
+                onReassignJob={onReassignJob}
+                onSetJobModes={onSetJobModes}
+              />
             ))}
           </ul>
         )}
@@ -395,21 +410,7 @@ export function WorkPanel({
 
       <section>
         <h3>Zonas y designaciones</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
-          <label>
-            minX <input value={zoneBounds.minX} onChange={(e) => setZoneBounds({ ...zoneBounds, minX: e.target.value })} style={{ width: 56 }} />
-          </label>
-          <label>
-            minY <input value={zoneBounds.minY} onChange={(e) => setZoneBounds({ ...zoneBounds, minY: e.target.value })} style={{ width: 56 }} />
-          </label>
-          <label>
-            maxX <input value={zoneBounds.maxX} onChange={(e) => setZoneBounds({ ...zoneBounds, maxX: e.target.value })} style={{ width: 56 }} />
-          </label>
-          <label>
-            maxY <input value={zoneBounds.maxY} onChange={(e) => setZoneBounds({ ...zoneBounds, maxY: e.target.value })} style={{ width: 56 }} />
-          </label>
-        </div>
-        <label style={{ display: "block", marginTop: 4 }}>
+        <label style={{ display: "block" }}>
           Política:{" "}
           <select value={zonePolicy} onChange={(e) => setZonePolicy(e.target.value as "habitual" | "precaution" | "forbidden")}>
             <option value="habitual">Habitual</option>
@@ -418,47 +419,14 @@ export function WorkPanel({
           </select>
         </label>
         <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
-          <button onClick={handleCreateZone}>Crear zona</button>
+          <button disabled={drawToolActive} onClick={() => onStartDrawZone(zonePolicy)}>
+            Dibujar zona en el mapa
+          </button>
         </div>
-
-        <h4 style={{ marginBottom: 4 }}>Designación de entorno mutable/agricultura</h4>
-        <label style={{ display: "block" }}>
-          Tipo:{" "}
-          <select value={designationKind} onChange={(e) => setDesignationKind(e.target.value as typeof designationKind)}>
-            <option value="systematic_recon">Reconocimiento sistemático</option>
-            <option value="clear_area">Despejar área (vegetación o escombros)</option>
-            <option value="cut_vegetation">Cortar vegetación</option>
-            <option value="prepare_soil">Preparar suelo para cultivo</option>
-            <option value="harvest">Cosechar parcelas cosechables</option>
-            <option value="build_barrier">Construir barrera entre anclajes</option>
-          </select>
-        </label>
-        {designationKind === "build_barrier" ? (
-          <>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, marginTop: 4 }}>
-              <label>
-                Desde X <input value={barrierPoints.fromX} onChange={(e) => setBarrierPoints({ ...barrierPoints, fromX: e.target.value })} style={{ width: 56 }} />
-              </label>
-              <label>
-                Desde Y <input value={barrierPoints.fromY} onChange={(e) => setBarrierPoints({ ...barrierPoints, fromY: e.target.value })} style={{ width: 56 }} />
-              </label>
-              <label>
-                Hasta X <input value={barrierPoints.toX} onChange={(e) => setBarrierPoints({ ...barrierPoints, toX: e.target.value })} style={{ width: 56 }} />
-              </label>
-              <label>
-                Hasta Y <input value={barrierPoints.toY} onChange={(e) => setBarrierPoints({ ...barrierPoints, toY: e.target.value })} style={{ width: 56 }} />
-              </label>
-            </div>
-            <label style={{ display: "block", marginTop: 4 }}>
-              Cruce con vía (si lo hay):{" "}
-              <select value={wayCrossingMode} onChange={(e) => setWayCrossingMode(e.target.value as typeof wayCrossingMode)}>
-                <option value="pedestrian_gap">Hueco peatonal</option>
-                <option value="handcart_gate">Portón para carretilla/carro</option>
-                <option value="full_block">Bloqueo completo</option>
-              </select>
-            </label>
-          </>
-        ) : (
+        <details style={{ marginTop: 4 }}>
+          <summary className="z-muted" style={{ fontSize: 12, cursor: "pointer" }}>
+            Avanzado: coordenadas exactas
+          </summary>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, marginTop: 4 }}>
             <label>
               minX <input value={zoneBounds.minX} onChange={(e) => setZoneBounds({ ...zoneBounds, minX: e.target.value })} style={{ width: 56 }} />
@@ -473,10 +441,77 @@ export function WorkPanel({
               maxY <input value={zoneBounds.maxY} onChange={(e) => setZoneBounds({ ...zoneBounds, maxY: e.target.value })} style={{ width: 56 }} />
             </label>
           </div>
+          <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
+            <button onClick={handleCreateZone}>Crear zona (coordenadas)</button>
+          </div>
+        </details>
+
+        <h4 style={{ marginBottom: 4 }}>Designación de entorno mutable/agricultura</h4>
+        <label style={{ display: "block" }}>
+          Tipo:{" "}
+          <select value={designationKind} onChange={(e) => setDesignationKind(e.target.value as typeof designationKind)}>
+            <option value="systematic_recon">Reconocimiento sistemático</option>
+            <option value="clear_area">Despejar área (vegetación o escombros)</option>
+            <option value="cut_vegetation">Cortar vegetación</option>
+            <option value="prepare_soil">Preparar suelo para cultivo</option>
+            <option value="harvest">Cosechar parcelas cosechables</option>
+            <option value="build_barrier">Construir barrera entre anclajes</option>
+          </select>
+        </label>
+        {designationKind === "build_barrier" && (
+          <label style={{ display: "block", marginTop: 4 }}>
+            Cruce con vía (si lo hay):{" "}
+            <select value={wayCrossingMode} onChange={(e) => setWayCrossingMode(e.target.value as typeof wayCrossingMode)}>
+              <option value="pedestrian_gap">Hueco peatonal</option>
+              <option value="handcart_gate">Portón para carretilla/carro</option>
+              <option value="full_block">Bloqueo completo</option>
+            </select>
+          </label>
         )}
-        <div style={{ marginTop: 4 }}>
-          <button onClick={handleCreateDesignation}>Designar</button>
+        <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
+          <button disabled={drawToolActive} onClick={() => onStartDrawDesignation(designationKind, designationKind === "build_barrier" ? wayCrossingMode : undefined)}>
+            {designationKind === "build_barrier" ? "Dibujar tramo en el mapa" : "Dibujar área en el mapa"}
+          </button>
         </div>
+        <details style={{ marginTop: 4 }}>
+          <summary className="z-muted" style={{ fontSize: 12, cursor: "pointer" }}>
+            Avanzado: coordenadas exactas
+          </summary>
+          {designationKind === "build_barrier" ? (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, marginTop: 4 }}>
+              <label>
+                Desde X <input value={barrierPoints.fromX} onChange={(e) => setBarrierPoints({ ...barrierPoints, fromX: e.target.value })} style={{ width: 56 }} />
+              </label>
+              <label>
+                Desde Y <input value={barrierPoints.fromY} onChange={(e) => setBarrierPoints({ ...barrierPoints, fromY: e.target.value })} style={{ width: 56 }} />
+              </label>
+              <label>
+                Hasta X <input value={barrierPoints.toX} onChange={(e) => setBarrierPoints({ ...barrierPoints, toX: e.target.value })} style={{ width: 56 }} />
+              </label>
+              <label>
+                Hasta Y <input value={barrierPoints.toY} onChange={(e) => setBarrierPoints({ ...barrierPoints, toY: e.target.value })} style={{ width: 56 }} />
+              </label>
+            </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, marginTop: 4 }}>
+              <label>
+                minX <input value={zoneBounds.minX} onChange={(e) => setZoneBounds({ ...zoneBounds, minX: e.target.value })} style={{ width: 56 }} />
+              </label>
+              <label>
+                minY <input value={zoneBounds.minY} onChange={(e) => setZoneBounds({ ...zoneBounds, minY: e.target.value })} style={{ width: 56 }} />
+              </label>
+              <label>
+                maxX <input value={zoneBounds.maxX} onChange={(e) => setZoneBounds({ ...zoneBounds, maxX: e.target.value })} style={{ width: 56 }} />
+              </label>
+              <label>
+                maxY <input value={zoneBounds.maxY} onChange={(e) => setZoneBounds({ ...zoneBounds, maxY: e.target.value })} style={{ width: 56 }} />
+              </label>
+            </div>
+          )}
+          <div style={{ marginTop: 4 }}>
+            <button onClick={handleCreateDesignation}>Designar (coordenadas)</button>
+          </div>
+        </details>
         <ul style={{ listStyle: "none", padding: 0, marginTop: 8 }}>
           {projections.zones.map((z) => (
             <li key={z.id}>
@@ -494,6 +529,104 @@ export function WorkPanel({
         </ul>
       </section>
     </aside>
+  );
+}
+
+/**
+ * Fila de un trabajo con sus controles operativos completos (S11 §7.4):
+ * pausar/reanudar/cancelar (ya existían), reasignar responsable/ayudantes
+ * (`reassign_job`, motor ya lo soporta desde S5) y cambiar ritmo/atención
+ * en marcha (`set_job_modes`). Ninguno de los dos últimos tenía UI hasta
+ * ahora aunque el comando ya existía en el núcleo.
+ */
+function JobRow({
+  job,
+  personCards,
+  onPauseJob,
+  onResumeJob,
+  onCancelJob,
+  onReassignJob,
+  onSetJobModes,
+}: {
+  readonly job: JobProjection;
+  readonly personCards: WorkerProjectionsV2["personCards"];
+  readonly onPauseJob: (jobId: string) => void;
+  readonly onResumeJob: (jobId: string) => void;
+  readonly onCancelJob: (jobId: string) => void;
+  readonly onReassignJob: (jobId: string, addPersonId: string | null, removePersonId: string | null) => void;
+  readonly onSetJobModes: (jobId: string, pace?: PaceMode, attention?: AttentionMode) => void;
+}) {
+  const [addPersonId, setAddPersonId] = useState("");
+  const [pace, setPace] = useState<PaceMode>("normal");
+  const [attention, setAttention] = useState<AttentionMode>("standard");
+  const isTerminal = job.state === "completed" || job.state === "cancelled" || job.state === "causal_failure";
+  const available = personCards.filter((c) => !job.assignedPersonIds.includes(c.personId));
+  const personNames = Object.fromEntries(personCards.map((c) => [c.personId, c.firstName]));
+
+  return (
+    <li className="z-panel" style={{ padding: 6 }} data-job-id={job.id} data-job-state={job.state} data-job-action={job.actionKey}>
+      <div>
+        <strong>{copyKey(job.labelKey)}</strong> — {job.state}
+        {job.phaseKind ? ` (${job.phaseKind})` : ""}
+      </div>
+      {job.transport ? <TransportJobDetails job={job} personNames={personNames} /> : <div className="z-muted">Progreso: {Math.round(job.progressRatio * 100)}%</div>}
+      {job.blockReasonKey && <div style={{ color: "var(--z-danger)" }}>{copyKey(job.blockReasonKey)}</div>}
+      <div className="z-muted" style={{ fontSize: 12, marginTop: 2 }}>
+        Asignadas: {job.assignedPersonIds.length === 0 ? "nadie" : job.assignedPersonIds.map((id) => personNames[id] ?? id).join(", ")}
+      </div>
+      {!isTerminal && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center", marginTop: 4 }}>
+          {job.assignedPersonIds.map((id) => (
+            <button key={id} style={{ fontSize: 12 }} onClick={() => onReassignJob(job.id, null, id)} aria-label={`Quitar a ${personNames[id] ?? id} de este trabajo`}>
+              {personNames[id] ?? id} ×
+            </button>
+          ))}
+          {available.length > 0 && (
+            <>
+              <select aria-label="Añadir persona al trabajo" value={addPersonId} onChange={(e) => setAddPersonId(e.target.value)} style={{ fontSize: 12 }}>
+                <option value="">Añadir…</option>
+                {available.map((c) => (
+                  <option key={c.personId} value={c.personId}>
+                    {c.firstName}
+                  </option>
+                ))}
+              </select>
+              <button
+                style={{ fontSize: 12 }}
+                disabled={!addPersonId}
+                onClick={() => {
+                  onReassignJob(job.id, addPersonId, null);
+                  setAddPersonId("");
+                }}
+              >
+                Añadir
+              </button>
+            </>
+          )}
+        </div>
+      )}
+      {!isTerminal && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center", marginTop: 4 }}>
+          <select aria-label={`Ritmo de ${copyKey(job.labelKey)}`} value={pace} onChange={(e) => setPace(e.target.value as PaceMode)} style={{ fontSize: 12 }}>
+            <option value="relaxed">Tranquilo</option>
+            <option value="normal">Normal</option>
+            <option value="fast">Rápido</option>
+          </select>
+          <select aria-label={`Atención de ${copyKey(job.labelKey)}`} value={attention} onChange={(e) => setAttention(e.target.value as AttentionMode)} style={{ fontSize: 12 }}>
+            <option value="standard">Estándar</option>
+            <option value="careful">Cuidadosa</option>
+          </select>
+          <button style={{ fontSize: 12 }} onClick={() => onSetJobModes(job.id, pace, attention)}>
+            Aplicar modo
+          </button>
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
+        {job.state === "in_progress" && <button onClick={() => onPauseJob(job.id)}>Pausar</button>}
+        {job.state === "paused" && <button onClick={() => onResumeJob(job.id)}>Reanudar</button>}
+        {!isTerminal && <button onClick={() => onCancelJob(job.id)}>Cancelar</button>}
+      </div>
+    </li>
   );
 }
 
@@ -683,7 +816,16 @@ function spoilText(simSeconds: number | null): string {
  * exterior), su estado reconocido y, para el alimento fresco, su banda de
  * conservación calculada por el deterioro determinista del núcleo.
  */
-function InventorySection({ entries, personNames }: { readonly entries: readonly InventoryEntryProjection[]; readonly personNames: Readonly<Record<string, string>> }) {
+function InventorySection({
+  entries,
+  personNames,
+  jobLabels,
+}: {
+  readonly entries: readonly InventoryEntryProjection[];
+  readonly personNames: Readonly<Record<string, string>>;
+  /** Etiqueta de cada trabajo conocido, para mostrar a qué trabajo tiene reservado un objeto/lote (S5, `reservations.ts`). */
+  readonly jobLabels: Readonly<Record<string, string>>;
+}) {
   return (
     <section aria-label="Inventario conocido">
       <h3>Inventario conocido</h3>
@@ -692,12 +834,13 @@ function InventorySection({ entries, personNames }: { readonly entries: readonly
       ) : (
         <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 2, fontSize: 12 }}>
           {entries.map((entry) => (
-            <li key={entry.id} data-inventory-id={entry.id}>
+            <li key={entry.id} data-inventory-id={entry.id} data-reserved-by-job-id={entry.reservedByJobId ?? undefined}>
               <strong>{copyKey(entry.labelKey)}</strong>
               {entry.quantity !== null ? ` ×${entry.quantity}${entry.unit === "liter" ? " L" : entry.unit === "kilogram" ? " kg" : ""}` : ""}
               {entry.functionalStateKey ? ` — ${copyKey(entry.functionalStateKey)}` : ""}
               {entry.freshness ? ` — ${copyKey(`freshness.${entry.freshness}`)}${entry.freshness !== "spoiled" ? spoilText(entry.spoilsAtSimSeconds) : ""}` : ""}
               {entry.capacity ? ` — capacidad ${entry.capacity.used}/${entry.capacity.total}` : ""}
+              {entry.reservedByJobId && <span style={{ color: "var(--z-warning, #c9a227)" }}> — reservado {jobLabels[entry.reservedByJobId] ? `para ${copyKey(jobLabels[entry.reservedByJobId]!)}` : "para un trabajo"}</span>}
               <div className="z-muted">{locationText(entry, personNames)}</div>
             </li>
           ))}

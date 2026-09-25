@@ -88,7 +88,7 @@ async function createVillageWithKnowledge(page: Page): Promise<Fixture> {
         discoveries: [...state.discoveries, ...rooms.map((r) => ({ entityId: r.id, facet: "rooms" as const, state: "observed" as const })), { entityId: backStorage.id, facet: "content" as const, state: "inspected" as const }],
       };
       try {
-        await saveSnapshotV2(prisma, { gameSaveId, expectedRevision: revision, state: next, events: [], reason: "manual_save" });
+        await saveSnapshotV2(prisma, { gameSaveId, expectedRevision: revision, state: next, events: [], reason: "manual_save", attemptId: crypto.randomUUID() });
       } catch (error) {
         if (attempt >= 5) throw error;
         continue;
@@ -154,7 +154,7 @@ function jobItem(panel: Locator, jobId: string): Locator {
 
 /** Pausa, espera al guardado y devuelve el último snapshot que cumpla la condición. */
 async function pausedSnapshot(page: Page, gameSaveId: string, predicate: (s: SimulationStateV2) => boolean): Promise<SimulationStateV2> {
-  await page.getByRole("button", { name: "Pausa" }).click();
+  await page.getByRole("button", { name: "Pausa", exact: true }).click();
   await expect(page.getByText("Guardado")).toBeVisible({ timeout: 15_000 });
   return withPrisma(async (prisma) => {
     for (let attempt = 0; attempt < 30; attempt++) {

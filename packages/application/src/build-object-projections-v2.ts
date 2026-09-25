@@ -314,6 +314,7 @@ export function buildInventoryProjection(state: SimulationStateV2, knowledge: Ob
       freshness: null,
       spoilsAtSimSeconds: null,
       capacity: capacityOf(obj.containerId),
+      reservedByJobId: obj.ownerOrReservedByJobId,
     });
   }
   for (const lot of Object.values(state.resourceLots)) {
@@ -330,6 +331,7 @@ export function buildInventoryProjection(state: SimulationStateV2, knowledge: Ob
       freshness: freshnessBandFor(lot),
       spoilsAtSimSeconds: spoilsAtSimSeconds(lot),
       capacity: null,
+      reservedByJobId: lot.reservedByJobId,
     });
   }
   for (const furniture of Object.values(state.furniture)) {
@@ -348,6 +350,7 @@ export function buildInventoryProjection(state: SimulationStateV2, knowledge: Ob
       freshness: null,
       spoilsAtSimSeconds: null,
       capacity: capacityOf(furniture.containerId),
+      reservedByJobId: null,
     });
   }
   for (const means of Object.values(state.transportMeans)) {
@@ -364,6 +367,7 @@ export function buildInventoryProjection(state: SimulationStateV2, knowledge: Ob
       freshness: null,
       spoilsAtSimSeconds: null,
       capacity: null,
+      reservedByJobId: null,
     });
   }
   return entries.sort((a, b) => (a.holderPersonId ?? "~").localeCompare(b.holderPersonId ?? "~") || a.labelKey.localeCompare(b.labelKey) || a.id.localeCompare(b.id));

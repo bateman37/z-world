@@ -25,4 +25,14 @@
 
 | [WEB-002_S10_agriculture-mutable-environment.md](WEB-002_S10_agriculture-mutable-environment.md) | Subhito S10 de `WEB-002` con dos puertas internas: entorno mutable inicial (limpieza de vegetación/escombros, carretera despejada frente a función retirada, barrera lineal entre anclajes y perímetro derivado de la topología física) y ciclo agrícola inicial completo (parcela libre sobre terreno físicamente válido, máquina de estados, semillas/herramientas/agua físicas, crecimiento por reloj determinista, rendimiento causal y cosecha logística). Registrado en `docs/decisions/DEC-0020`. |
 
+Subhito S11 de `WEB-002` (cierre final de integración: persistencia
+idempotente, protocolo Worker V3, observabilidad, selección/dibujo
+universal del Canvas, recorrido cruzado de barrera/perímetro y harness
+de rendimiento) es el único subhito de `WEB-002` **sin** un archivo de
+prompt propio en este directorio: la instrucción de cierre llegó
+directamente de Dennis en dos sesiones consecutivas de trabajo sobre la
+rama `feat/web-002-s11-final-integration-closure`, no como un documento
+archivado de antemano. Registrado en
+[docs/decisions/DEC-0021](../docs/decisions/DEC-0021_final-integration-closure.md).
+
 Ver el protocolo de prompts futuros en [README.md](README.md).

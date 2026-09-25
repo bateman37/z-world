@@ -97,6 +97,8 @@ export function toOperationalLogEntry(event: DomainEvent): OperationalLogEntryPr
     simSeconds: event.simSeconds,
     messageKey: EVENT_MESSAGE_KEYS[event.type],
     params,
+    level: "log",
+    count: 1,
   };
 }
 

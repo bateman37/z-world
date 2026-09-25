@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { advanceSimulationV2, applyCommandV2, buildFullNavigationIndexV2, createInitialStateV2 } from "@z-world/simulation-core";
 import { createPrismaClient, type PrismaClient } from "./client.js";
-import { createGameV2, loadGameV2, RevisionConflictError, saveSnapshotV2 } from "./repository.js";
+import { createGameV2, listRecentDomainEventsV2, loadGameV2, RevisionConflictError, saveSnapshotV2 } from "./repository.js";
 
 const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/zworld_test";
 
@@ -49,6 +49,7 @@ describe("persistencia del runtime V2 (S3, PostgreSQL real)", () => {
       state: advanced,
       events: [...moveEvents, ...advanceEvents],
       reason: "order_settled",
+      attemptId: crypto.randomUUID(),
     });
     expect(saved.revision).toBe(1);
 
@@ -65,11 +66,11 @@ describe("persistencia del runtime V2 (S3, PostgreSQL real)", () => {
     const created = await createGameV2(prisma, { state: initial, initialEvents: [] });
 
     const { state: firstSave } = applyCommandV2(initial, { commandId: "cmd-c", type: "set_pause", paused: false }, nav);
-    await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: 0, state: firstSave, events: [], reason: "manual_save" });
+    await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: 0, state: firstSave, events: [], reason: "manual_save", attemptId: crypto.randomUUID() });
 
     const { state: secondSave } = applyCommandV2(firstSave, { commandId: "cmd-d", type: "set_speed", speed: 4 }, nav);
     await expect(
-      saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: 0, state: secondSave, events: [], reason: "manual_save" }),
+      saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: 0, state: secondSave, events: [], reason: "manual_save", attemptId: crypto.randomUUID() }),
     ).rejects.toBeInstanceOf(RevisionConflictError);
   });
 
@@ -82,7 +83,7 @@ describe("persistencia del runtime V2 (S3, PostgreSQL real)", () => {
     let revision = created.revision;
     for (let i = 0; i < 3; i++) {
       const { state: next } = applyCommandV2(current, { commandId: `cmd-loop-${i}`, type: "set_speed", speed: (i % 2 === 0 ? 2 : 1) as 1 | 2 }, nav);
-      const saved = await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: revision, state: next, events: [], reason: "manual_save" });
+      const saved = await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: revision, state: next, events: [], reason: "manual_save", attemptId: crypto.randomUUID() });
       current = next;
       revision = saved.revision;
     }
@@ -91,5 +92,166 @@ describe("persistencia del runtime V2 (S3, PostgreSQL real)", () => {
     expect(reloaded.state.seed).toBe(initial.seed);
     expect(reloaded.state.world.generatorVersion).toBe(initial.world.generatorVersion);
     expect(reloaded.revision).toBe(3);
+  });
+
+  /**
+   * S11 §4.2/§10.3: identidad e idempotencia del intento de guardado, sobre
+   * PostgreSQL real. Cubre el reintento del mismo lote ya confirmado (la
+   * respuesta se perdió tras el commit) frente a una escritura distinta con
+   * `expectedRevision` obsoleta, que debe seguir rechazándose.
+   */
+  it("reintentar el mismo lote (misma attemptId) tras un commit ya aplicado responde idempotentemente, sin duplicar snapshot ni eventos", async () => {
+    const initial = createInitialStateV2("persist-runtime-v2-seed-idem-1");
+    const nav = buildFullNavigationIndexV2(initial.world);
+    const created = await createGameV2(prisma, { state: initial, initialEvents: [] });
+
+    const { state: next, events } = applyCommandV2(initial, { commandId: "cmd-idem", type: "set_pause", paused: false }, nav);
+    const attemptId = crypto.randomUUID();
+    const params = { gameSaveId: created.gameSaveId, expectedRevision: 0, state: next, events, reason: "manual_save", attemptId } as const;
+
+    const first = await saveSnapshotV2(prisma, params);
+    expect(first.revision).toBe(1);
+
+    // Reintento exacto del mismo lote: el cliente cree que la escritura
+    // falló (perdió la respuesta) y reintenta con la misma attemptId.
+    const retried = await saveSnapshotV2(prisma, params);
+    expect(retried.revision).toBe(first.revision);
+
+    const snapshotCount = await prisma.simulationSnapshot.count({ where: { gameSaveId: created.gameSaveId } });
+    expect(snapshotCount).toBe(2); // revision 0 (creación) + revision 1 (este intento), nunca un tercero.
+    const eventCount = await prisma.domainEventRecord.count({ where: { gameSaveId: created.gameSaveId } });
+    expect(eventCount).toBe(events.length);
+
+    const reloaded = await loadGameV2(prisma, created.gameSaveId);
+    expect(reloaded.revision).toBe(1);
+    expect(reloaded.state).toEqual(next);
+  });
+
+  it("una `attemptId` vacía nunca dispara el atajo de idempotencia (no empareja por error el snapshot de creación ni ningún otro)", async () => {
+    // Regresión: Prisma omite un filtro `where` cuyo valor es `undefined`,
+    // así que una llamada sin `attemptId` real emparejaría el primer
+    // snapshot de la partida (el de `createGameV2`, sin attemptId) y
+    // devolvería su revisión sin escribir nada — perdiendo en silencio el
+    // guardado real. Cubre tanto `attemptId: ""` como el caso real que lo
+    // disparó: una llamada que directamente no aporta el campo (`as any`
+    // para simular un caller que aún no fue actualizado).
+    const initial = createInitialStateV2("persist-runtime-v2-seed-empty-attempt");
+    const nav = buildFullNavigationIndexV2(initial.world);
+    const created = await createGameV2(prisma, { state: initial, initialEvents: [] });
+
+    const { state: next } = applyCommandV2(initial, { commandId: "cmd-empty-attempt", type: "set_pause", paused: false }, nav);
+    const saved = await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: 0, state: next, events: [], reason: "manual_save", attemptId: "" });
+    expect(saved.revision).toBe(1); // nunca "0" (que sería el snapshot de creación emparejado por error).
+
+    const reloaded = await loadGameV2(prisma, created.gameSaveId);
+    expect(reloaded.revision).toBe(1);
+    expect(reloaded.state.clock).toEqual(next.clock);
+  });
+
+  it("una escritura distinta (otra attemptId) sobre una revisión ya obsoleta sigue rechazándose, aunque la anterior fuera idempotente", async () => {
+    const initial = createInitialStateV2("persist-runtime-v2-seed-idem-2");
+    const nav = buildFullNavigationIndexV2(initial.world);
+    const created = await createGameV2(prisma, { state: initial, initialEvents: [] });
+
+    const { state: next } = applyCommandV2(initial, { commandId: "cmd-a", type: "set_pause", paused: false }, nav);
+    await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: 0, state: next, events: [], reason: "manual_save", attemptId: crypto.randomUUID() });
+
+    // Cliente obsoleto de otra pestaña: expectedRevision 0 ya no es la vigente (1), y su attemptId es nueva.
+    const { state: staleNext } = applyCommandV2(initial, { commandId: "cmd-b", type: "set_speed", speed: 4 }, nav);
+    await expect(
+      saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: 0, state: staleNext, events: [], reason: "manual_save", attemptId: crypto.randomUUID() }),
+    ).rejects.toBeInstanceOf(RevisionConflictError);
+  });
+
+  it("snapshot + eventos + revisión se confirman atómicamente: tras el guardado existen exactamente los eventos del lote, en secuencia, y la partida apunta al snapshot nuevo", async () => {
+    const initial = createInitialStateV2("persist-runtime-v2-seed-atomic");
+    const nav = buildFullNavigationIndexV2(initial.world);
+    const created = await createGameV2(prisma, { state: initial, initialEvents: [] });
+
+    const personId = initial.peopleOrder[0]!;
+    const { state: paused } = applyCommandV2(initial, { commandId: "cmd-a", type: "set_pause", paused: false }, nav);
+    const { state: moving, events: moveEvents } = applyCommandV2(
+      paused,
+      { commandId: "cmd-b", type: "order_direct_move", personId, destination: initial.world.arrivalPoint },
+      nav,
+    );
+    const { state: advanced, events: advanceEvents } = advanceSimulationV2(moving, 5, nav);
+    const allEvents = [...moveEvents, ...advanceEvents];
+
+    const saved = await saveSnapshotV2(prisma, {
+      gameSaveId: created.gameSaveId,
+      expectedRevision: 0,
+      state: advanced,
+      events: allEvents,
+      reason: "order_settled",
+      attemptId: crypto.randomUUID(),
+    });
+
+    const row = await prisma.gameSave.findUniqueOrThrow({ where: { id: created.gameSaveId } });
+    expect(row.revision).toBe(saved.revision);
+    const currentSnapshot = await prisma.simulationSnapshot.findUniqueOrThrow({ where: { id: row.currentSnapshotId! } });
+    expect(currentSnapshot.revision).toBe(saved.revision);
+
+    const persisted = await prisma.domainEventRecord.findMany({ where: { gameSaveId: created.gameSaveId }, orderBy: { sequence: "asc" } });
+    expect(persisted).toHaveLength(allEvents.length);
+    const sequences = persisted.map((e) => e.sequence);
+    expect(sequences).toEqual([...sequences].sort((a, b) => a - b)); // monotónico
+    expect(new Set(sequences).size).toBe(sequences.length); // sin duplicados
+  });
+
+  it("listRecentDomainEventsV2 devuelve los eventos persistidos en orden de secuencia ascendente, sin duplicarlos entre varios guardados", async () => {
+    const initial = createInitialStateV2("persist-runtime-v2-seed-log");
+    const nav = buildFullNavigationIndexV2(initial.world);
+    const created = await createGameV2(prisma, { state: initial, initialEvents: [] });
+
+    const pausedStep = applyCommandV2(initial, { commandId: "cmd-a", type: "set_pause", paused: false }, nav);
+    const firstStep = applyCommandV2(pausedStep.state, { commandId: "cmd-b", type: "set_speed", speed: 2 }, nav);
+    const firstSaved = await saveSnapshotV2(prisma, {
+      gameSaveId: created.gameSaveId,
+      expectedRevision: 0,
+      state: firstStep.state,
+      events: firstStep.events,
+      reason: "manual_save",
+      attemptId: crypto.randomUUID(),
+    });
+
+    const personId = initial.peopleOrder[0]!;
+    const priorityId = Object.keys(initial.people[personId]!.public.priorities)[0]!;
+    const secondStep = applyCommandV2(firstStep.state, { commandId: "cmd-c", type: "update_priority", personId, priorityId, value: 4 }, nav);
+    await saveSnapshotV2(prisma, {
+      gameSaveId: created.gameSaveId,
+      expectedRevision: firstSaved.revision,
+      state: secondStep.state,
+      events: secondStep.events,
+      reason: "priority_changed",
+      attemptId: crypto.randomUUID(),
+    });
+
+    const recent = await listRecentDomainEventsV2(prisma, created.gameSaveId);
+    const expectedIds = [...firstStep.events, ...secondStep.events].map((e) => e.eventId);
+    expect(recent.map((e) => e.eventId)).toEqual(expectedIds);
+
+    const simSecondsSeries = recent.map((e) => e.simSeconds);
+    expect(simSecondsSeries).toEqual([...simSecondsSeries].sort((a, b) => a - b));
+  });
+
+  it("listRecentDomainEventsV2 respeta el límite de filas leídas sin traer toda la tabla en una partida larga", async () => {
+    const initial = createInitialStateV2("persist-runtime-v2-seed-log-limit");
+    const nav = buildFullNavigationIndexV2(initial.world);
+    const created = await createGameV2(prisma, { state: initial, initialEvents: [] });
+
+    let current = initial;
+    let revision = created.revision;
+    for (let i = 0; i < 5; i++) {
+      const step = applyCommandV2(current, { commandId: `cmd-loop-${i}`, type: "set_speed", speed: (i % 2 === 0 ? 2 : 1) as 1 | 2 }, nav);
+      const saved = await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: revision, state: step.state, events: step.events, reason: "manual_save", attemptId: crypto.randomUUID() });
+      current = step.state;
+      revision = saved.revision;
+    }
+
+    const limited = await listRecentDomainEventsV2(prisma, created.gameSaveId, 2);
+    expect(limited.length).toBeLessThanOrEqual(2);
+    const all = await listRecentDomainEventsV2(prisma, created.gameSaveId, 1000);
+    expect(limited.map((e) => e.eventId)).toEqual(all.slice(-limited.length).map((e) => e.eventId));
   });
 });

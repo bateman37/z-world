@@ -91,11 +91,18 @@ export interface FogMaskProjection {
   readonly cells: readonly VisibilityState[];
 }
 
+/** Niveles de atención del registro operativo (S11 §6.2): registro < aviso < importante < crítico. */
+export const OPERATIONAL_LOG_LEVELS = ["log", "notice", "important", "critical"] as const;
+export type OperationalLogLevel = (typeof OPERATIONAL_LOG_LEVELS)[number];
+
 export interface OperationalLogEntryProjection {
   readonly eventId: string;
   readonly simSeconds: number;
   readonly messageKey: string;
   readonly params: Readonly<Record<string, string>>;
+  readonly level: OperationalLogLevel;
+  /** Repeticiones agrupadas por causa/entidad/ventana simulada (S11 §6.2): 1 si no se agrupó con nada. */
+  readonly count: number;
 }
 
 /** Envoltorio de todas las proyecciones que el Worker emite a React. */

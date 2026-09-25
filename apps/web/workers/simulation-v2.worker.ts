@@ -1,4 +1,5 @@
 import { WorkerSessionV2 } from "@z-world/application";
+import { WORKER_PROTOCOL_VERSION_V2 } from "@z-world/contracts";
 
 /**
  * Archivo real del Web Worker del runtime V2 (S3 de WEB-002 §5.1).
@@ -30,7 +31,7 @@ workerScope.onmessage = (event: MessageEvent<unknown>) => {
 setInterval(() => {
   const responses = session.handleMessage({
     type: "tick",
-    protocolVersion: 2,
+    protocolVersion: WORKER_PROTOCOL_VERSION_V2,
     nowMs: Date.now(),
   });
   for (const response of responses) {

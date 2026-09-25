@@ -4,15 +4,39 @@ import type {
   FromWorkerMessageV2,
   OperationalLogEntryProjection,
   SaveStatus,
+  SemanticWorldV2,
   SimulationCommand,
   SimulationStateV2,
   SnapshotReasonV2,
   ToWorkerMessageV2,
 } from "@z-world/contracts";
 import { WORKER_PROTOCOL_VERSION_V2, parseToWorkerMessageV2 } from "@z-world/contracts";
-import { buildWorkerProjectionsV2, toOperationalLogEntryV2 } from "./build-projections-v2.js";
+import { buildWorkerProjectionsV2, splitWorkerProjectionsV2, toOperationalLogEntryV2 } from "./build-projections-v2.js";
 
 const OPERATIONAL_LOG_MAX_ENTRIES = 50;
+
+/**
+ * Cadencia máxima del canal estructural (S11 §5.2), en concreto de la
+ * niebla: `revealAroundObservers` produce un array nuevo en cada avance
+ * (no hay atajo de "sin cambios" en el reductor puro), así que sin un
+ * límite de tiempo el Worker reenviaría los ~360 000 valores de la
+ * rejilla en cada tick (4×/s con `TICK_INTERVAL_MS = 250`). El resto del
+ * canal estructural (geometría de edificios/lugares/estancias) se envía
+ * también cuando cambia de verdad (`state.world` cambia de referencia
+ * solo ante una mutación estructural real), nunca por cadencia.
+ */
+const STRUCTURAL_CADENCE_REAL_MS = 1_000;
+
+/**
+ * Cadencia de autosave (S11 §4.4): tiempo real mínimo entre guardados
+ * disparados solo por la existencia de cambios pendientes sin un límite
+ * material propio (avance de reloj, deterioro, cultivo, trabajo parcial).
+ * No es "cada tick": es el intervalo mínimo entre dos guardados
+ * consecutivos que no vienen de un límite material — el mismo criterio que
+ * usan las pruebas con reloj simulado (`nowMs` avanzado explícitamente por
+ * el test, nunca tiempo de pared real).
+ */
+const AUTOSAVE_DEBOUNCE_REAL_MS = 30_000;
 
 const SNAPSHOT_TRIGGERING_EVENT_TYPES: ReadonlySet<DomainEventV2["type"]> = new Set([
   "game_created",
@@ -98,6 +122,33 @@ export class WorkerSessionV2 {
    */
   private awaitingPersistence = false;
   private pendingSnapshotReason: SnapshotReasonV2 | null = null;
+  /**
+   * Buffer autoritativo de eventos de dominio aún no confirmados por
+   * persistencia (S11 §4.1). Todo evento producido por un comando o un
+   * avance entra una sola vez, en orden; solo se elimina el prefijo
+   * confirmado por un `snapshot_persisted` con la misma `attemptId` que se
+   * envió — nunca se vacía al enviar el `snapshot_ready` (eso solo copia el
+   * lote), así que un guardado que falla, o eventos producidos mientras el
+   * guardado está en vuelo, permanecen para el intento siguiente sin
+   * duplicarse ni perderse.
+   */
+  private pendingEvents: DomainEventV2[] = [];
+  /** `attemptId` del lote actualmente en vuelo o del último que falló y puede reintentarse. */
+  private inFlightAttemptId: string | null = null;
+  /** Cuántos de los `pendingEvents` iniciales forman parte del lote en vuelo (se descartan del frente al confirmarse). */
+  private inFlightEventCount = 0;
+  /** Razón del lote en vuelo, para poder reconstruir el mismo `snapshot_ready` en `retry_save`. */
+  private lastAttemptReason: SnapshotReasonV2 | null = null;
+  /** `nowMs` del último intento de guardado disparado (de cualquier razón), para espaciar el autosave debounced (S11 §4.4). */
+  private lastSnapshotAttemptNowMs: number | null = null;
+  /** Secuencia monotónica compartida por `structural_projections` y `tick_projections` (S11 §5.2): detecta duplicados y huecos en el cliente. */
+  private sequence = 0;
+  /** Secuencia del último `structural_projections` enviado; cada `tick_projections` la referencia como su base explícita. */
+  private structuralSequence = 0;
+  /** Referencia de `state.world` en el último envío estructural: solo cambia ante una mutación estructural real, nunca en un tick sin eventos. */
+  private lastSentWorld: SemanticWorldV2 | null = null;
+  /** `nowMs` del último envío estructural, para la cadencia de niebla. */
+  private lastStructuralSentNowMs: number | null = null;
 
   handleMessage(raw: unknown): readonly FromWorkerMessageV2[] {
     const parsed = parseToWorkerMessageV2(raw);
@@ -128,7 +179,22 @@ export class WorkerSessionV2 {
         this.lastTickNowMs = null;
         this.awaitingPersistence = false;
         this.pendingSnapshotReason = null;
-        return [this.projectionsMessage()];
+        this.pendingEvents = [];
+        this.inFlightAttemptId = null;
+        this.inFlightEventCount = 0;
+        this.lastSnapshotAttemptNowMs = null;
+        this.sequence = 0;
+        this.structuralSequence = 0;
+        this.lastSentWorld = null;
+        this.lastStructuralSentNowMs = null;
+        // S11 §6.4: reconstruye el registro operativo reciente desde
+        // eventos ya persistidos, en vez de arrancar vacío tras recargar.
+        // Reutiliza la misma agrupación que el registro en vivo — la
+        // historia reconstruida colapsa repeticiones exactamente igual.
+        if (message.recentEvents && message.recentEvents.length > 0) {
+          this.appendToLog(message.recentEvents);
+        }
+        return this.projectionMessages(undefined, true);
 
       case "command":
         return this.handleCommand(message.command);
@@ -136,32 +202,65 @@ export class WorkerSessionV2 {
       case "request_snapshot":
         return this.requestSnapshot("manual_save");
 
+      case "retry_save":
+        return this.retrySave();
+
+      case "request_resync":
+        // S11 §5.2: hueco de secuencia, delta sobre base incorrecta, o
+        // recuperación tras reanudar una pestaña suspendida. Siempre
+        // fuerza un `structural_projections` fresco (secuencia nueva, sin
+        // reiniciar la numeración — sigue siendo la misma sesión).
+        if (!this.state) return [];
+        return this.projectionMessages(this.lastTickNowMs ?? undefined, true);
+
       case "tick":
         return this.handleTick(message.nowMs);
 
       case "snapshot_persisted": {
+        // Un ack de un intento que ya no es el que está en vuelo (respuesta
+        // duplicada, o de una pestaña/Worker anterior) no debe avanzar
+        // revisión ni recortar el buffer una segunda vez.
+        if (message.attemptId !== this.inFlightAttemptId) {
+          return this.projectionMessages();
+        }
         this.revision = message.revision;
+        this.pendingEvents = this.pendingEvents.slice(this.inFlightEventCount);
+        this.inFlightAttemptId = null;
+        this.inFlightEventCount = 0;
         this.awaitingPersistence = false;
         this.lastSavedSimSeconds = this.state?.clock.elapsedSimSeconds ?? this.lastSavedSimSeconds;
         const messages: FromWorkerMessageV2[] = [];
         if (this.pendingSnapshotReason) {
           const reason = this.pendingSnapshotReason;
           this.pendingSnapshotReason = null;
-          this.awaitingPersistence = true;
-          this.saveStatus = "saving";
-          messages.push(this.snapshotReadyMessage(reason));
+          messages.push(...this.triggerSnapshot(reason));
         } else {
           this.saveStatus = "saved";
         }
-        messages.push(this.projectionsMessage());
+        messages.push(...this.projectionMessages());
         return messages;
       }
 
-      case "snapshot_persist_failed":
+      case "snapshot_persist_failed": {
+        if (message.attemptId !== this.inFlightAttemptId) {
+          return this.projectionMessages();
+        }
         this.awaitingPersistence = false;
-        this.pendingSnapshotReason = null;
-        this.saveStatus = message.code === "revision_conflict" ? "revision_conflict" : "save_error";
-        return [this.projectionsMessage()];
+        if (message.code === "revision_conflict") {
+          // Congela la sesión: no se conserva el lote como reintentable
+          // porque la revisión esperada ya no existe en el servidor — un
+          // reintento del mismo lote solo repetiría el conflicto.
+          this.pendingSnapshotReason = null;
+          this.inFlightAttemptId = null;
+          this.inFlightEventCount = 0;
+          this.saveStatus = "revision_conflict";
+        } else {
+          // network_error / server_error: conserva attemptId + eventos tal
+          // cual para que `retry_save` reenvíe exactamente el mismo lote.
+          this.saveStatus = "save_error";
+        }
+        return this.projectionMessages();
+      }
 
       default: {
         const exhaustive: never = message;
@@ -171,12 +270,16 @@ export class WorkerSessionV2 {
   }
 
   private handleCommand(command: SimulationCommand): readonly FromWorkerMessageV2[] {
+    if (this.saveStatus === "revision_conflict") {
+      return this.projectionMessages();
+    }
     if (!this.state || !this.nav) {
       return [{ type: "worker_error", protocolVersion: WORKER_PROTOCOL_VERSION_V2, code: "internal_error", messageKey: "worker_error.no_state_loaded" }];
     }
     const { state, events } = applyCommandV2(this.state, command, this.nav);
     this.state = state;
     this.appendToLog(events);
+    this.pendingEvents.push(...events);
 
     const messages: FromWorkerMessageV2[] = [];
     const triggeringReason = this.snapshotReasonFor(events);
@@ -185,12 +288,13 @@ export class WorkerSessionV2 {
     } else if (this.saveStatus !== "saving") {
       this.saveStatus = "pending_changes";
     }
-    messages.push(this.projectionsMessage());
+    messages.push(...this.projectionMessages());
     return messages;
   }
 
   private handleTick(nowMs: number): readonly FromWorkerMessageV2[] {
     if (!this.state || !this.nav) return [];
+    if (this.saveStatus === "revision_conflict") return [];
     const elapsedRealSeconds = this.lastTickNowMs === null ? 0 : (nowMs - this.lastTickNowMs) / 1000;
     this.lastTickNowMs = nowMs;
     if (elapsedRealSeconds <= 0) return [];
@@ -200,37 +304,77 @@ export class WorkerSessionV2 {
     // S9: el índice derivado ya refleja cualquier acceso o estructura que haya cambiado en este paso (invalidación dirigida).
     this.nav = nav;
     this.appendToLog(events);
+    this.pendingEvents.push(...events);
 
     const messages: FromWorkerMessageV2[] = [];
     const triggeringReason = this.snapshotReasonFor(events);
     if (triggeringReason) {
-      messages.push(...this.triggerSnapshot(triggeringReason));
-    } else if (events.length > 0 && this.saveStatus !== "saving") {
-      this.saveStatus = "pending_changes";
+      messages.push(...this.triggerSnapshot(triggeringReason, nowMs));
+    } else {
+      if (events.length > 0 && this.saveStatus !== "saving") {
+        this.saveStatus = "pending_changes";
+      }
+      // Cadencia de autosave (S11 §4.4): eventos que no traen su propio
+      // límite material (p. ej. progreso de deterioro/cultivo sin cambiar
+      // de fase) quedan como `pending_changes` en memoria; si ya pasó el
+      // intervalo mínimo de debounce desde el último intento de guardado
+      // y el reloj simulado avanzó de verdad desde el último guardado
+      // confirmado, se dispara igualmente — nunca en cada tick.
+      const stateChangedSinceLastSave = this.lastSavedSimSeconds !== this.state.clock.elapsedSimSeconds;
+      const dueForAutosave = this.lastSnapshotAttemptNowMs === null || nowMs - this.lastSnapshotAttemptNowMs >= AUTOSAVE_DEBOUNCE_REAL_MS;
+      if (this.saveStatus === "pending_changes" && !this.awaitingPersistence && stateChangedSinceLastSave && dueForAutosave) {
+        messages.push(...this.triggerSnapshot("autosave_debounced", nowMs));
+      }
     }
-    messages.push(this.projectionsMessage());
+    messages.push(...this.projectionMessages(nowMs));
     return messages;
   }
 
   private requestSnapshot(reason: SnapshotReasonV2): readonly FromWorkerMessageV2[] {
-    if (!this.state) return [];
-    return [...this.triggerSnapshot(reason), this.projectionsMessage()];
+    if (!this.state || this.saveStatus === "revision_conflict") return this.projectionMessages();
+    return [...this.triggerSnapshot(reason), ...this.projectionMessages()];
+  }
+
+  /**
+   * Reenvía exactamente el mismo lote (`attemptId` + eventos) del último
+   * intento fallido por red/servidor (S11 §4.5). No genera un lote nuevo:
+   * si mientras tanto llegaron más eventos, quedan detrás en el buffer
+   * para el siguiente guardado, no se cuelan en este reintento.
+   */
+  private retrySave(): readonly FromWorkerMessageV2[] {
+    if (!this.state || !this.gameSaveId) return this.projectionMessages();
+    if (this.saveStatus !== "save_error" || this.awaitingPersistence || !this.inFlightAttemptId) {
+      return this.projectionMessages();
+    }
+    this.awaitingPersistence = true;
+    this.saveStatus = "saving";
+    const reason = this.lastAttemptReason ?? "manual_save";
+    return [this.snapshotReadyMessage(reason, this.inFlightAttemptId, this.pendingEvents.slice(0, this.inFlightEventCount)), ...this.projectionMessages()];
   }
 
   /**
    * Punto único de disparo de guardado: si ya hay un `snapshot_ready` en
    * vuelo, coalesce la razón en `pendingSnapshotReason` (se encadenará al
    * recibir `snapshot_persisted`) en vez de emitir un segundo mensaje con
-   * una revisión que quedaría obsoleta antes de llegar al servidor.
+   * una revisión que quedaría obsoleta antes de llegar al servidor. En
+   * caso contrario, congela el lote actual de `pendingEvents` bajo una
+   * `attemptId` nueva y estable: eventos que lleguen después de este punto
+   * (mientras el guardado está en vuelo) se añaden al final del buffer y
+   * quedan para el intento siguiente, nunca se cuelan en este.
    */
-  private triggerSnapshot(reason: SnapshotReasonV2): readonly FromWorkerMessageV2[] {
+  private triggerSnapshot(reason: SnapshotReasonV2, nowMs?: number): readonly FromWorkerMessageV2[] {
     if (this.awaitingPersistence) {
       this.pendingSnapshotReason = reason;
       return [];
     }
     this.awaitingPersistence = true;
     this.saveStatus = "saving";
-    return [this.snapshotReadyMessage(reason)];
+    if (nowMs !== undefined) this.lastSnapshotAttemptNowMs = nowMs;
+    const attemptId = crypto.randomUUID();
+    this.inFlightAttemptId = attemptId;
+    this.inFlightEventCount = this.pendingEvents.length;
+    this.lastAttemptReason = reason;
+    return [this.snapshotReadyMessage(reason, attemptId, this.pendingEvents.slice(0, this.inFlightEventCount))];
   }
 
   private snapshotReasonFor(events: readonly DomainEventV2[]): SnapshotReasonV2 | null {
@@ -248,16 +392,41 @@ export class WorkerSessionV2 {
     return null;
   }
 
+  /**
+   * Ventana de agrupación del registro operativo (S11 §6.2): repeticiones
+   * de la misma causa sobre la misma entidad dentro de esta ventana de
+   * tiempo simulado se colapsan en una sola entrada con contador, en vez
+   * de convertir cada tick interno en ruido visible.
+   */
+  private static readonly LOG_GROUPING_WINDOW_SIM_SECONDS = 300;
+
+  private primaryEntityKeyOf(params: Readonly<Record<string, string>>): string | null {
+    return params.personId ?? params.entityId ?? params.roomId ?? null;
+  }
+
   private appendToLog(events: readonly DomainEventV2[]): void {
     for (const event of events) {
-      this.operationalLog.push(toOperationalLogEntryV2(event));
+      const entry = toOperationalLogEntryV2(event);
+      const last = this.operationalLog[this.operationalLog.length - 1];
+      const entryKey = this.primaryEntityKeyOf(entry.params);
+      if (
+        last &&
+        last.messageKey === entry.messageKey &&
+        entryKey !== null &&
+        this.primaryEntityKeyOf(last.params) === entryKey &&
+        entry.simSeconds - last.simSeconds <= WorkerSessionV2.LOG_GROUPING_WINDOW_SIM_SECONDS
+      ) {
+        this.operationalLog[this.operationalLog.length - 1] = { ...last, simSeconds: entry.simSeconds, count: last.count + 1 };
+      } else {
+        this.operationalLog.push(entry);
+      }
     }
     if (this.operationalLog.length > OPERATIONAL_LOG_MAX_ENTRIES) {
       this.operationalLog = this.operationalLog.slice(-OPERATIONAL_LOG_MAX_ENTRIES);
     }
   }
 
-  private snapshotReadyMessage(reason: SnapshotReasonV2): FromWorkerMessageV2 {
+  private snapshotReadyMessage(reason: SnapshotReasonV2, attemptId: string, events: readonly DomainEventV2[]): FromWorkerMessageV2 {
     if (!this.state || !this.gameSaveId) {
       throw new Error("No se puede pedir snapshot V2 sin estado ni gameSaveId cargados.");
     }
@@ -268,15 +437,27 @@ export class WorkerSessionV2 {
       expectedRevision: this.revision,
       reason,
       state: this.state,
-      events: [],
+      events,
+      attemptId,
     };
   }
 
-  private projectionsMessage(): FromWorkerMessageV2 {
+  /**
+   * Construye y devuelve los mensajes de proyección que corresponden al
+   * estado actual (S11 §5.2): siempre un `tick_projections`, y un
+   * `structural_projections` delante cuando `forceStructural` lo pide (al
+   * cargar o resincronizar), cuando `state.world` cambió de referencia
+   * (mutación estructural real: acceso, edificio, zona, designación...) o
+   * cuando venció la cadencia máxima de niebla. La secuencia es
+   * monotónica y compartida por ambos canales; `tick_projections` siempre
+   * referencia la `structuralSequence` vigente, así que el cliente puede
+   * detectar sin ambigüedad si su base estructural quedó desactualizada.
+   */
+  private projectionMessages(nowMs?: number, forceStructural = false): readonly FromWorkerMessageV2[] {
     if (!this.state || !this.gameSaveId) {
       throw new Error("No se pueden construir proyecciones V2 sin estado cargado.");
     }
-    const projections = buildWorkerProjectionsV2({
+    const full = buildWorkerProjectionsV2({
       state: this.state,
       gameSaveId: this.gameSaveId,
       revision: this.revision,
@@ -284,6 +465,23 @@ export class WorkerSessionV2 {
       lastSavedSimSeconds: this.lastSavedSimSeconds,
       operationalLog: this.operationalLog,
     });
-    return { type: "projections", protocolVersion: WORKER_PROTOCOL_VERSION_V2, projections };
+    const { structural, tick } = splitWorkerProjectionsV2(full);
+
+    const effectiveNowMs = nowMs ?? this.lastStructuralSentNowMs ?? 0;
+    const worldChanged = this.state.world !== this.lastSentWorld;
+    const cadenceDue = this.lastStructuralSentNowMs === null || effectiveNowMs - this.lastStructuralSentNowMs >= STRUCTURAL_CADENCE_REAL_MS;
+    const sendStructural = forceStructural || worldChanged || cadenceDue;
+
+    const messages: FromWorkerMessageV2[] = [];
+    if (sendStructural) {
+      this.sequence += 1;
+      this.structuralSequence = this.sequence;
+      this.lastSentWorld = this.state.world;
+      this.lastStructuralSentNowMs = effectiveNowMs;
+      messages.push({ type: "structural_projections", protocolVersion: WORKER_PROTOCOL_VERSION_V2, sequence: this.sequence, structural });
+    }
+    this.sequence += 1;
+    messages.push({ type: "tick_projections", protocolVersion: WORKER_PROTOCOL_VERSION_V2, sequence: this.sequence, structuralSequence: this.structuralSequence, tick });
+    return messages;
   }
 }

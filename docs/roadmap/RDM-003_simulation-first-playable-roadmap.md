@@ -82,13 +82,20 @@ el navegador, sin fechas ni compromiso de versión.
    [UI-005](../80-interface/UI-005_top-down-simulation-workbench.md). El
    generador semántico completo del mapa local (más allá del fixture del
    sector de llegada) sigue siendo el incremento 5.
-4. **Trabajos, prioridades, recursos y necesidades**: designaciones con
-   ratón, trabajos por fases, prioridades y recursos localizados básicos,
-   coherentes con el subconjunto ya validado en el prototipo Godot
-   (`IMPLEMENTATION-002`/`IMPLEMENTATION-003`) pero reconstruido de forma
-   nativa en la nueva línea de código. Dennis podrá asignar prioridades,
-   designar tareas y ver resultados.
-5. **Generador semántico inicial y explotación de lugares**: los ocho
+4. ~~**Trabajos, prioridades, recursos y necesidades**~~ — **completado
+   técnicamente por `WEB-002` S4-S6 y cerrado de forma final por S11**:
+   designaciones con ratón (ahora dibujadas directamente en el Canvas,
+   no solo por coordenadas), trabajos por fases, prioridades y recursos
+   localizados, coherentes con el subconjunto ya validado en el
+   prototipo Godot (`IMPLEMENTATION-002`/`IMPLEMENTATION-003`) pero
+   reconstruido de forma nativa en la nueva línea de código. Dennis
+   puede asignar prioridades, designar tareas, reasignar/pausar/cancelar
+   trabajos y ver resultados. Ver
+   [DEC-0018](../decisions/DEC-0018_resolution-engine-planned-work-and-causal-needs.md)
+   y [DEC-0021](../decisions/DEC-0021_final-integration-closure.md).
+5. ~~**Generador semántico inicial y explotación de lugares**~~ —
+   **completado técnicamente por `WEB-002` S2, S7-S10 y cerrado de forma
+   final por S11**: los ocho
    perfiles y el catálogo de objetos, recursos y transporte ya aprobados
    por `DESIGN-008`
    ([CAT-004](../catalogs/CAT-004_initial-semantic-place-slice.md),
@@ -106,7 +113,12 @@ el navegador, sin fechas ni compromiso de versión.
    que esta precisión constituya un incremento nuevo ni comprometa fecha.
    Dennis podrá explorar, registrar y desmontar al menos un edificio
    generado semánticamente, despejar terreno, construir una barrera
-   sencilla, cultivar una parcela y transportar una carga entre accesos.
+   sencilla, cultivar una parcela y transportar una carga entre accesos
+   — ahora seleccionando y dibujando directamente en el Canvas (S11), no
+   solo por coordenadas. Las ramas `feat/web-002-s7-*` a
+   `feat/web-002-s11-*` siguen sin fusionar contra `main` y la
+   aceptación manual de S7-S11 sigue pendiente; ninguna de las dos cosas
+   se declara superada por este cierre técnico.
 6. **Autonomía, relaciones, amenazas y narrativa emergente**, en
    incrementos separados y no en una entrega monolítica: cada uno de estos
    cuatro sistemas recibe su propio incremento futuro, con su propio

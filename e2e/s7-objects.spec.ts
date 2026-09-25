@@ -132,7 +132,7 @@ test("S7: contenedores reales, registro, reparación, desmontaje confirmado, rec
   await expect(page.getByText(/Se recogió un objeto/).first()).toBeVisible();
 
   // 8. Deterioro del alimento fresco reflejado en la interfaz (fixture: ver cabecera).
-  await page.getByRole("button", { name: "Pausa" }).click();
+  await page.getByRole("button", { name: "Pausa", exact: true }).click();
   await expect(page.getByText("Guardado")).toBeVisible({ timeout: 15_000 });
   // Se sale de la partida antes de tocar el snapshot: ningún guardado automático del Worker puede competir por la revisión.
   const villageUrl = page.url();
@@ -167,7 +167,7 @@ test("S7: contenedores reales, registro, reparación, desmontaje confirmado, rec
         containers: { ...state.containers, [pack.id]: { ...pack, contentIds: [...pack.contentIds, lot.id] } },
       };
       try {
-        await saveSnapshotV2(prisma, { gameSaveId, expectedRevision: revision, state: next, events: [], reason: "manual_save" });
+        await saveSnapshotV2(prisma, { gameSaveId, expectedRevision: revision, state: next, events: [], reason: "manual_save", attemptId: crypto.randomUUID() });
         break;
       } catch (error) {
         if (attempt >= 5) throw error;
