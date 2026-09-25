@@ -98,6 +98,9 @@ export function VillageMapCanvas({
   onSelectTarget,
   onOrderMove,
   centerOnPersonRequestId,
+  drawShape,
+  onDrawComplete,
+  onDrawCancel,
 }: {
   readonly mapEntities: MapEntitiesProjectionV2;
   readonly fog: FogMaskProjection;
@@ -109,6 +112,18 @@ export function VillageMapCanvas({
   readonly onSelectTarget: (target: SelectionTarget | null) => void;
   readonly onOrderMove: (personId: string, destination: WorldPoint) => void;
   readonly centerOnPersonRequestId: number;
+  /**
+   * Herramienta de dibujo activa (S11 §7.3): `"segment"` para un tramo de
+   * barrera (dos puntos, se confirma solo al segundo clic), `"polygon"`
+   * para zona/designación de área (clic para cada vértice, se cierra al
+   * hacer clic cerca del primer punto). `null` = interacción normal
+   * (selección/movimiento). El Canvas nunca decide si la geometría es
+   * válida para el motor — solo la recoge y la envía; el rechazo, si lo
+   * hay, llega como cualquier otro error de comando.
+   */
+  readonly drawShape: "segment" | "polygon" | null;
+  readonly onDrawComplete: (points: readonly WorldPoint[]) => void;
+  readonly onDrawCancel: () => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -122,8 +137,22 @@ export function VillageMapCanvas({
     };
   });
   const [contextAction, setContextAction] = useState<ContextAction | null>(null);
+  const [drawPoints, setDrawPoints] = useState<readonly WorldPoint[]>([]);
   const isPanningRef = useRef(false);
   const lastPanPointRef = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    setDrawPoints([]);
+  }, [drawShape]);
+
+  useEffect(() => {
+    if (!drawShape) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onDrawCancel();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [drawShape, onDrawCancel]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -337,7 +366,38 @@ export function VillageMapCanvas({
       ctx.lineWidth = 2;
       ctx.stroke();
     }
-  }, [mapEntities, fog, movements, personCards, selectedPersonId, selectedTarget, camera, viewport, contextAction]);
+
+    if (drawShape && drawPoints.length > 0) {
+      const toScreenPoint = (p: WorldPoint) => worldToScreen(p, camera, viewport.width, viewport.height);
+      ctx.strokeStyle = "#ffb347";
+      ctx.fillStyle = "#ffb347";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      const first = toScreenPoint(drawPoints[0]!);
+      ctx.moveTo(first.x, first.y);
+      for (const p of drawPoints.slice(1)) {
+        const s = toScreenPoint(p);
+        ctx.lineTo(s.x, s.y);
+      }
+      ctx.stroke();
+      for (const p of drawPoints) {
+        const s = toScreenPoint(p);
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      if (drawShape === "polygon" && drawPoints.length >= 3) {
+        const closeStart = toScreenPoint(drawPoints[0]!);
+        const closeEnd = toScreenPoint(drawPoints[drawPoints.length - 1]!);
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(closeEnd.x, closeEnd.y);
+        ctx.lineTo(closeStart.x, closeStart.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+  }, [mapEntities, fog, movements, personCards, selectedPersonId, selectedTarget, camera, viewport, contextAction, drawShape, drawPoints]);
 
   useEffect(() => {
     draw();
@@ -373,6 +433,28 @@ export function VillageMapCanvas({
     if (event.button === 0) {
       const rect = event.currentTarget.getBoundingClientRect();
       const clickWorld = screenToWorld(event.clientX - rect.left, event.clientY - rect.top, camera, viewport.width, viewport.height);
+      if (drawShape) {
+        if (drawShape === "segment") {
+          const next = [...drawPoints, clickWorld];
+          if (next.length >= 2) {
+            onDrawComplete(next);
+            setDrawPoints([]);
+          } else {
+            setDrawPoints(next);
+          }
+          return;
+        }
+        // "polygon": cerrar con un clic cerca del primer vértice (a partir de 3), en vez de añadirlo duplicado.
+        const first = drawPoints[0];
+        const snapRadiusMeters = 10 / camera.pixelsPerMeter;
+        if (first && drawPoints.length >= 3 && Math.hypot(clickWorld.x - first.x, clickWorld.y - first.y) <= snapRadiusMeters) {
+          onDrawComplete(drawPoints);
+          setDrawPoints([]);
+        } else {
+          setDrawPoints([...drawPoints, clickWorld]);
+        }
+        return;
+      }
       onSelectTarget(findTargetAt(mapEntities, clickWorld, camera.pixelsPerMeter));
     }
   }
@@ -396,6 +478,10 @@ export function VillageMapCanvas({
 
   function handleContextMenu(event: React.MouseEvent<HTMLCanvasElement>) {
     event.preventDefault();
+    if (drawShape) {
+      onDrawCancel();
+      return;
+    }
     const rect = event.currentTarget.getBoundingClientRect();
     const screenX = event.clientX - rect.left;
     const screenY = event.clientY - rect.top;
@@ -433,6 +519,28 @@ export function VillageMapCanvas({
           <button onClick={() => setContextAction(null)} style={{ marginLeft: 4 }}>
             Cancelar
           </button>
+        </div>
+      )}
+      {drawShape && (
+        <div className="z-panel" role="status" style={{ position: "absolute", left: 8, top: 8, padding: 8, zIndex: 10, fontSize: 12 }}>
+          <div>
+            {drawShape === "segment"
+              ? `Dibujando tramo de barrera: clic para el punto ${drawPoints.length === 0 ? "de inicio" : "final"}.`
+              : `Dibujando forma: ${drawPoints.length} punto${drawPoints.length === 1 ? "" : "s"}. Clic para añadir, clic cerca del primero para cerrar.`}
+          </div>
+          <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
+            {drawShape === "polygon" && drawPoints.length >= 3 && (
+              <button
+                onClick={() => {
+                  onDrawComplete(drawPoints);
+                  setDrawPoints([]);
+                }}
+              >
+                Cerrar forma
+              </button>
+            )}
+            <button onClick={onDrawCancel}>Cancelar dibujo</button>
+          </div>
         </div>
       )}
     </div>

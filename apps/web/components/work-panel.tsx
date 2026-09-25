@@ -63,6 +63,9 @@ export function WorkPanel({
   onCancelJob,
   onReassignJob,
   onSetJobModes,
+  drawToolActive,
+  onStartDrawZone,
+  onStartDrawDesignation,
   onDrawZone,
   onDeleteZone,
   onCreateAreaDesignation,
@@ -88,6 +91,13 @@ export function WorkPanel({
   readonly onCancelJob: (jobId: string) => void;
   readonly onReassignJob: (jobId: string, addPersonId: string | null, removePersonId: string | null) => void;
   readonly onSetJobModes: (jobId: string, pace?: PaceMode, attention?: AttentionMode) => void;
+  /** Si ya hay una herramienta de dibujo activa en el Canvas (S11 §7.3): evita iniciar dos dibujos a la vez. */
+  readonly drawToolActive: boolean;
+  readonly onStartDrawZone: (policy: "habitual" | "precaution" | "forbidden") => void;
+  readonly onStartDrawDesignation: (
+    kind: "systematic_recon" | "clear_area" | "cut_vegetation" | "prepare_soil" | "harvest" | "build_barrier",
+    wayCrossingMode?: "full_block" | "pedestrian_gap" | "handcart_gate",
+  ) => void;
   readonly onDrawZone: (polygon: readonly { x: number; y: number }[], policy: "habitual" | "precaution" | "forbidden") => void;
   readonly onDeleteZone: (zoneId: string) => void;
   readonly onCreateAreaDesignation: (
@@ -396,21 +406,7 @@ export function WorkPanel({
 
       <section>
         <h3>Zonas y designaciones</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
-          <label>
-            minX <input value={zoneBounds.minX} onChange={(e) => setZoneBounds({ ...zoneBounds, minX: e.target.value })} style={{ width: 56 }} />
-          </label>
-          <label>
-            minY <input value={zoneBounds.minY} onChange={(e) => setZoneBounds({ ...zoneBounds, minY: e.target.value })} style={{ width: 56 }} />
-          </label>
-          <label>
-            maxX <input value={zoneBounds.maxX} onChange={(e) => setZoneBounds({ ...zoneBounds, maxX: e.target.value })} style={{ width: 56 }} />
-          </label>
-          <label>
-            maxY <input value={zoneBounds.maxY} onChange={(e) => setZoneBounds({ ...zoneBounds, maxY: e.target.value })} style={{ width: 56 }} />
-          </label>
-        </div>
-        <label style={{ display: "block", marginTop: 4 }}>
+        <label style={{ display: "block" }}>
           Política:{" "}
           <select value={zonePolicy} onChange={(e) => setZonePolicy(e.target.value as "habitual" | "precaution" | "forbidden")}>
             <option value="habitual">Habitual</option>
@@ -419,47 +415,14 @@ export function WorkPanel({
           </select>
         </label>
         <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
-          <button onClick={handleCreateZone}>Crear zona</button>
+          <button disabled={drawToolActive} onClick={() => onStartDrawZone(zonePolicy)}>
+            Dibujar zona en el mapa
+          </button>
         </div>
-
-        <h4 style={{ marginBottom: 4 }}>Designación de entorno mutable/agricultura</h4>
-        <label style={{ display: "block" }}>
-          Tipo:{" "}
-          <select value={designationKind} onChange={(e) => setDesignationKind(e.target.value as typeof designationKind)}>
-            <option value="systematic_recon">Reconocimiento sistemático</option>
-            <option value="clear_area">Despejar área (vegetación o escombros)</option>
-            <option value="cut_vegetation">Cortar vegetación</option>
-            <option value="prepare_soil">Preparar suelo para cultivo</option>
-            <option value="harvest">Cosechar parcelas cosechables</option>
-            <option value="build_barrier">Construir barrera entre anclajes</option>
-          </select>
-        </label>
-        {designationKind === "build_barrier" ? (
-          <>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, marginTop: 4 }}>
-              <label>
-                Desde X <input value={barrierPoints.fromX} onChange={(e) => setBarrierPoints({ ...barrierPoints, fromX: e.target.value })} style={{ width: 56 }} />
-              </label>
-              <label>
-                Desde Y <input value={barrierPoints.fromY} onChange={(e) => setBarrierPoints({ ...barrierPoints, fromY: e.target.value })} style={{ width: 56 }} />
-              </label>
-              <label>
-                Hasta X <input value={barrierPoints.toX} onChange={(e) => setBarrierPoints({ ...barrierPoints, toX: e.target.value })} style={{ width: 56 }} />
-              </label>
-              <label>
-                Hasta Y <input value={barrierPoints.toY} onChange={(e) => setBarrierPoints({ ...barrierPoints, toY: e.target.value })} style={{ width: 56 }} />
-              </label>
-            </div>
-            <label style={{ display: "block", marginTop: 4 }}>
-              Cruce con vía (si lo hay):{" "}
-              <select value={wayCrossingMode} onChange={(e) => setWayCrossingMode(e.target.value as typeof wayCrossingMode)}>
-                <option value="pedestrian_gap">Hueco peatonal</option>
-                <option value="handcart_gate">Portón para carretilla/carro</option>
-                <option value="full_block">Bloqueo completo</option>
-              </select>
-            </label>
-          </>
-        ) : (
+        <details style={{ marginTop: 4 }}>
+          <summary className="z-muted" style={{ fontSize: 12, cursor: "pointer" }}>
+            Avanzado: coordenadas exactas
+          </summary>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, marginTop: 4 }}>
             <label>
               minX <input value={zoneBounds.minX} onChange={(e) => setZoneBounds({ ...zoneBounds, minX: e.target.value })} style={{ width: 56 }} />
@@ -474,10 +437,77 @@ export function WorkPanel({
               maxY <input value={zoneBounds.maxY} onChange={(e) => setZoneBounds({ ...zoneBounds, maxY: e.target.value })} style={{ width: 56 }} />
             </label>
           </div>
+          <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
+            <button onClick={handleCreateZone}>Crear zona (coordenadas)</button>
+          </div>
+        </details>
+
+        <h4 style={{ marginBottom: 4 }}>Designación de entorno mutable/agricultura</h4>
+        <label style={{ display: "block" }}>
+          Tipo:{" "}
+          <select value={designationKind} onChange={(e) => setDesignationKind(e.target.value as typeof designationKind)}>
+            <option value="systematic_recon">Reconocimiento sistemático</option>
+            <option value="clear_area">Despejar área (vegetación o escombros)</option>
+            <option value="cut_vegetation">Cortar vegetación</option>
+            <option value="prepare_soil">Preparar suelo para cultivo</option>
+            <option value="harvest">Cosechar parcelas cosechables</option>
+            <option value="build_barrier">Construir barrera entre anclajes</option>
+          </select>
+        </label>
+        {designationKind === "build_barrier" && (
+          <label style={{ display: "block", marginTop: 4 }}>
+            Cruce con vía (si lo hay):{" "}
+            <select value={wayCrossingMode} onChange={(e) => setWayCrossingMode(e.target.value as typeof wayCrossingMode)}>
+              <option value="pedestrian_gap">Hueco peatonal</option>
+              <option value="handcart_gate">Portón para carretilla/carro</option>
+              <option value="full_block">Bloqueo completo</option>
+            </select>
+          </label>
         )}
-        <div style={{ marginTop: 4 }}>
-          <button onClick={handleCreateDesignation}>Designar</button>
+        <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
+          <button disabled={drawToolActive} onClick={() => onStartDrawDesignation(designationKind, designationKind === "build_barrier" ? wayCrossingMode : undefined)}>
+            {designationKind === "build_barrier" ? "Dibujar tramo en el mapa" : "Dibujar área en el mapa"}
+          </button>
         </div>
+        <details style={{ marginTop: 4 }}>
+          <summary className="z-muted" style={{ fontSize: 12, cursor: "pointer" }}>
+            Avanzado: coordenadas exactas
+          </summary>
+          {designationKind === "build_barrier" ? (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, marginTop: 4 }}>
+              <label>
+                Desde X <input value={barrierPoints.fromX} onChange={(e) => setBarrierPoints({ ...barrierPoints, fromX: e.target.value })} style={{ width: 56 }} />
+              </label>
+              <label>
+                Desde Y <input value={barrierPoints.fromY} onChange={(e) => setBarrierPoints({ ...barrierPoints, fromY: e.target.value })} style={{ width: 56 }} />
+              </label>
+              <label>
+                Hasta X <input value={barrierPoints.toX} onChange={(e) => setBarrierPoints({ ...barrierPoints, toX: e.target.value })} style={{ width: 56 }} />
+              </label>
+              <label>
+                Hasta Y <input value={barrierPoints.toY} onChange={(e) => setBarrierPoints({ ...barrierPoints, toY: e.target.value })} style={{ width: 56 }} />
+              </label>
+            </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, marginTop: 4 }}>
+              <label>
+                minX <input value={zoneBounds.minX} onChange={(e) => setZoneBounds({ ...zoneBounds, minX: e.target.value })} style={{ width: 56 }} />
+              </label>
+              <label>
+                minY <input value={zoneBounds.minY} onChange={(e) => setZoneBounds({ ...zoneBounds, minY: e.target.value })} style={{ width: 56 }} />
+              </label>
+              <label>
+                maxX <input value={zoneBounds.maxX} onChange={(e) => setZoneBounds({ ...zoneBounds, maxX: e.target.value })} style={{ width: 56 }} />
+              </label>
+              <label>
+                maxY <input value={zoneBounds.maxY} onChange={(e) => setZoneBounds({ ...zoneBounds, maxY: e.target.value })} style={{ width: 56 }} />
+              </label>
+            </div>
+          )}
+          <div style={{ marginTop: 4 }}>
+            <button onClick={handleCreateDesignation}>Designar (coordenadas)</button>
+          </div>
+        </details>
         <ul style={{ listStyle: "none", padding: 0, marginTop: 8 }}>
           {projections.zones.map((z) => (
             <li key={z.id}>

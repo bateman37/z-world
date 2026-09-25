@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { AttentionMode, DomainEventV2, JobTarget, PaceMode, PriorityValue, SimulationStateV2, StorageItemRef, WorldPoint } from "@z-world/contracts";
+import type { AttentionMode, DesignationKind, DomainEventV2, JobTarget, PaceMode, PriorityValue, SimulationStateV2, StorageItemRef, WorldPoint, ZonePolicy } from "@z-world/contracts";
 import { useSimulationWorkerV2, nextCommandIdV2 } from "@/lib/use-simulation-worker-v2";
 import { TopBar } from "@/components/top-bar";
 import { PersonList } from "@/components/person-list";
@@ -43,6 +43,33 @@ export function VillageScreen({
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(initialState.peopleOrder[0] ?? null);
   const [selectedTarget, setSelectedTarget] = useState<SelectionTarget | null>(null);
   const [centerRequestId, setCenterRequestId] = useState(0);
+  const [drawTool, setDrawTool] = useState<
+    | { readonly kind: "zone"; readonly policy: ZonePolicy }
+    | { readonly kind: "designation"; readonly designationKind: DesignationKind; readonly wayCrossingMode?: "full_block" | "pedestrian_gap" | "handcart_gate" }
+    | null
+  >(null);
+
+  // Herramienta gráfica de dibujo (S11 §7.3): el Canvas es el flujo
+  // primario para trazar zonas/designaciones/barreras (clic para cada
+  // vértice, previsualización, confirmar/cancelar, sin estado a medio
+  // crear); los formularios numéricos de `WorkPanel` quedan solo como
+  // apoyo técnico secundario.
+  function handleDrawComplete(points: readonly WorldPoint[]) {
+    if (!drawTool) return;
+    if (drawTool.kind === "zone") {
+      sendCommand({ commandId: nextCommandIdV2(), type: "draw_zone", zoneId: nextCommandIdV2(), polygon: [...points], policy: drawTool.policy });
+    } else {
+      sendCommand({
+        commandId: nextCommandIdV2(),
+        type: "create_area_designation",
+        designationId: nextCommandIdV2(),
+        kind: drawTool.designationKind,
+        polygon: [...points],
+        wayCrossingMode: drawTool.wayCrossingMode,
+      });
+    }
+    setDrawTool(null);
+  }
 
   function handleSelectTarget(next: SelectionTarget | null) {
     setSelectedTarget(next);
@@ -202,6 +229,9 @@ export function VillageScreen({
           onSelectTarget={handleSelectTarget}
           onOrderMove={handleOrderMove}
           centerOnPersonRequestId={centerRequestId}
+          drawShape={drawTool ? (drawTool.kind === "designation" && drawTool.designationKind === "build_barrier" ? "segment" : "polygon") : null}
+          onDrawComplete={handleDrawComplete}
+          onDrawCancel={() => setDrawTool(null)}
         />
         <div style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
           {canCancel && (
@@ -231,6 +261,9 @@ export function VillageScreen({
             sendCommand({ commandId: nextCommandIdV2(), type: "reassign_job", jobId, addPersonId, removePersonId })
           }
           onSetJobModes={(jobId, pace, attention) => sendCommand({ commandId: nextCommandIdV2(), type: "set_job_modes", jobId, pace, attention })}
+          drawToolActive={drawTool !== null}
+          onStartDrawZone={(policy) => setDrawTool({ kind: "zone", policy })}
+          onStartDrawDesignation={(designationKind, wayCrossingMode) => setDrawTool({ kind: "designation", designationKind, wayCrossingMode })}
           onDrawZone={(polygon, policy) => sendCommand({ commandId: nextCommandIdV2(), type: "draw_zone", zoneId: nextCommandIdV2(), polygon: [...polygon], policy })}
           onDeleteZone={(zoneId) => sendCommand({ commandId: nextCommandIdV2(), type: "delete_zone", zoneId })}
           onCreateAreaDesignation={(polygon, kind, wayCrossingMode) =>
