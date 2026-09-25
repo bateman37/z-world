@@ -2664,11 +2664,17 @@ seis bloques cerrados en orden ("Puertas" A-F).
 
     | Métrica | avg | p95 | max |
     |---|---|---|---|
-    | Construir proyecciones (completa + partir en canales) | 9,8 ms | 11,3 ms | 11,3 ms |
-    | Validar `structural_projections` (Zod) | 4,9 ms | 8,0 ms | 8,0 ms |
-    | Validar `tick_projections` (Zod) | 2,7 ms | 6,5 ms | 6,5 ms |
-    | Aplicar un comando (`order_direct_move`) | 2,6 ms | 13,8 ms | 13,8 ms |
-    | Avanzar un tick de simulación (30 s simulados) | 3,5 ms | 4,8 ms | 10,7 ms |
+    | Construir proyecciones (completa + partir en canales) | 12,6 ms | 18,4 ms | 18,4 ms |
+    | Validar `structural_projections` (Zod) | 4,4 ms | 8,9 ms | 8,9 ms |
+    | Validar `tick_projections` (Zod) | 2,4 ms | 6,8 ms | 6,8 ms |
+    | Aplicar un comando (`order_direct_move`) | 3,1 ms | 12,8 ms | 12,8 ms |
+    | Avanzar un tick de simulación (30 s simulados) | 3,6 ms | 5,6 ms | 12,5 ms |
+
+    (Números de la ejecución dentro de la validación acotada final de
+    S11, con el resto de la batería unitaria corriendo a la vez — algo
+    más alta que una ejecución aislada del harness solo, ~9-13 ms de
+    media según la carga del proceso; la magnitud relativa entre
+    métricas se mantiene igual en ambos casos.)
 
     Escenario: semilla `s11-perf-harness-seed-1`, 6 personas, 52
     trabajos, 2 zonas, 1 designación, 178 objetos, 238 lotes de
