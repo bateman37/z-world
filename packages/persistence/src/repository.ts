@@ -311,7 +311,22 @@ export async function loadGameV2(
   return { state: parsed.data, revision: gameSave.revision };
 }
 
-/** Guarda snapshot + eventos pendientes de una partida V2, con el mismo control optimista de revisión que `saveSnapshot`. */
+/**
+ * Guarda snapshot + eventos pendientes de una partida V2, con el mismo
+ * control optimista de revisión que `saveSnapshot` (S11 §4.2/§4.3).
+ *
+ * `attemptId` identifica de forma estable el intento de guardado del lado
+ * del Worker (una `attemptId` por lote de eventos + revisión esperada, la
+ * misma en cada reintento del mismo lote). Antes de comprobar la revisión,
+ * la transacción busca si ya existe un snapshot con esa `attemptId` para
+ * esta partida: si lo hay, la escritura ya se confirmó en un intento
+ * anterior cuya respuesta se perdió (red o servidor), y se responde con su
+ * revisión sin reinsertar nada — ni snapshot duplicado ni eventos
+ * duplicados. Solo cuando no hay coincidencia se aplica el control de
+ * revisión optimista: una `expectedRevision` obsoleta (cliente de otra
+ * pestaña, o una escritura distinta) sigue rechazándose con
+ * `RevisionConflictError`.
+ */
 export async function saveSnapshotV2(
   prisma: PrismaClient,
   params: {
@@ -320,6 +335,7 @@ export async function saveSnapshotV2(
     readonly state: SimulationStateV2;
     readonly events: readonly DomainEventV2[];
     readonly reason: string;
+    readonly attemptId: string;
   },
 ): Promise<{ readonly revision: number }> {
   return prisma.$transaction(async (tx) => {
@@ -327,6 +343,15 @@ export async function saveSnapshotV2(
     if (!current) {
       throw new CorruptOrIncompatibleSnapshotError(params.gameSaveId, "la partida no existe.");
     }
+
+    const alreadyCommitted = await tx.simulationSnapshot.findFirst({
+      where: { gameSaveId: params.gameSaveId, attemptId: params.attemptId },
+      select: { revision: true },
+    });
+    if (alreadyCommitted) {
+      return { revision: alreadyCommitted.revision };
+    }
+
     if (current.revision !== params.expectedRevision) {
       throw new RevisionConflictError(params.gameSaveId, params.expectedRevision, current.revision);
     }
@@ -341,6 +366,7 @@ export async function saveSnapshotV2(
         reason: params.reason,
         state: params.state as unknown as object,
         simSeconds: params.state.clock.elapsedSimSeconds,
+        attemptId: params.attemptId,
       },
     });
 
@@ -354,6 +380,7 @@ export async function saveSnapshotV2(
           causedByCommandId: event.causedByCommandId,
           payload: event as unknown as object,
         })),
+        skipDuplicates: true,
       });
     }
 

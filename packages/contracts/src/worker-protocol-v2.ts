@@ -25,6 +25,13 @@ export const SNAPSHOT_REASONS_V2 = [
   "manual_save",
   "visibility_lost_best_effort",
   "discovery_progressed",
+  /**
+   * Cadencia de autosave (S11 §4.4): cambios continuos sin un límite
+   * material propio (tiempo, deterioro, movimiento, trabajo parcial)
+   * llevan demasiado tiempo solo en memoria y se guardan igualmente, sin
+   * hacerlo en cada tick.
+   */
+  "autosave_debounced",
 ] as const;
 export type SnapshotReasonV2 = (typeof SNAPSHOT_REASONS_V2)[number];
 
@@ -47,6 +54,17 @@ export const requestSnapshotMessageSchemaV2 = z.object({
   protocolVersion: z.literal(WORKER_PROTOCOL_VERSION_V2),
 });
 
+/**
+ * Pide reintentar el último lote de guardado que falló por red/servidor
+ * (S11 §4.5). El Worker reenvía el mismo `snapshot_ready` — misma
+ * `attemptId`, mismos eventos, mismo `expectedRevision` — nunca genera un
+ * lote nuevo. No hace nada si no hay un intento fallido pendiente.
+ */
+export const retrySaveMessageSchemaV2 = z.object({
+  type: z.literal("retry_save"),
+  protocolVersion: z.literal(WORKER_PROTOCOL_VERSION_V2),
+});
+
 export const tickMessageSchemaV2 = z.object({
   type: z.literal("tick"),
   protocolVersion: z.literal(WORKER_PROTOCOL_VERSION_V2),
@@ -57,18 +75,21 @@ export const snapshotPersistedMessageSchemaV2 = z.object({
   type: z.literal("snapshot_persisted"),
   protocolVersion: z.literal(WORKER_PROTOCOL_VERSION_V2),
   revision: z.number().int().nonnegative(),
+  attemptId: z.string(),
 });
 
 export const snapshotPersistFailedMessageSchemaV2 = z.object({
   type: z.literal("snapshot_persist_failed"),
   protocolVersion: z.literal(WORKER_PROTOCOL_VERSION_V2),
   code: z.enum(["network_error", "server_error", "revision_conflict"]),
+  attemptId: z.string(),
 });
 
 export const toWorkerMessageSchemaV2 = z.discriminatedUnion("type", [
   loadStateMessageSchemaV2,
   commandMessageSchemaV2,
   requestSnapshotMessageSchemaV2,
+  retrySaveMessageSchemaV2,
   tickMessageSchemaV2,
   snapshotPersistedMessageSchemaV2,
   snapshotPersistFailedMessageSchemaV2,
@@ -88,6 +109,8 @@ export const snapshotReadyMessageSchemaV2 = z.object({
   reason: z.enum(SNAPSHOT_REASONS_V2),
   state: simulationStateV2Schema,
   events: z.array(domainEventV2Schema),
+  /** Identidad estable de este intento de guardado (S11 §4.2). */
+  attemptId: z.string(),
 });
 
 export const workerErrorMessageSchemaV2 = z.object({
@@ -107,9 +130,10 @@ export type ToWorkerMessageV2 =
   | { readonly type: "load_state"; readonly protocolVersion: 2; readonly gameSaveId: string; readonly revision: number; readonly state: SimulationStateV2 }
   | { readonly type: "command"; readonly protocolVersion: 2; readonly command: SimulationCommand }
   | { readonly type: "request_snapshot"; readonly protocolVersion: 2 }
+  | { readonly type: "retry_save"; readonly protocolVersion: 2 }
   | { readonly type: "tick"; readonly protocolVersion: 2; readonly nowMs: number }
-  | { readonly type: "snapshot_persisted"; readonly protocolVersion: 2; readonly revision: number }
-  | { readonly type: "snapshot_persist_failed"; readonly protocolVersion: 2; readonly code: "network_error" | "server_error" | "revision_conflict" };
+  | { readonly type: "snapshot_persisted"; readonly protocolVersion: 2; readonly revision: number; readonly attemptId: string }
+  | { readonly type: "snapshot_persist_failed"; readonly protocolVersion: 2; readonly code: "network_error" | "server_error" | "revision_conflict"; readonly attemptId: string };
 
 export type FromWorkerMessageV2 =
   | { readonly type: "projections"; readonly protocolVersion: 2; readonly projections: WorkerProjectionsV2 }
@@ -121,6 +145,7 @@ export type FromWorkerMessageV2 =
       readonly reason: SnapshotReasonV2;
       readonly state: SimulationStateV2;
       readonly events: readonly DomainEventV2[];
+      readonly attemptId: string;
     }
   | {
       readonly type: "worker_error";

@@ -122,6 +122,7 @@ export async function saveSnapshotV2Action(params: {
   readonly state: SimulationStateV2;
   readonly events: readonly DomainEventV2[];
   readonly reason: string;
+  readonly attemptId: string;
 }): Promise<SaveSnapshotActionResult | SaveSnapshotActionConflict> {
   try {
     const { revision } = await saveSnapshotV2(prisma, params);

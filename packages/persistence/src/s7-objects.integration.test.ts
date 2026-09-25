@@ -109,6 +109,7 @@ describe("persistencia de objetos S7 (PostgreSQL real)", () => {
       state,
       events: [...retrieve.events, ...afterRetrieve.events, ...store.events, ...afterStore.events],
       reason: "order_settled",
+      attemptId: crypto.randomUUID(),
     });
     expect(saved.revision).toBe(1);
     const reloaded = await loadGameV2(prisma, created.gameSaveId);
@@ -154,7 +155,7 @@ describe("persistencia de objetos S7 (PostgreSQL real)", () => {
     state = step.state;
     expect(validateSimulationStateV2Invariants(state).ok).toBe(true);
 
-    await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: 0, state, events: allEvents, reason: "order_settled" });
+    await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: 0, state, events: allEvents, reason: "order_settled", attemptId: crypto.randomUUID() });
     const reloaded = await loadGameV2(prisma, created.gameSaveId);
     expect(reloaded.state).toEqual(state);
     expect(reloaded.state.worldObjects[pump.id]!.installedAt).toEqual(pump.installedAt);
@@ -186,7 +187,7 @@ describe("persistencia de objetos S7 (PostgreSQL real)", () => {
     const disassembled = step.events.find((e) => e.type === "object_disassembled");
     expect(disassembled && disassembled.type === "object_disassembled" && disassembled.entityKind).toBe("transport_means");
     state = step.state;
-    await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: 0, state, events: [...dis.events, ...step.events], reason: "order_settled" });
+    await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: 0, state, events: [...dis.events, ...step.events], reason: "order_settled", attemptId: crypto.randomUUID() });
     const reloaded = await loadGameV2(prisma, created.gameSaveId);
     const reloadedMeans = reloaded.state.transportMeans[means.id]!;
     expect(reloadedMeans.functionalState).toBe("parts_only");
@@ -210,7 +211,7 @@ describe("persistencia de objetos S7 (PostgreSQL real)", () => {
     const step = run(state, nav, 25, 10); // 25 × 720 s = 5 h simuladas (×72 a velocidad 1)
     const decayedCondition = step.state.resourceLots[fresh.id]!.condition;
     expect(decayedCondition).toBeLessThan(0.9);
-    await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: 0, state: step.state, events: step.events, reason: "manual_save" });
+    await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: 0, state: step.state, events: step.events, reason: "manual_save", attemptId: crypto.randomUUID() });
     const reloaded = await loadGameV2(prisma, created.gameSaveId);
     expect(reloaded.state.resourceLots[fresh.id]).toEqual(step.state.resourceLots[fresh.id]);
     const fromMemory = run(step.state, nav, 12, 50).state.resourceLots[fresh.id]!;

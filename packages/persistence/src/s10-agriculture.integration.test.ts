@@ -101,7 +101,7 @@ describe("persistencia del ciclo agrícola S10 (PostgreSQL real)", () => {
     const prep = orderAction(setup.state, nav, "cmd-prepare", { personId: setup.worker, actionKey: "prepare_soil", target: { kind: "cultivation_plot", cultivationPlotId: setup.plotId } });
     const midPrep = runUntil(prep.state, nav, (s) => s.jobs[prep.jobId]!.progressRatio > 0.3);
     expect(midPrep.state.jobs[prep.jobId]!.state).toBe("in_progress");
-    await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: revision, state: midPrep.state, events: [...prep.events, ...midPrep.events], reason: "order_settled" });
+    await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: revision, state: midPrep.state, events: [...prep.events, ...midPrep.events], reason: "order_settled", attemptId: crypto.randomUUID() });
     revision += 1;
     let reloaded = await loadGameV2(prisma, created.gameSaveId);
     expect(reloaded.state).toEqual(midPrep.state);
@@ -119,7 +119,7 @@ describe("persistencia del ciclo agrícola S10 (PostgreSQL real)", () => {
     const sow = orderAction(state, nav, "cmd-sow", { personId: setup.worker, actionKey: "sow", target: { kind: "cultivation_plot", cultivationPlotId: setup.plotId }, cropId: "test_fast_vegetables" });
     const midSow = runUntil(sow.state, nav, (s) => s.jobs[sow.jobId]!.progressRatio > 0.3);
     expect(midSow.state.jobs[sow.jobId]!.state).toBe("in_progress");
-    await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: revision, state: midSow.state, events: [...sow.events, ...midSow.events], reason: "order_settled" });
+    await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: revision, state: midSow.state, events: [...sow.events, ...midSow.events], reason: "order_settled", attemptId: crypto.randomUUID() });
     revision += 1;
     reloaded = await loadGameV2(prisma, created.gameSaveId);
     expect(reloaded.state).toEqual(midSow.state);
@@ -139,7 +139,7 @@ describe("persistencia del ciclo agrícola S10 (PostgreSQL real)", () => {
     const harvestableDone = (s: SimulationStateV2) => s.cultivationPlots[setup.plotId]!.state === "harvestable";
     const startSimSeconds = state.clock.elapsedSimSeconds;
     const growthMid = runUntil(state, nav, (s) => s.clock.elapsedSimSeconds - startSimSeconds > 200);
-    await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: revision, state: growthMid.state, events: growthMid.events, reason: "order_settled" });
+    await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: revision, state: growthMid.state, events: growthMid.events, reason: "order_settled", attemptId: crypto.randomUUID() });
     revision += 1;
     reloaded = await loadGameV2(prisma, created.gameSaveId);
     expect(reloaded.state).toEqual(growthMid.state);
@@ -152,7 +152,7 @@ describe("persistencia del ciclo agrícola S10 (PostgreSQL real)", () => {
     // Fase 4: cosechar. El lote de cosecha localizado sobrevive a guardar/recargar sin duplicarse.
     const harvest = orderAction(state, nav, "cmd-harvest", { personId: setup.worker, actionKey: "harvest", target: { kind: "cultivation_plot", cultivationPlotId: setup.plotId } });
     const done = runUntil(harvest.state, nav, (s) => s.jobs[harvest.jobId]!.state === "completed");
-    await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: revision, state: done.state, events: [...harvest.events, ...done.events], reason: "order_settled" });
+    await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: revision, state: done.state, events: [...harvest.events, ...done.events], reason: "order_settled", attemptId: crypto.randomUUID() });
     revision += 1;
     reloaded = await loadGameV2(prisma, created.gameSaveId);
     const cycleId = Object.values(reloaded.state.cropCycles).find((c) => c.cultivationPlotId === setup.plotId)!.id;
@@ -173,8 +173,8 @@ describe("persistencia del ciclo agrícola S10 (PostgreSQL real)", () => {
     const sownA = runUntil(sow.state, prepared.nav, (s) => s.cultivationPlots[setup.plotId]!.state === "growing");
     const sownB = runUntil(sow.state, prepared.nav, (s) => s.cultivationPlots[setup.plotId]!.state === "growing");
 
-    await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: 0, state: sownA.state, events: [...sow.events, ...sownA.events], reason: "order_settled" });
-    await expect(saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: 0, state: sownB.state, events: [...sow.events, ...sownB.events], reason: "order_settled" })).rejects.toThrow(RevisionConflictError);
+    await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: 0, state: sownA.state, events: [...sow.events, ...sownA.events], reason: "order_settled", attemptId: crypto.randomUUID() });
+    await expect(saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: 0, state: sownB.state, events: [...sow.events, ...sownB.events], reason: "order_settled", attemptId: crypto.randomUUID() })).rejects.toThrow(RevisionConflictError);
 
     const reloaded = await loadGameV2(prisma, created.gameSaveId);
     expect(reloaded.state).toEqual(sownA.state);

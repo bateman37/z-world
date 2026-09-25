@@ -29,7 +29,7 @@ export function VillageScreen({
   readonly initialState: SimulationStateV2;
   readonly initialRevision: number;
 }) {
-  const { projections, workerFatalError, sendCommand, requestManualSave } = useSimulationWorkerV2(
+  const { projections, workerFatalError, sendCommand, requestManualSave, retrySave } = useSimulationWorkerV2(
     gameSaveId,
     initialState,
     initialRevision,
@@ -112,15 +112,61 @@ export function VillageScreen({
     });
   }
 
+  const isRevisionConflict = projections.saveStatus.status === "revision_conflict";
+
   return (
-    <div style={{ display: "grid", gridTemplateRows: "auto 1fr auto", height: "100vh" }}>
+    <div style={{ display: "grid", gridTemplateRows: "auto 1fr auto", height: "100vh", position: "relative" }}>
       <TopBar
         clock={projections.clock}
         saveStatus={projections.saveStatus}
         seed={projections.gameSummary.seed}
         onSetSpeed={(speed) => sendCommand({ commandId: nextCommandIdV2(), type: "set_speed", speed })}
         onManualSave={requestManualSave}
+        onRetrySave={retrySave}
       />
+      {isRevisionConflict ? (
+        <div
+          role="alertdialog"
+          aria-labelledby="revision-conflict-title"
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 50,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "color-mix(in srgb, var(--z-bg) 70%, transparent)",
+          }}
+        >
+          <div className="z-panel" style={{ padding: 24, maxWidth: 420, borderColor: "var(--z-danger)" }}>
+            <h2 id="revision-conflict-title">Conflicto de guardado</h2>
+            <p>
+              Esta partida se guardó desde otra pestaña o sesión mientras jugabas aquí. Para no perder ni sobrescribir
+              nada, la sesión se detuvo: ningún cambio nuevo se aplica hasta que decidas cómo continuar.
+            </p>
+            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+              <button onClick={() => window.location.reload()} autoFocus>
+                Recargar estado vigente
+              </button>
+              <a
+                href="/"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  background: "var(--z-panel)",
+                  border: "1px solid var(--z-panel-border)",
+                  color: "var(--z-text)",
+                  borderRadius: 4,
+                  padding: "6px 10px",
+                  textDecoration: "none",
+                }}
+              >
+                Salir a la lista de partidas
+              </a>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div style={{ display: "grid", gridTemplateColumns: "220px 1fr 320px 300px", minHeight: 0 }}>
         <PersonList
           personCards={projections.personCards}

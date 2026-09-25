@@ -43,10 +43,16 @@ model SimulationSnapshot {
   state         Json
   simSeconds    Int
   writtenAt     DateTime @default(now())
+  // Identidad estable del intento de guardado que produjo este snapshot (S11
+  // §4.2): reintento del mismo lote ya confirmado -> misma attemptId, se
+  // responde idempotentemente sin reinsertar. Null para snapshots que no
+  // vienen de ese flujo (creación de partida, migración V1->V2).
+  attemptId     String?
 
   currentForGameSave GameSave? @relation("CurrentSnapshot")
 
   @@unique([gameSaveId, revision])
+  @@unique([gameSaveId, attemptId])
   @@map("simulation_snapshots")
 }
 

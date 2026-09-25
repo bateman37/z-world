@@ -10,6 +10,7 @@ export interface UseSimulationWorkerV2Result {
   readonly workerFatalError: string | null;
   readonly sendCommand: (command: SimulationCommand) => void;
   readonly requestManualSave: () => void;
+  readonly retrySave: () => void;
 }
 
 let commandCounter = 0;
@@ -71,7 +72,11 @@ export function useSimulationWorkerV2(gameSaveId: string, initialState: Simulati
     workerRef.current?.postMessage({ type: "request_snapshot", protocolVersion: WORKER_PROTOCOL_VERSION_V2 });
   }, []);
 
-  return { projections, workerFatalError, sendCommand, requestManualSave };
+  const retrySave = useCallback(() => {
+    workerRef.current?.postMessage({ type: "retry_save", protocolVersion: WORKER_PROTOCOL_VERSION_V2 });
+  }, []);
+
+  return { projections, workerFatalError, sendCommand, requestManualSave, retrySave };
 }
 
 async function persistSnapshot(worker: Worker, message: Extract<FromWorkerMessageV2, { type: "snapshot_ready" }>): Promise<void> {
@@ -82,13 +87,14 @@ async function persistSnapshot(worker: Worker, message: Extract<FromWorkerMessag
       state: message.state,
       events: message.events,
       reason: message.reason,
+      attemptId: message.attemptId,
     });
     if (result.ok) {
-      worker.postMessage({ type: "snapshot_persisted", protocolVersion: WORKER_PROTOCOL_VERSION_V2, revision: result.revision });
+      worker.postMessage({ type: "snapshot_persisted", protocolVersion: WORKER_PROTOCOL_VERSION_V2, revision: result.revision, attemptId: message.attemptId });
     } else {
-      worker.postMessage({ type: "snapshot_persist_failed", protocolVersion: WORKER_PROTOCOL_VERSION_V2, code: "revision_conflict" });
+      worker.postMessage({ type: "snapshot_persist_failed", protocolVersion: WORKER_PROTOCOL_VERSION_V2, code: "revision_conflict", attemptId: message.attemptId });
     }
   } catch {
-    worker.postMessage({ type: "snapshot_persist_failed", protocolVersion: WORKER_PROTOCOL_VERSION_V2, code: "server_error" });
+    worker.postMessage({ type: "snapshot_persist_failed", protocolVersion: WORKER_PROTOCOL_VERSION_V2, code: "server_error", attemptId: message.attemptId });
   }
 }

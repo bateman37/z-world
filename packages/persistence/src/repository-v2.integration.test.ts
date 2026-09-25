@@ -52,7 +52,7 @@ describe("persistencia de SimulationStateV2 (S2, PostgreSQL real)", () => {
     const { gameSaveId } = await createGameV2(prisma, { state, initialEvents: [] });
 
     const next = { ...state, clock: { ...state.clock, elapsedSimSeconds: state.clock.elapsedSimSeconds + 60 } };
-    const saved = await saveSnapshotV2(prisma, { gameSaveId, expectedRevision: 0, state: next, events: [], reason: "manual_save" });
+    const saved = await saveSnapshotV2(prisma, { gameSaveId, expectedRevision: 0, state: next, events: [], reason: "manual_save", attemptId: crypto.randomUUID() });
     expect(saved.revision).toBe(1);
 
     const reloaded = await loadGameV2(prisma, gameSaveId);
@@ -62,10 +62,10 @@ describe("persistencia de SimulationStateV2 (S2, PostgreSQL real)", () => {
   it("rechaza explícitamente una revisión obsoleta, sin fusión silenciosa", async () => {
     const state = createInitialStateV2("persist-v2-seed-4");
     const { gameSaveId } = await createGameV2(prisma, { state, initialEvents: [] });
-    await saveSnapshotV2(prisma, { gameSaveId, expectedRevision: 0, state, events: [], reason: "manual_save" });
+    await saveSnapshotV2(prisma, { gameSaveId, expectedRevision: 0, state, events: [], reason: "manual_save", attemptId: crypto.randomUUID() });
 
     await expect(
-      saveSnapshotV2(prisma, { gameSaveId, expectedRevision: 0, state, events: [], reason: "manual_save" }),
+      saveSnapshotV2(prisma, { gameSaveId, expectedRevision: 0, state, events: [], reason: "manual_save", attemptId: crypto.randomUUID() }),
     ).rejects.toThrow(RevisionConflictError);
   });
 

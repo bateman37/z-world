@@ -120,7 +120,7 @@ describe("persistencia de traslados S8 (PostgreSQL real)", () => {
     expect(reservationKinds).toEqual(["person", "person", "transport_means", "world_object"]);
     expect(validateSimulationStateV2Invariants(mid.state).ok).toBe(true);
 
-    await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: 0, state: mid.state, events: [...order.events, ...mid.events], reason: "order_settled" });
+    await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: 0, state: mid.state, events: [...order.events, ...mid.events], reason: "order_settled", attemptId: crypto.randomUUID() });
     const reloaded = await loadGameV2(prisma, created.gameSaveId);
     expect(reloaded.state).toEqual(mid.state);
 
@@ -134,7 +134,7 @@ describe("persistencia de traslados S8 (PostgreSQL real)", () => {
     expect(afterReload.state).toEqual(inMemory.state);
     expect(afterReload.state.worldObjects[setup.bucketId]!.location).toEqual({ kind: "container", containerId: setup.containerId });
 
-    await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: 1, state: afterReload.state, events: afterReload.events, reason: "order_settled" });
+    await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: 1, state: afterReload.state, events: afterReload.events, reason: "order_settled", attemptId: crypto.randomUUID() });
     const final = await loadGameV2(prisma, created.gameSaveId);
     expect(final.state).toEqual(afterReload.state);
     const types = await persistedEventTypes(created.gameSaveId);
@@ -152,7 +152,7 @@ describe("persistencia de traslados S8 (PostgreSQL real)", () => {
     const mid = runUntil(order.state, setup.nav, (s) => (s.jobs[order.jobId]!.transport!.travelledLoadedMeters ?? 0) > 10);
     const operatorAt = mid.state.people[setup.p1]!.public.position;
     const cancelled = applyCommandV2(mid.state, { commandId: "cancel", type: "cancel_job", jobId: order.jobId }, setup.nav);
-    await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: 0, state: cancelled.state, events: [...order.events, ...mid.events, ...cancelled.events], reason: "order_settled" });
+    await saveSnapshotV2(prisma, { gameSaveId: created.gameSaveId, expectedRevision: 0, state: cancelled.state, events: [...order.events, ...mid.events, ...cancelled.events], reason: "order_settled", attemptId: crypto.randomUUID() });
     const loaded = (await loadGameV2(prisma, created.gameSaveId)).state;
     const cart = loaded.transportMeans[setup.cartId]!;
     expect(cart.location).toEqual({ kind: "world_point", point: operatorAt });
