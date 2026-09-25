@@ -2,6 +2,7 @@ import type { ActionMethodDefinition, AttentionMode, DomainEventV2, Job, JobOrig
 import { nextEventId } from "../../sequences.js";
 import { resolveTargetLocation } from "./location-utils.js";
 import { s9WorkUnits } from "../exploitation/actions.js";
+import { terrainWorkUnits } from "../terrain/actions.js";
 
 export interface CreateJobParams {
   readonly actionKey: string;
@@ -19,6 +20,7 @@ export interface CreateJobParams {
   readonly storageItem?: Job["storageItem"];
   readonly storageQuantity?: number | null;
   readonly transport?: Job["transport"];
+  readonly cropId?: string | null;
 }
 
 export interface CreateJobResult {
@@ -44,8 +46,8 @@ export function createJob(state: SimulationStateV2, params: CreateJobParams): Cr
   if (!location) return { rejectedReasonKey: "block.target_no_longer_exists" };
 
   const phases: JobPhase[] = params.def.phases.map((kind) => ({ kind, state: "pending" as const }));
-  // S9: la duración real depende del blanco (puerta/portón, receta, m² de huella), fijada por el catálogo versionado al crear el trabajo.
-  const specificWorkUnits = s9WorkUnits(state, params.actionKey, params.target, params.storageItem ?? null);
+  // S9/S10: la duración real depende del blanco (puerta/portón, receta, m² de huella o de parcela, metros de vía/barrera), fijada por el catálogo versionado al crear el trabajo.
+  const specificWorkUnits = s9WorkUnits(state, params.actionKey, params.target, params.storageItem ?? null) ?? terrainWorkUnits(state, params.actionKey, params.target);
   const jobId = nextJobId(state);
   const { eventId, sequences } = nextEventId(state.sequences);
 
@@ -83,6 +85,7 @@ export function createJob(state: SimulationStateV2, params: CreateJobParams): Cr
     storageQuantity: params.storageQuantity ?? null,
     transport: params.transport ?? null,
     workTotalUnits: specificWorkUnits,
+    cropId: params.cropId ?? null,
     createdAtSimSeconds: state.clock.elapsedSimSeconds,
     updatedAtSimSeconds: state.clock.elapsedSimSeconds,
   };

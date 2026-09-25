@@ -18,6 +18,7 @@ import type { TransportDestination, TransportMethodChoice, TransportStep } from 
 import type { BulkClass, TransportMethod } from "./objects-v2.js";
 import type { PriorityId } from "./catalog-ids.js";
 import type { BuildingLayer, BuildingLifeStage, ConstructionEra, ExploitationStage, HabitabilityBand, LayerKnowledgeState, LayerPhysicalState } from "./building-exploitation-v2.js";
+import type { CultivationState } from "./agriculture-v2.js";
 
 /**
  * Proyecciones de solo lectura del runtime V2 (S3 de WEB-002 §5.8).
@@ -35,6 +36,8 @@ export interface VisibleTerrainAreaProjection {
   readonly id: string;
   readonly kind: AreaTerrainKind;
   readonly polygon: readonly WorldPoint[];
+  /** Cobertura efectiva (S10, WLD-010 §3.2): `"none" | "vegetation" | "debris"`. */
+  readonly coverage: string;
 }
 
 export interface VisibleLinearFeatureProjection {
@@ -42,6 +45,25 @@ export interface VisibleLinearFeatureProjection {
   readonly kind: LineTerrainKind;
   readonly polyline: readonly WorldPoint[];
   readonly widthMeters: number;
+  /** Estado mutable de la vía (S10, WLD-010 §3.7). `null` para cursos de agua. */
+  readonly wayState: string | null;
+}
+
+/** Parcela de cultivo visible (S10): geometría real y estado cualitativo, nunca un número interno. */
+export interface VisibleCultivationPlotProjection {
+  readonly id: string;
+  readonly polygon: readonly WorldPoint[];
+  readonly state: string;
+}
+
+/** Tramo de barrera visible entre dos anclajes (S10, WLD-010 §3.6). */
+export interface VisibleBarrierSegmentProjection {
+  readonly id: string;
+  readonly from: WorldPoint;
+  readonly to: WorldPoint;
+  readonly built: boolean;
+  readonly crossesWay: boolean;
+  readonly wayCrossingMode: string | null;
 }
 
 export type PlaceKnowledgeLevel = "sighted" | "observed";
@@ -85,6 +107,9 @@ export interface MapEntitiesProjectionV2 {
   readonly rooms: readonly VisibleRoomProjection[];
   readonly openings: readonly VisibleOpeningProjection[];
   readonly people: ReadonlyArray<{ readonly personId: string; readonly position: WorldPoint; readonly indoors: boolean; readonly roomId: string | null }>;
+  /** S10: parcelas de cultivo y tramos de barrera reales (siempre visibles como el resto del terreno; sin omnisciencia de contenido, solo geometría y estado). */
+  readonly cultivationPlots: readonly VisibleCultivationPlotProjection[];
+  readonly barrierSegments: readonly VisibleBarrierSegmentProjection[];
 }
 
 /**
@@ -274,6 +299,16 @@ export interface BuildingExploitationProjection {
   readonly previews: readonly IrreversiblePreviewProjection[];
 }
 
+/** Estado operativo de una parcela de cultivo conocida (S10), para el panel de trabajo y para pruebas E2E que necesitan observar la fase agrícola sin depender del lienzo. */
+export interface CultivationPlotStatusProjection {
+  readonly id: string;
+  readonly parcelId: string;
+  readonly state: CultivationState;
+  readonly damageLevel: number;
+  readonly preparationProgress: number;
+  readonly activeCropCycleId: string | null;
+}
+
 /** Envoltorio de todas las proyecciones que el runtime V2 envía a React. */
 export interface WorkerProjectionsV2 {
   readonly gameSummary: GameSummaryProjection;
@@ -291,6 +326,8 @@ export interface WorkerProjectionsV2 {
   readonly designations: readonly DesignationProjection[];
   readonly contextualActions: readonly ContextualActionOptionProjection[];
   readonly inventory: readonly InventoryEntryProjection[];
+  /** Parcelas de cultivo conocidas con su estado agrícola (S10). */
+  readonly cultivationPlots: readonly CultivationPlotStatusProjection[];
   /** Edificios conocidos con su estado por capas (S9). */
   readonly buildings: readonly BuildingExploitationProjection[];
   readonly revision: number;

@@ -65,6 +65,7 @@ describe("applyCommandV2 — order_direct_move", () => {
           transitable: false,
           traversalCostMultiplier: 1,
           placeId: null,
+          coverage: "none" as const,
         },
       },
     };

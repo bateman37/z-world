@@ -37,6 +37,7 @@ function baseJob(overrides: Partial<Job> = {}): Job {
     storageItem: null,
     storageQuantity: null,
     transport: null,
+    cropId: null,
     createdAtSimSeconds: 0,
     updatedAtSimSeconds: 0,
     ...overrides,

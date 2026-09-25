@@ -90,8 +90,10 @@ function migrateWorld(v1: SimulationStateV1, degradations: string[]): SemanticWo
   const terrainAreas: Record<string, TerrainArea> = {};
   for (const area of v1.world.areas) {
     // AreaFeature (V1) y TerrainArea (V2) comparten la misma forma, salvo
-    // `placeId` (S2): el fixture V1 no tenía lugares ENV-02/ENV-03 propios.
-    terrainAreas[area.id] = { ...area, placeId: null };
+    // `placeId` (S2, sin lugares ENV-02/ENV-03 propios en V1) y `coverage`
+    // (S10): se deriva de forma conservadora con `effectiveTerrainCoverage`
+    // en vez de asumir cobertura desconocida.
+    terrainAreas[area.id] = { ...area, placeId: null, coverage: area.kind === "dense_vegetation" ? "vegetation" : "none" };
   }
 
   const linearFeatures: Record<string, LinearFeature> = {};

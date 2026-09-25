@@ -44,8 +44,15 @@ export const DESIGNATION_KINDS = [
 ] as const;
 export type DesignationKind = (typeof DESIGNATION_KINDS)[number];
 
-/** Designaciones ejecutables en S4-S6; las demás quedan en contrato para S7-S10 (§6.8). */
-export const EXECUTABLE_DESIGNATION_KINDS: readonly DesignationKind[] = ["systematic_recon"];
+/** Designaciones ejecutables. S10 activa las cinco de entorno mutable/agricultura (§6.8, `DEC-0020`); `remove_known_objects` sigue sin motor propio. */
+export const EXECUTABLE_DESIGNATION_KINDS: readonly DesignationKind[] = [
+  "systematic_recon",
+  "clear_area",
+  "cut_vegetation",
+  "prepare_soil",
+  "harvest",
+  "build_barrier",
+];
 
 export interface Designation {
   readonly id: string;
@@ -196,7 +203,15 @@ export type JobTarget =
   /** Acabado recuperable de un edificio (capa 4, S9). */
   | { readonly kind: "building_finish"; readonly finishId: string }
   | { readonly kind: "area"; readonly polygon: readonly WorldPoint[] }
-  | { readonly kind: "own_need"; readonly personId: string; readonly dimension: NeedDimension };
+  | { readonly kind: "own_need"; readonly personId: string; readonly dimension: NeedDimension }
+  /** S10: zona de terreno de fondo (matorral, escombros) sobre la que se despeja cobertura fuera de una parcela de cultivo. */
+  | { readonly kind: "terrain_area"; readonly terrainAreaId: string }
+  /** S10: tramo de carretera/camino sobre el que se despeja un bloqueo o se retira su función viaria. */
+  | { readonly kind: "linear_feature"; readonly linearFeatureId: string }
+  /** S10: parcela de cultivo (preparar, sembrar, cuidar, cosechar). */
+  | { readonly kind: "cultivation_plot"; readonly cultivationPlotId: string }
+  /** S10: tramo de barrera lineal entre dos anclajes en construcción. */
+  | { readonly kind: "barrier_segment"; readonly barrierSegmentId: string };
 
 export const jobTargetSchema: z.ZodType<JobTarget> = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("place"), placeId: z.string() }),
@@ -212,6 +227,10 @@ export const jobTargetSchema: z.ZodType<JobTarget> = z.discriminatedUnion("kind"
   z.object({ kind: z.literal("building_finish"), finishId: z.string() }),
   z.object({ kind: z.literal("area"), polygon: z.array(worldPointSchema) }),
   z.object({ kind: z.literal("own_need"), personId: z.string(), dimension: z.enum(NEED_DIMENSIONS) }),
+  z.object({ kind: z.literal("terrain_area"), terrainAreaId: z.string() }),
+  z.object({ kind: z.literal("linear_feature"), linearFeatureId: z.string() }),
+  z.object({ kind: z.literal("cultivation_plot"), cultivationPlotId: z.string() }),
+  z.object({ kind: z.literal("barrier_segment"), barrierSegmentId: z.string() }),
 ]);
 
 /** Referencia a un objeto o lote que un trabajo de almacenamiento mueve (S7). */
@@ -441,6 +460,8 @@ export interface Job {
    * en el tipo y con `.default(null)` en el esquema.
    */
   readonly workTotalUnits?: number | null;
+  /** Cultivo elegido para `sow` (S10, referencia al catálogo versionado). `null` para cualquier otro método. */
+  readonly cropId: string | null;
   readonly createdAtSimSeconds: number;
   readonly updatedAtSimSeconds: number;
 }
@@ -482,6 +503,7 @@ export const jobSchema = z.object({
   storageQuantity: z.number().positive().nullable().default(null),
   transport: transportJobStateSchema.nullable().default(null),
   workTotalUnits: z.number().positive().nullable().default(null),
+  cropId: z.string().nullable().default(null),
   createdAtSimSeconds: z.number().int().nonnegative(),
   updatedAtSimSeconds: z.number().int().nonnegative(),
 });
@@ -499,6 +521,11 @@ export const RESERVATION_TARGET_KINDS = [
   "building",
   "building_installation",
   "building_finish",
+  /** S10: superficie de fondo, tramo de vía, parcela de cultivo y tramo de barrera se comprometen en exclusiva (evita que dos trabajos despejen o siembren la misma superficie a la vez). */
+  "terrain_area",
+  "linear_feature",
+  "cultivation_plot",
+  "barrier_segment",
 ] as const;
 export type ReservationTargetKind = (typeof RESERVATION_TARGET_KINDS)[number];
 

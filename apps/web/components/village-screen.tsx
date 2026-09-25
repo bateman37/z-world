@@ -87,6 +87,7 @@ export function VillageScreen({
     storageItem?: StorageItemRef;
     storageQuantity?: number;
     transport?: TransportOrderParams;
+    cropId?: string;
   }) {
     if (!selectedPersonId) return;
     sendCommand({
@@ -107,6 +108,7 @@ export function VillageScreen({
       transportDestination: params.transport?.destination,
       transportCargo: params.transport?.extraCargo ? [...params.transport.extraCargo] : undefined,
       meansDisposition: params.transport?.meansDisposition,
+      cropId: params.cropId,
     });
   }
 
@@ -155,8 +157,8 @@ export function VillageScreen({
           onCancelJob={(jobId) => sendCommand({ commandId: nextCommandIdV2(), type: "cancel_job", jobId })}
           onDrawZone={(polygon, policy) => sendCommand({ commandId: nextCommandIdV2(), type: "draw_zone", zoneId: nextCommandIdV2(), polygon: [...polygon], policy })}
           onDeleteZone={(zoneId) => sendCommand({ commandId: nextCommandIdV2(), type: "delete_zone", zoneId })}
-          onCreateAreaDesignation={(polygon) =>
-            sendCommand({ commandId: nextCommandIdV2(), type: "create_area_designation", designationId: nextCommandIdV2(), kind: "systematic_recon", polygon: [...polygon] })
+          onCreateAreaDesignation={(polygon, kind, wayCrossingMode) =>
+            sendCommand({ commandId: nextCommandIdV2(), type: "create_area_designation", designationId: nextCommandIdV2(), kind, polygon: [...polygon], wayCrossingMode })
           }
           onCancelDesignation={(designationId) => sendCommand({ commandId: nextCommandIdV2(), type: "cancel_designation", designationId })}
         />

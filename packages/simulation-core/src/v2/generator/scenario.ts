@@ -33,6 +33,8 @@ export interface ScenarioGuaranteesResult {
   readonly shelterDistanceMeters: number;
   readonly transportMeans: TransportMeans[];
   readonly cultivationPlots: CultivationPlot[];
+  /** `Parcel` garantizada que recibe el enlace de vuelta a su `CultivationPlot` (S10 §8.2: enlace bidireccional). `null` si ninguna parcela ENV-02 estaba disponible. */
+  readonly updatedParcel: Parcel | null;
   readonly extraResourceLots: ResourceLot[];
   readonly extraWorldObjects: WorldObject[];
   readonly extraContainers: Container[];
@@ -97,9 +99,11 @@ export function materializeScenarioGuarantees(
   const extraContainers: Container[] = [];
 
   const nearestParcel = [...parcels].sort((a, b) => distance(centroid(a.polygon), shelter!.position) - distance(centroid(b.polygon), shelter!.position))[0];
+  let updatedParcel: Parcel | null = null;
   if (nearestParcel) {
     const plotId = ids.next("cultivation-plot");
-    cultivationPlots.push({ id: plotId, parcelId: nearestParcel.id, state: "unprepared", activeCropCycleId: null });
+    cultivationPlots.push({ id: plotId, parcelId: nearestParcel.id, state: "unprepared", activeCropCycleId: null, preparationProgress: 0, damageLevel: 0 });
+    updatedParcel = { ...nearestParcel, cultivationPlotId: plotId };
     extraResourceLots.push(
       makeResourceLot({
         id: ids.next("resource-lot"),
@@ -181,6 +185,7 @@ export function materializeScenarioGuarantees(
     shelterDistanceMeters,
     transportMeans,
     cultivationPlots,
+    updatedParcel,
     extraResourceLots,
     extraWorldObjects,
     extraContainers,

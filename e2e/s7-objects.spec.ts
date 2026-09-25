@@ -38,9 +38,12 @@ async function chooseAction(panel: Locator, actionLabel: string, targetText: str
 }
 
 async function orderAndWaitCompleted(page: Page, panel: Locator, jobLabel: string): Promise<void> {
-  const jobsBefore = await panel.getByRole("listitem").filter({ hasText: jobLabel }).count();
+  // Se acota a la sección «Trabajos» (no todo el panel): otras secciones del panel pueden contener texto que
+  // coincida por subcadena (p. ej. «Sin preparar» de S10 contiene «reparar»).
+  const jobsSection = panel.locator("section").filter({ hasText: "Trabajos" });
+  const jobsBefore = await jobsSection.getByRole("listitem").filter({ hasText: jobLabel }).count();
   await panel.getByRole("button", { name: "Ordenar" }).click();
-  const job = panel.getByRole("listitem").filter({ hasText: jobLabel }).nth(jobsBefore);
+  const job = jobsSection.getByRole("listitem").filter({ hasText: jobLabel }).nth(jobsBefore);
   await expect(job).toContainText("completed", { timeout: 30_000 });
   await expect(page.getByText("Guardado")).toBeVisible({ timeout: 15_000 });
 }

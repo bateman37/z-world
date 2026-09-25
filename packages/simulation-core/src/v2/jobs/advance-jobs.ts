@@ -78,6 +78,8 @@ import {
 } from "../exploitation/actions.js";
 import { computeHabitability } from "../exploitation/layers.js";
 import { buildingIdOfRoom } from "../exploitation/fabric.js";
+import { isEnvironmentAction, terrainApplyConsequences, terrainBlockerStillApplies, terrainPrepare, terrainValidationReason } from "../terrain/actions.js";
+import { isAgricultureAction, agricultureApplyConsequences, agriculturePrepare, agricultureBlockerStillApplies, agricultureValidationReason } from "../agriculture/actions.js";
 import { createJob } from "./job-factory.js";
 import { transitionJob } from "./job-transitions.js";
 import { jobsInOrder, valuesById } from "../ordered.js";
@@ -293,7 +295,21 @@ function startJob(ctx: Ctx, jobId: string): void {
  * esta llamada y se devuelve el motivo de bloqueo.
  */
 type ReservationTarget = {
-  kind: "resource_lot" | "world_object" | "furniture" | "container" | "transport_means" | "person" | "opening" | "building" | "building_installation" | "building_finish";
+  kind:
+    | "resource_lot"
+    | "world_object"
+    | "furniture"
+    | "container"
+    | "transport_means"
+    | "person"
+    | "opening"
+    | "building"
+    | "building_installation"
+    | "building_finish"
+    | "terrain_area"
+    | "linear_feature"
+    | "cultivation_plot"
+    | "barrier_segment";
   id: string;
 };
 
@@ -336,6 +352,19 @@ function reservationTargetsFor(job: Job): ReservationTarget[] {
       break;
     case "building_finish":
       if (exclusive) targets.push({ kind: "building_finish", id: job.target.finishId });
+      break;
+    // S10: superficie de fondo, tramo de vía, parcela de cultivo y tramo de barrera se comprometen en exclusiva.
+    case "terrain_area":
+      if (exclusive) targets.push({ kind: "terrain_area", id: job.target.terrainAreaId });
+      break;
+    case "linear_feature":
+      if (exclusive) targets.push({ kind: "linear_feature", id: job.target.linearFeatureId });
+      break;
+    case "cultivation_plot":
+      if (exclusive) targets.push({ kind: "cultivation_plot", id: job.target.cultivationPlotId });
+      break;
+    case "barrier_segment":
+      if (exclusive) targets.push({ kind: "barrier_segment", id: job.target.barrierSegmentId });
       break;
     default:
       break;
@@ -412,7 +441,11 @@ function reviveBlockedJobs(ctx: Ctx): void {
         ? routeBlockerStillApplies(ctx, current, executorId)
         : EXPLOITATION_ACTION_KEYS.has(current.actionKey)
         ? s9BlockerStillApplies(ctx.state, current, executorId, s9WorkSite(ctx.state, ctx.nav, current, executorId))
-        : phaseBlockerStillApplies(ctx.state, current, executorId);
+        : isEnvironmentAction(current.actionKey)
+          ? terrainBlockerStillApplies(ctx.state, current)
+          : isAgricultureAction(current.actionKey)
+            ? agricultureBlockerStillApplies(ctx.state, current, executorId)
+            : phaseBlockerStillApplies(ctx.state, current, executorId);
     if (stillBlocked) continue;
     if (acquireJobReservations(ctx, current.id)) continue;
     const result = transitionJob(ctx.state, ctx.state.jobs[current.id]!, "in_progress", null);
@@ -652,7 +685,11 @@ function progressJob(ctx: Ctx, jobId: string): void {
         else blockJob(ctx, jobId, hardCheck.reasonKey ?? "block.requirement_failed");
         return;
       }
-      const storageReason = storageValidationReason(ctx.state, job) ?? (isS9 ? s9ValidationReason(ctx.state, job) : null);
+      const storageReason =
+        storageValidationReason(ctx.state, job) ??
+        (isS9 ? s9ValidationReason(ctx.state, job) : null) ??
+        (isEnvironmentAction(job.actionKey) ? terrainValidationReason(ctx.state, job) : null) ??
+        (isAgricultureAction(job.actionKey) ? agricultureValidationReason(ctx.state, job, executorId) : null);
       if (storageReason) {
         blockJob(ctx, jobId, storageReason);
         return;
@@ -701,6 +738,18 @@ function progressJob(ctx: Ctx, jobId: string): void {
     case "prepare": {
       if (isS9) {
         const outcome = s9Prepare(ctx, jobId, executorId, s9Site);
+        if (outcome.blockReasonKey) blockJob(ctx, jobId, outcome.blockReasonKey);
+        else completePhase(ctx, jobId);
+        return;
+      }
+      if (isEnvironmentAction(job.actionKey)) {
+        const outcome = terrainPrepare(ctx, jobId, executorId);
+        if (outcome.blockReasonKey) blockJob(ctx, jobId, outcome.blockReasonKey);
+        else completePhase(ctx, jobId);
+        return;
+      }
+      if (isAgricultureAction(job.actionKey)) {
+        const outcome = agriculturePrepare(ctx, jobId, executorId);
         if (outcome.blockReasonKey) blockJob(ctx, jobId, outcome.blockReasonKey);
         else completePhase(ctx, jobId);
         return;
@@ -1223,6 +1272,8 @@ function resolveModelBExecution(ctx: Ctx, jobId: string, def: ActionMethodDefini
 /** Aplica las consecuencias del método; devuelve un motivo de bloqueo si el mundo cambió entre tanto y la consecuencia ya no es posible (S9). */
 function applyConsequences(ctx: Ctx, job: Job, def: ActionMethodDefinition, executorId: string, band: OutcomeBand, site: Job["location"] | null): string | null {
   if (EXPLOITATION_ACTION_KEYS.has(job.actionKey)) return s9ApplyConsequences(ctx, ENGINE_OPS, job, executorId, band, site);
+  if (isEnvironmentAction(job.actionKey)) return terrainApplyConsequences(ctx, job);
+  if (isAgricultureAction(job.actionKey)) return agricultureApplyConsequences(ctx, job, executorId);
   for (const reveal of def.revealsKnowledge) {
     const entityId = discoveryEntityIdForTarget(job.target);
     if (!entityId) continue;

@@ -509,6 +509,77 @@ export const objectInstalledEventSchema = z.object({
   siteId: z.string(),
 });
 
+// --- S10: entorno mutable y agricultura (`DEC-0020`) ------------------------
+
+export const wayStateChangedEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("way_state_changed"),
+  linearFeatureId: z.string(),
+  wayState: z.enum(["transitable", "obstructed", "cleared", "function_removed"]),
+  jobId: z.string(),
+});
+
+export const barrierSegmentBuiltEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("barrier_segment_built"),
+  barrierSegmentId: z.string(),
+  jobId: z.string(),
+});
+
+export const terrainCoverageClearedEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("terrain_coverage_cleared"),
+  terrainAreaId: z.string(),
+  jobId: z.string(),
+  producedResourceLotIds: z.array(z.string()),
+});
+
+export const cultivationPlotStateChangedEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("cultivation_plot_state_changed"),
+  cultivationPlotId: z.string(),
+  state: z.enum(["unprepared", "cleared", "prepared", "sown", "growing", "harvestable", "harvested"]),
+});
+
+export const cropSownEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("crop_sown"),
+  cultivationPlotId: z.string(),
+  cropCycleId: z.string(),
+  cropId: z.string(),
+  sownAreaM2: z.number().nonnegative(),
+  jobId: z.string(),
+});
+
+export const cropTendedEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("crop_tended"),
+  cultivationPlotId: z.string(),
+  cropCycleId: z.string(),
+  sufficient: z.boolean(),
+  jobId: z.string(),
+});
+
+export const cropHarvestedEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("crop_harvested"),
+  cultivationPlotId: z.string(),
+  cropCycleId: z.string(),
+  producedResourceLotId: z.string().nullable(),
+  yieldKg: z.number().nonnegative(),
+  jobId: z.string(),
+  /** Desglose causal del rendimiento (§5.6 del prompt de subhito), suficiente para depurar y explicar sin llenar la UI ordinaria de números internos. */
+  breakdown: z.record(z.string(), z.number()),
+});
+
+export const cropLostEventSchema = z.object({
+  ...baseEventFields,
+  type: z.literal("crop_lost"),
+  cultivationPlotId: z.string(),
+  cropCycleId: z.string(),
+  reasonKey: z.string(),
+});
+
 export const domainEventV2Schema = z.discriminatedUnion("type", [
   gameCreatedEventSchema,
   speedOrPauseChangedEventSchema,
@@ -569,6 +640,14 @@ export const domainEventV2Schema = z.discriminatedUnion("type", [
   buildingLayerExhaustedEventSchema,
   objectUninstalledEventSchema,
   objectInstalledEventSchema,
+  wayStateChangedEventSchema,
+  barrierSegmentBuiltEventSchema,
+  terrainCoverageClearedEventSchema,
+  cultivationPlotStateChangedEventSchema,
+  cropSownEventSchema,
+  cropTendedEventSchema,
+  cropHarvestedEventSchema,
+  cropLostEventSchema,
 ]);
 
 export type DomainEventV2 = z.infer<typeof domainEventV2Schema>;

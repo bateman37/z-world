@@ -4,6 +4,65 @@ Registra entregas documentales y de diseño de Z-World. No atribuye código ni
 funcionalidad implementada salvo que se indique explícitamente como
 `implemented` en la documentación afectada.
 
+## WEB-002 (subhito S10) — Entorno mutable y agricultura
+
+En `feat/web-002-s10-agriculture-mutable-environment`, sin fusionar contra
+`main`. Cerrado con limitaciones explícitas (detalle en `docs/STATUS.md`
+§«S10 — entorno mutable y agricultura»), y se crea
+[DEC-0020](docs/decisions/DEC-0020_mutable-environment-and-agriculture.md).
+Resumen:
+
+- Tres capas mutables sobre la geometría ya generada: cobertura de terreno
+  (`none`/`vegetation`/`debris`), estado de vía
+  (`transitable`/`obstructed`/`cleared`/`function_removed`) y barrera
+  lineal entre anclajes, con perímetro **derivado** por unión-búsqueda
+  (nunca un booleano guardado).
+- Nueve métodos nuevos (`clear_vegetation`, `clear_debris`, `clear_road`,
+  `remove_way_function`, `build_barrier`, `prepare_soil`, `sow`,
+  `tend_crop`, `harvest`) en el mismo motor de trabajos/planificador/
+  prioridades de S4–S9, sin ningún motor paralelo.
+- Geometría de parcela libre: cualquier polígono dibujado por el jugador
+  puede prepararse, con un veredicto de aptitud causal explícito
+  (`evaluateCultivationSuitability`), no solo las parcelas de ejemplo del
+  generador.
+- Progreso parcial persistente de preparación de suelo/limpieza de
+  cobertura a través de pausa/reanudación e interrupción por
+  autoprotección.
+- Vías tratadas con causalidad: obstruida sigue siendo transitable (más
+  lenta, nunca bloqueada); despejar conserva la función viaria; retirar la
+  función es irreversible en este alcance y exige confirmación informada.
+- Ciclo agrícola completo y determinista (preparar → sembrar → crecer →
+  cosechable → cosechar) sobre el reloj real, sin botón de "crecer ahora";
+  sembrar deriva la superficie de la semilla realmente disponible, nunca
+  exige la cantidad nominal del campo entero; daño por abandono derivado
+  (nunca acumulado por tick) con pérdida real del cultivo si se abandona.
+- Rendimiento causal explícitamente provisional (SET-011 §7 deja abierto
+  el catálogo/fórmulas/tiempos); un solo cultivo real jugable
+  (`garden_vegetables`) y un perfil de ciclo abreviado exclusivo de las
+  pruebas (`test_fast_vegetables`).
+- Interfaz: panel «Parcelas de cultivo» (estado/progreso/daño observables
+  sin depender del lienzo), selector real de cultivo al sembrar,
+  designación de entorno mutable/agricultura con geometría por
+  coordenadas y modo de cruce con vía para barreras.
+- Correcciones reales encontradas por las pruebas (detalle en DEC-0020
+  §9): geometría de parcela nueva que copiaba el terreno de fondo entero
+  en vez del polígono dibujado; marca de "escombros" del generador que
+  etiquetaba por error el único terreno de fondo transitable del mapa
+  entero; `locationWorldPoint` no resolvía el borde de un campo
+  (`field_edge`), así que una cosecha real nunca podía elegirse como
+  objetivo de traslado; un traslado interrumpido por autoprotección no se
+  retoma solo, a diferencia de una orden directa.
+- Pruebas: 305 unitarias (8 nuevas), 33 de integración PostgreSQL (3
+  nuevas) y 14 E2E en Chromium real (2 nuevas) en verde sobre el árbol
+  final de la rama, contra `next dev` y contra `next start` (producción);
+  guion manual en `docs/STATUS.md` (aceptación manual pendiente).
+- Límites conscientes explícitos: perímetro sin paredes de edificio como
+  arista implícita; reconstrucción completa de navegación en vez de
+  parcheo dirigido para cambios de terreno/vía/barrera; catálogo de
+  cultivos mínimo; sin estaciones ni clima; E2E de barrera/perímetro
+  (cruce con vía, cerrar/reabrir un lazo) cubierta por pruebas unitarias
+  reales pero no por un recorrido en Chromium.
+
 ## WEB-002 (subhito S9, Puerta C) — Explotación progresiva de edificios y cierre de S7–S9
 
 En `feat/web-002-s7-s9-objects-logistics-exploitation`, con una única PR

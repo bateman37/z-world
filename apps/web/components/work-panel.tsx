@@ -15,7 +15,7 @@ import type {
   WorkerProjectionsV2,
 } from "@z-world/contracts";
 import { toSimulatedDayTime } from "@z-world/contracts";
-import { ACTION_METHODS_BY_KEY, copyKey } from "@z-world/catalogs";
+import { ACTION_METHODS_BY_KEY, copyKey, CROP_PROFILES } from "@z-world/catalogs";
 import type { BuildingExploitationProjection } from "@z-world/contracts";
 
 const ACTION_DESCRIPTIONS: ReadonlyMap<string, string> = new Map([...ACTION_METHODS_BY_KEY.values()].map((m) => [m.key, m.descriptionKey]));
@@ -79,13 +79,18 @@ export function WorkPanel({
     storageItem?: StorageItemRef;
     storageQuantity?: number;
     transport?: TransportOrderParams;
+    cropId?: string;
   }) => void;
   readonly onPauseJob: (jobId: string) => void;
   readonly onResumeJob: (jobId: string) => void;
   readonly onCancelJob: (jobId: string) => void;
   readonly onDrawZone: (polygon: readonly { x: number; y: number }[], policy: "habitual" | "precaution" | "forbidden") => void;
   readonly onDeleteZone: (zoneId: string) => void;
-  readonly onCreateAreaDesignation: (polygon: readonly { x: number; y: number }[]) => void;
+  readonly onCreateAreaDesignation: (
+    polygon: readonly { x: number; y: number }[],
+    kind: "systematic_recon" | "clear_area" | "cut_vegetation" | "prepare_soil" | "harvest" | "build_barrier",
+    wayCrossingMode?: "full_block" | "pedestrian_gap" | "handcart_gate",
+  ) => void;
   readonly onCancelDesignation: (designationId: string) => void;
 }) {
   const [actionKey, setActionKey] = useState<string>("");
@@ -93,6 +98,10 @@ export function WorkPanel({
   const [targetKey, setTargetKey] = useState<string | null>(null);
   const [zoneBounds, setZoneBounds] = useState({ minX: "-20", minY: "-20", maxX: "20", maxY: "20" });
   const [zonePolicy, setZonePolicy] = useState<"habitual" | "precaution" | "forbidden">("habitual");
+  const [designationKind, setDesignationKind] = useState<"systematic_recon" | "clear_area" | "cut_vegetation" | "prepare_soil" | "harvest" | "build_barrier">("systematic_recon");
+  const [barrierPoints, setBarrierPoints] = useState({ fromX: "-10", fromY: "-10", toX: "10", toY: "-10" });
+  const [wayCrossingMode, setWayCrossingMode] = useState<"full_block" | "pedestrian_gap" | "handcart_gate">("pedestrian_gap");
+  const [cropId, setCropId] = useState<string>(CROP_PROFILES[0]!.id);
   const [irreversibleConfirmed, setIrreversibleConfirmed] = useState(false);
   const [partialQuantity, setPartialQuantity] = useState("");
   // Traslado (S8).
@@ -159,6 +168,7 @@ export function WorkPanel({
       confirmIrreversible: isIrreversibleAction ? irreversibleConfirmed : undefined,
       storageItem: targets[targetIndex]?.storageItem ? { kind: targets[targetIndex]!.storageItem!.kind, id: targets[targetIndex]!.storageItem!.id } : undefined,
       storageQuantity: isPartialRetrieve && Number(partialQuantity) > 0 ? Number(partialQuantity) : undefined,
+      cropId: selectedOption.actionKey === "sow" ? cropId : undefined,
     });
     setPartialQuantity("");
     setIrreversibleConfirmed(false);
@@ -182,17 +192,36 @@ export function WorkPanel({
   }
 
   function handleCreateDesignation() {
+    if (designationKind === "build_barrier") {
+      const fromX = Number(barrierPoints.fromX);
+      const fromY = Number(barrierPoints.fromY);
+      const toX = Number(barrierPoints.toX);
+      const toY = Number(barrierPoints.toY);
+      if ([fromX, fromY, toX, toY].some((n) => Number.isNaN(n))) return;
+      onCreateAreaDesignation(
+        [
+          { x: fromX, y: fromY },
+          { x: toX, y: toY },
+        ],
+        "build_barrier",
+        wayCrossingMode,
+      );
+      return;
+    }
     const minX = Number(zoneBounds.minX);
     const minY = Number(zoneBounds.minY);
     const maxX = Number(zoneBounds.maxX);
     const maxY = Number(zoneBounds.maxY);
     if ([minX, minY, maxX, maxY].some((n) => Number.isNaN(n))) return;
-    onCreateAreaDesignation([
-      { x: minX, y: minY },
-      { x: maxX, y: minY },
-      { x: maxX, y: maxY },
-      { x: minX, y: maxY },
-    ]);
+    onCreateAreaDesignation(
+      [
+        { x: minX, y: minY },
+        { x: maxX, y: minY },
+        { x: maxX, y: maxY },
+        { x: minX, y: maxY },
+      ],
+      designationKind,
+    );
   }
 
   return (
@@ -252,6 +281,18 @@ export function WorkPanel({
                 ))}
               </select>
             </label>
+            {selectedOption?.actionKey === "sow" && (
+              <label style={{ display: "block", marginTop: 4 }}>
+                Cultivo:{" "}
+                <select value={cropId} onChange={(e) => setCropId(e.target.value)}>
+                  {CROP_PROFILES.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {copyKey(c.labelKey)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             {isPartialRetrieve && (
               <label style={{ display: "block", marginTop: 4 }}>
                 Cantidad (vacío = todo): <input aria-label="Cantidad a retirar" value={partialQuantity} onChange={(e) => setPartialQuantity(e.target.value)} style={{ width: 56 }} />
@@ -328,6 +369,30 @@ export function WorkPanel({
         )}
       </section>
 
+      <section aria-label="Parcelas de cultivo">
+        <h3>Parcelas de cultivo</h3>
+        {projections.cultivationPlots.length === 0 ? (
+          <p className="z-muted">Sin parcelas conocidas.</p>
+        ) : (
+          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+            {projections.cultivationPlots.map((plot) => (
+              <li
+                key={plot.id}
+                className="z-panel"
+                style={{ padding: 6 }}
+                data-cultivation-plot-id={plot.id}
+                data-cultivation-plot-state={plot.state}
+                data-cultivation-plot-preparation={plot.preparationProgress}
+              >
+                <strong>{copyKey(`cultivation_state.${plot.state}`)}</strong>
+                {plot.preparationProgress > 0 && plot.preparationProgress < 1 && <span className="z-muted"> · preparación {Math.round(plot.preparationProgress * 100)}%</span>}
+                {plot.damageLevel > 0 && <span className="z-muted"> · daño {Math.round(plot.damageLevel * 100)}%</span>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       <section>
         <h3>Zonas y designaciones</h3>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
@@ -354,7 +419,63 @@ export function WorkPanel({
         </label>
         <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
           <button onClick={handleCreateZone}>Crear zona</button>
-          <button onClick={handleCreateDesignation}>Designar reconocimiento por área</button>
+        </div>
+
+        <h4 style={{ marginBottom: 4 }}>Designación de entorno mutable/agricultura</h4>
+        <label style={{ display: "block" }}>
+          Tipo:{" "}
+          <select value={designationKind} onChange={(e) => setDesignationKind(e.target.value as typeof designationKind)}>
+            <option value="systematic_recon">Reconocimiento sistemático</option>
+            <option value="clear_area">Despejar área (vegetación o escombros)</option>
+            <option value="cut_vegetation">Cortar vegetación</option>
+            <option value="prepare_soil">Preparar suelo para cultivo</option>
+            <option value="harvest">Cosechar parcelas cosechables</option>
+            <option value="build_barrier">Construir barrera entre anclajes</option>
+          </select>
+        </label>
+        {designationKind === "build_barrier" ? (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, marginTop: 4 }}>
+              <label>
+                Desde X <input value={barrierPoints.fromX} onChange={(e) => setBarrierPoints({ ...barrierPoints, fromX: e.target.value })} style={{ width: 56 }} />
+              </label>
+              <label>
+                Desde Y <input value={barrierPoints.fromY} onChange={(e) => setBarrierPoints({ ...barrierPoints, fromY: e.target.value })} style={{ width: 56 }} />
+              </label>
+              <label>
+                Hasta X <input value={barrierPoints.toX} onChange={(e) => setBarrierPoints({ ...barrierPoints, toX: e.target.value })} style={{ width: 56 }} />
+              </label>
+              <label>
+                Hasta Y <input value={barrierPoints.toY} onChange={(e) => setBarrierPoints({ ...barrierPoints, toY: e.target.value })} style={{ width: 56 }} />
+              </label>
+            </div>
+            <label style={{ display: "block", marginTop: 4 }}>
+              Cruce con vía (si lo hay):{" "}
+              <select value={wayCrossingMode} onChange={(e) => setWayCrossingMode(e.target.value as typeof wayCrossingMode)}>
+                <option value="pedestrian_gap">Hueco peatonal</option>
+                <option value="handcart_gate">Portón para carretilla/carro</option>
+                <option value="full_block">Bloqueo completo</option>
+              </select>
+            </label>
+          </>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, marginTop: 4 }}>
+            <label>
+              minX <input value={zoneBounds.minX} onChange={(e) => setZoneBounds({ ...zoneBounds, minX: e.target.value })} style={{ width: 56 }} />
+            </label>
+            <label>
+              minY <input value={zoneBounds.minY} onChange={(e) => setZoneBounds({ ...zoneBounds, minY: e.target.value })} style={{ width: 56 }} />
+            </label>
+            <label>
+              maxX <input value={zoneBounds.maxX} onChange={(e) => setZoneBounds({ ...zoneBounds, maxX: e.target.value })} style={{ width: 56 }} />
+            </label>
+            <label>
+              maxY <input value={zoneBounds.maxY} onChange={(e) => setZoneBounds({ ...zoneBounds, maxY: e.target.value })} style={{ width: 56 }} />
+            </label>
+          </div>
+        )}
+        <div style={{ marginTop: 4 }}>
+          <button onClick={handleCreateDesignation}>Designar</button>
         </div>
         <ul style={{ listStyle: "none", padding: 0, marginTop: 8 }}>
           {projections.zones.map((z) => (
