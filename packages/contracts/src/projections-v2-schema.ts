@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { worldPointSchema } from "./geometry.js";
-import { visibilityStateSchema } from "./fog.js";
+import { VISIBILITY_STATES, type VisibilityState } from "./fog.js";
 import { gameSpeedSchema } from "./clock.js";
 import { operationalStateSchema, personPublicFactsSchema } from "./person.js";
 import { PRIORITY_IDS } from "./catalog-ids.js";
@@ -86,13 +86,29 @@ const operationalLogEntryProjectionSchema = z.object({
   params: z.record(z.string(), z.string()),
 });
 
+/**
+ * Validador rápido para `fog.cells` (S11 §9.2): una rejilla de niebla real
+ * puede tener cientos de miles de celdas. Validar cada una con el
+ * despacho habitual de Zod (`z.array(z.enum(...))`) cuesta decenas de ms
+ * por mensaje — y este mensaje viaja en cada proyección, no una vez. Un
+ * bucle nativo con un `Set` es órdenes de magnitud más barato y sigue
+ * rechazando de verdad un payload corrupto (no es `z.unknown()`: un valor
+ * fuera de `VISIBILITY_STATES`, o algo que no sea un array, falla la
+ * validación exactamente igual).
+ */
+const visibilityStateSet: ReadonlySet<string> = new Set(VISIBILITY_STATES);
+const fogCellsSchema = z.custom<readonly VisibilityState[]>(
+  (value) => Array.isArray(value) && value.every((cell) => visibilityStateSet.has(cell as string)),
+  { message: "fog.cells debe ser un array de VisibilityState válidos." },
+);
+
 const fogMaskProjectionSchema = z.object({
   resolutionMeters: z.number().positive(),
   columns: z.number().int().nonnegative(),
   rows: z.number().int().nonnegative(),
   originX: z.number(),
   originY: z.number(),
-  cells: z.array(visibilityStateSchema),
+  cells: fogCellsSchema,
 });
 
 const visibleTerrainAreaProjectionSchema = z.object({

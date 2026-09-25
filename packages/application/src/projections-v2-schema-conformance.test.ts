@@ -57,4 +57,21 @@ describe("workerProjectionsV2Schema — conformidad con proyecciones reales", ()
     expect(result.success).toBe(false);
     expect(result.error).toBeTruthy();
   });
+
+  it("rechaza una `fog.cells` corrupta (validador rápido de S11 §9.2), sin dejar de ser una validación real", () => {
+    const session = new WorkerSessionV2();
+    const state = createInitialStateV2("schema-conformance-seed-fog");
+    const messages = session.handleMessage({ type: "load_state", protocolVersion: WORKER_PROTOCOL_VERSION_V2, gameSaveId: "game-schema-fog", revision: 0, state });
+    const projectionsMessage = projectionsMessagesOf(messages)[0]!;
+
+    const valid = workerProjectionsV2Schema.safeParse(projectionsMessage.projections);
+    expect(valid.success).toBe(true);
+
+    const corrupted = { ...projectionsMessage.projections, fog: { ...projectionsMessage.projections.fog, cells: [...projectionsMessage.projections.fog.cells.slice(0, -1), "not_a_real_state"] } };
+    const invalid = workerProjectionsV2Schema.safeParse(corrupted);
+    expect(invalid.success).toBe(false);
+
+    const notAnArray = { ...projectionsMessage.projections, fog: { ...projectionsMessage.projections.fog, cells: "not-an-array" } };
+    expect(workerProjectionsV2Schema.safeParse(notAnArray).success).toBe(false);
+  });
 });

@@ -61,8 +61,8 @@ test("recorrido crítico: crear partida, cohorte, reloj, movimiento y guardado",
   await emergencySelect.selectOption("2");
   await expect(page.getByText(/Prioridad actualizada/).first()).toBeVisible({ timeout: 10_000 });
 
-  await page.getByRole("button", { name: "Pausa" }).click();
-  await expect(page.getByRole("button", { name: "Pausa" })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Pausa", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Pausa", exact: true })).toHaveAttribute("aria-pressed", "true");
 
   await expect(page.getByText("Guardado")).toBeVisible({ timeout: 10_000 });
 

@@ -37,8 +37,8 @@ test("runtime V2 (S3): reloj, movimiento, cancelación, niebla, descubrimiento y
   // aceleración temporal complete el trayecto corto en un único tick).
   await page.getByRole("button", { name: "×2" }).click();
   await expect(page.getByRole("button", { name: "×2" })).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("button", { name: "Pausa" }).click();
-  await expect(page.getByRole("button", { name: "Pausa" })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Pausa", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Pausa", exact: true })).toHaveAttribute("aria-pressed", "true");
 
   // 5: seleccionar una persona.
   await personButtons.first().click();
