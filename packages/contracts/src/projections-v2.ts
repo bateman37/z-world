@@ -226,6 +226,8 @@ export interface InventoryEntryProjection {
   readonly spoilsAtSimSeconds: number | null;
   /** Capacidad libre/total en unidades, para contenedores. */
   readonly capacity: { readonly used: number; readonly total: number } | null;
+  /** Trabajo que lo tiene reservado (S5, `reservations.ts`), o `null` si está libre. Ausente en mobiliario/medios de transporte, que no se reservan así. */
+  readonly reservedByJobId: string | null;
 }
 
 export interface ContextualActionOptionProjection {

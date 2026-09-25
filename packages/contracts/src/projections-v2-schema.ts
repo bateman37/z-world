@@ -286,6 +286,7 @@ const inventoryEntryProjectionSchema = z.object({
   freshness: z.enum(FRESHNESS_BANDS).nullable(),
   spoilsAtSimSeconds: z.number().nullable(),
   capacity: z.object({ used: z.number().nonnegative(), total: z.number().nonnegative() }).nullable(),
+  reservedByJobId: z.string().nullable(),
 });
 
 const buildingLayerProjectionSchema = z.object({

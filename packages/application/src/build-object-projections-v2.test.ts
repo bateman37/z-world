@@ -60,6 +60,25 @@ describe("proyecciones de objetos S7", () => {
     expect(eat.targets.find((t) => t.target.kind === "resource_lot" && t.target.resourceLotId === lotId)?.blockedReasonKey).toBe("block.food_spoiled");
   });
 
+  it("un objeto o lote reservado por un trabajo se ve como reservado en el inventario (S11 §7.3)", () => {
+    const knownObjectId = project(state).inventory.find((e) => e.entityKind === "world_object")!.id;
+    const obj = state.worldObjects[knownObjectId]!;
+    const reservedObj: SimulationStateV2 = { ...state, worldObjects: { ...state.worldObjects, [obj.id]: { ...obj, ownerOrReservedByJobId: "job-reserving-1" } } };
+    expect(project(reservedObj).inventory.find((e) => e.id === obj.id)?.reservedByJobId).toBe("job-reserving-1");
+    expect(project(state).inventory.find((e) => e.id === knownObjectId)?.reservedByJobId).toBeNull();
+
+    const personId = state.peopleOrder[0]!;
+    const lotId = "resource-lot-proj-reserved";
+    const reservedLot: SimulationStateV2 = {
+      ...state,
+      resourceLots: {
+        ...state.resourceLots,
+        [lotId]: { id: lotId, family: "fresh_food", quantity: 1, unit: "unit", location: { kind: "carried_by_person", personId }, condition: 0.8, reservedByJobId: "job-reserving-2", qualityKnown: true, quality: 1, provenance: "test", decayStartedAtSimSeconds: null, conditionAtDecayStart: null },
+      },
+    };
+    expect(project(reservedLot).inventory.find((e) => e.id === lotId)?.reservedByJobId).toBe("job-reserving-2");
+  });
+
   it("la ficha deriva las pertenencias del inventario real (mismos IDs que el resumen de llegada, sin duplicados)", () => {
     const personId = state.peopleOrder[0]!;
     const sheet = project(state).personSheets[personId]!;

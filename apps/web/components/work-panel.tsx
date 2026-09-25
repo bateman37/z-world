@@ -354,7 +354,11 @@ export function WorkPanel({
         )}
       </section>
 
-      <InventorySection entries={projections.inventory} personNames={Object.fromEntries(projections.personCards.map((c) => [c.personId, c.firstName]))} />
+      <InventorySection
+        entries={projections.inventory}
+        personNames={Object.fromEntries(projections.personCards.map((c) => [c.personId, c.firstName]))}
+        jobLabels={Object.fromEntries(projections.jobs.map((j) => [j.id, j.labelKey]))}
+      />
 
       <BuildingsSection buildings={projections.buildings} />
 
@@ -812,7 +816,16 @@ function spoilText(simSeconds: number | null): string {
  * exterior), su estado reconocido y, para el alimento fresco, su banda de
  * conservación calculada por el deterioro determinista del núcleo.
  */
-function InventorySection({ entries, personNames }: { readonly entries: readonly InventoryEntryProjection[]; readonly personNames: Readonly<Record<string, string>> }) {
+function InventorySection({
+  entries,
+  personNames,
+  jobLabels,
+}: {
+  readonly entries: readonly InventoryEntryProjection[];
+  readonly personNames: Readonly<Record<string, string>>;
+  /** Etiqueta de cada trabajo conocido, para mostrar a qué trabajo tiene reservado un objeto/lote (S5, `reservations.ts`). */
+  readonly jobLabels: Readonly<Record<string, string>>;
+}) {
   return (
     <section aria-label="Inventario conocido">
       <h3>Inventario conocido</h3>
@@ -821,12 +834,13 @@ function InventorySection({ entries, personNames }: { readonly entries: readonly
       ) : (
         <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 2, fontSize: 12 }}>
           {entries.map((entry) => (
-            <li key={entry.id} data-inventory-id={entry.id}>
+            <li key={entry.id} data-inventory-id={entry.id} data-reserved-by-job-id={entry.reservedByJobId ?? undefined}>
               <strong>{copyKey(entry.labelKey)}</strong>
               {entry.quantity !== null ? ` ×${entry.quantity}${entry.unit === "liter" ? " L" : entry.unit === "kilogram" ? " kg" : ""}` : ""}
               {entry.functionalStateKey ? ` — ${copyKey(entry.functionalStateKey)}` : ""}
               {entry.freshness ? ` — ${copyKey(`freshness.${entry.freshness}`)}${entry.freshness !== "spoiled" ? spoilText(entry.spoilsAtSimSeconds) : ""}` : ""}
               {entry.capacity ? ` — capacidad ${entry.capacity.used}/${entry.capacity.total}` : ""}
+              {entry.reservedByJobId && <span style={{ color: "var(--z-warning, #c9a227)" }}> — reservado {jobLabels[entry.reservedByJobId] ? `para ${copyKey(jobLabels[entry.reservedByJobId]!)}` : "para un trabajo"}</span>}
               <div className="z-muted">{locationText(entry, personNames)}</div>
             </li>
           ))}
